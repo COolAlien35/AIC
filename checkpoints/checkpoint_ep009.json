@@ -1,0 +1,51 @@
+{
+  "episode_id": 9,
+  "trust_scores": {
+    "db_agent": 0.06754258588364964,
+    "infra_agent": 0.06754258588364964,
+    "app_agent": 0.06754258588364964,
+    "adversarial_agent": 0.19371024450000007
+  },
+  "episode_results_so_far": [
+    {
+      "episode_id": 0,
+      "total_reward": -496.74689492063095
+    },
+    {
+      "episode_id": 1,
+      "total_reward": -499.24530265470355
+    },
+    {
+      "episode_id": 2,
+      "total_reward": -494.6272543535495
+    },
+    {
+      "episode_id": 3,
+      "total_reward": -494.12271945742265
+    },
+    {
+      "episode_id": 4,
+      "total_reward": -499.50950786136207
+    },
+    {
+      "episode_id": 5,
+      "total_reward": -495.07524968019595
+    },
+    {
+      "episode_id": 6,
+      "total_reward": -494.50276143855154
+    },
+    {
+      "episode_id": 7,
+      "total_reward": -495.3280618204701
+    },
+    {
+      "episode_id": 8,
+      "total_reward": -496.46875415833676
+    },
+    {
+      "episode_id": 9,
+      "total_reward": -494.8418897994078
+    }
+  ]
+}
