@@ -29,6 +29,10 @@ class ExplanationTrace(BaseModel):
     )
     schema_drift_detected: bool
     schema_drift_field: Optional[str] = Field(default=None)
+    verifier_report: Optional[dict] = Field(
+        default=None,
+        description="Recovery Verifier report: approved, risk_score, verification_reasoning",
+    )
 
     @field_validator("sub_agent_trust_scores")
     @classmethod
@@ -71,6 +75,23 @@ class SubAgentRecommendation(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     target_metrics: list[str] = Field(
         description="Metric names this action targets"
+    )
+    expected_impact: dict[str, float] = Field(
+        default_factory=dict,
+        description="Predicted metric changes from this action",
+    )
+    risk_score: float = Field(
+        default=0.0, ge=0.0, le=1.0,
+        description="Risk score of this action (0.0=safe, 1.0=dangerous)",
+    )
+    blast_radius: str = Field(
+        default="low",
+        description="Blast radius: 'low', 'medium', or 'high'",
+    )
+    rollback_plan: str = Field(
+        default="",
+        max_length=500,
+        description="Description of how to rollback this action if it fails",
     )
 
 

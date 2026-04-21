@@ -46,7 +46,12 @@ AGENT_DB: str = "db_agent"
 AGENT_INFRA: str = "infra_agent"
 AGENT_APP: str = "app_agent"
 AGENT_ADV: str = "adversarial_agent"
-ALL_AGENTS: list[str] = [AGENT_DB, AGENT_INFRA, AGENT_APP, AGENT_ADV]
+AGENT_NET: str = "network_agent"
+AGENT_SEC: str = "security_agent"
+AGENT_VERIFIER: str = "recovery_verifier"
+ALL_AGENTS: list[str] = [
+    AGENT_DB, AGENT_INFRA, AGENT_APP, AGENT_ADV, AGENT_NET, AGENT_SEC,
+]
 
 # Initial trust scores
 INITIAL_TRUST: float = 0.5            # All agents start at 0.5
@@ -88,6 +93,8 @@ METRIC_FAULT_INIT: dict[str, float] = {
 OBS_DB: list[str] = ["db_latency_ms", "conn_pool_pct", "replication_lag_ms"]
 OBS_INFRA: list[str] = ["cpu_pct", "mem_pct", "pod_restarts", "net_io_mbps"]
 OBS_APP: list[str] = ["error_rate_pct", "p95_latency_ms", "queue_depth"]
+OBS_NET: list[str] = ["packet_loss_pct", "dns_latency_ms", "lb_5xx_count", "regional_latency_ms"]
+OBS_SEC: list[str] = ["auth_failure_rate", "suspicious_token_count", "compromised_ip_count"]
 
 # Adversarial agent config
 ADV_CORRECT_PROBABILITY: float = 0.5   # Target long-run accuracy

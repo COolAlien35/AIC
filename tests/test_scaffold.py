@@ -49,7 +49,7 @@ def test_services():
 
 def test_all_agents():
     from aic.utils.constants import ALL_AGENTS
-    assert len(ALL_AGENTS) == 4
+    assert len(ALL_AGENTS) == 6
     assert "adversarial_agent" in ALL_AGENTS
 
 

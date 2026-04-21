@@ -2,6 +2,9 @@
 """
 Orchestrator agent. Receives all sub-agent recommendations + SLA context.
 Decides which recommendations to follow, updates trust scores, emits ExplanationTrace.
+
+Phase 9: Consults RecoveryVerifierAgent after selecting a recommendation.
+If vetoed, cascades to next-best. Falls back to Safe Minimal Action after 3 vetoes.
 """
 import json
 from collections import deque
@@ -9,11 +12,12 @@ from typing import Optional
 
 from aic.agents.base_agent import BaseSubAgent
 from aic.agents.adversarial_agent import AdversarialAgent
+from aic.agents.recovery_verifier_agent import RecoveryVerifierAgent
 from aic.schemas.traces import (
     ExplanationTrace, OrchestratorAction, SubAgentRecommendation,
 )
 from aic.utils.constants import (
-    INITIAL_TRUST, TRUST_UPDATE_RATE, ALL_AGENTS, AGENT_ADV,
+    INITIAL_TRUST, TRUST_UPDATE_RATE, ALL_AGENTS, AGENT_ADV, AGENT_VERIFIER,
     MAX_TOKENS_AGENT, SLA_STEPS, TRACE_HISTORY_WINDOW, METRIC_TARGETS,
 )
 
@@ -68,6 +72,10 @@ class OrchestratorAgent:
         self.trace_history: deque = deque(maxlen=TRACE_HISTORY_WINDOW)
         self._prev_recommendations: dict[str, SubAgentRecommendation] = {}
         self._followed_agent: Optional[str] = None
+        # Phase 9: Recovery Verifier for safety gate
+        self._verifier = RecoveryVerifierAgent()
+        self._last_verifier_report: Optional[dict] = None
+        self._vetoed_actions: list[dict] = []  # logged for dashboard visibility
 
     def reset(self) -> None:
         """Reset trust scores and trace history for a new episode."""
@@ -75,6 +83,9 @@ class OrchestratorAgent:
         self.trace_history = deque(maxlen=TRACE_HISTORY_WINDOW)
         self._prev_recommendations = {}
         self._followed_agent = None
+        self._verifier.reset()
+        self._last_verifier_report = None
+        self._vetoed_actions = []
 
     def decide(
         self,
@@ -227,9 +238,10 @@ class OrchestratorAgent:
         step: int,
         recommendations: list[SubAgentRecommendation],
     ) -> OrchestratorAction:
-        """Rule-based fallback with trust-aware suppression in trained mode."""
+        """Rule-based fallback with trust suppression and verifier safety gate."""
         trust_threshold = 0.4
         override_agent = None
+        self._vetoed_actions = []
 
         if self.mode == "trained":
             # In trained mode, suppress agents with low trust scores
@@ -243,15 +255,12 @@ class OrchestratorAgent:
             ]
 
             if trusted:
-                # Sort by confidence and pick the best trusted agent
-                best = max(trusted, key=lambda r: r.confidence)
+                candidates = sorted(trusted, key=lambda r: r.confidence, reverse=True)
             else:
-                # All agents suppressed — fall back to highest confidence non-adversary
                 non_adv = [r for r in recommendations if r.agent_name != AGENT_ADV]
-                best = (
-                    max(non_adv, key=lambda r: r.confidence)
-                    if non_adv
-                    else recommendations[0]
+                candidates = sorted(
+                    non_adv if non_adv else recommendations,
+                    key=lambda r: r.confidence, reverse=True,
                 )
 
             # If the overall highest-confidence rec came from a suppressed agent,
@@ -261,7 +270,45 @@ class OrchestratorAgent:
                 override_agent = all_sorted[0].agent_name
         else:
             # Untrained mode: naive highest-confidence from all agents
-            best = max(recommendations, key=lambda r: r.confidence)
+            candidates = sorted(recommendations, key=lambda r: r.confidence, reverse=True)
+
+        # Phase 9: Verifier safety gate — try up to 3 candidates
+        MAX_VETO_ATTEMPTS = 3
+        best = None
+        verifier_report_dict = None
+
+        for attempt, candidate in enumerate(candidates[:MAX_VETO_ATTEMPTS]):
+            report = self._verifier.verify(candidate)
+            verifier_report_dict = report.to_dict()
+
+            if report.approved:
+                best = candidate
+                self._last_verifier_report = verifier_report_dict
+                break
+            else:
+                # Log the vetoed action for dashboard visibility
+                self._vetoed_actions.append({
+                    "agent": candidate.agent_name,
+                    "action": candidate.action,
+                    "risk_score": candidate.risk_score,
+                    "blast_radius": candidate.blast_radius,
+                    "veto_reason": report.verification_reasoning,
+                })
+
+        if best is None:
+            # All candidates vetoed — use Safe Minimal Action
+            best = self._verifier.get_safe_minimal_action()
+            verifier_report_dict = {
+                "approved": True,
+                "risk_score": 0.0,
+                "blast_radius": "low",
+                "verification_reasoning": (
+                    f"All {min(len(candidates), MAX_VETO_ATTEMPTS)} recommendations "
+                    f"vetoed. Defaulting to safe minimal action."
+                ),
+                "vetoed_action": None,
+            }
+            self._last_verifier_report = verifier_report_dict
 
         # Track which agent was followed for trust attribution
         self._followed_agent = best.agent_name
@@ -271,8 +318,10 @@ class OrchestratorAgent:
             first_metric = best.target_metrics[0]
             if any(k in first_metric for k in ("db_", "conn_", "replication")):
                 target_service = "db"
-            elif any(k in first_metric for k in ("cpu", "mem", "pod", "net")):
+            elif any(k in first_metric for k in ("cpu", "mem", "pod", "net", "packet", "dns", "lb_", "regional")):
                 target_service = "infra"
+            elif any(k in first_metric for k in ("auth", "suspicious", "compromised")):
+                target_service = "app"
             else:
                 target_service = "app"
         else:
@@ -298,6 +347,7 @@ class OrchestratorAgent:
             predicted_2step_impact={m: -5.0 for m in best.target_metrics},
             schema_drift_detected=False,
             schema_drift_field=None,
+            verifier_report=verifier_report_dict,
         )
 
         return OrchestratorAction(
