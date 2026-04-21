@@ -287,7 +287,7 @@ class TestAICEnvironment:
     def test_reset_returns_valid_obs(self):
         from aic.env.aic_environment import AICEnvironment
         env = AICEnvironment(episode_id=0, log_dir="/tmp/aic_test_logs")
-        obs, info = env.reset()
+        obs = env.reset()
 
         assert "alert_summary_text" in obs
         assert "sla_remaining_steps" in obs
@@ -302,12 +302,11 @@ class TestAICEnvironment:
         env.reset()
 
         result = env.step("test action: scale database pool")
-        assert len(result) == 5
-        obs, reward, terminated, truncated, info = result
+        assert len(result) == 4
+        obs, reward, done, info = result
         assert isinstance(obs, dict)
         assert isinstance(reward, float)
-        assert isinstance(terminated, bool)
-        assert isinstance(truncated, bool)
+        assert isinstance(done, bool)
         assert isinstance(info, dict)
         assert "health" in info
 
@@ -317,11 +316,11 @@ class TestAICEnvironment:
         env.reset()
 
         for i in range(SLA_STEPS):
-            obs, reward, terminated, truncated, info = env.step("noop")
+            obs, reward, done, info = env.step("noop")
             if i < SLA_STEPS - 1:
-                assert not terminated
+                assert not done
             else:
-                assert terminated
+                assert done
 
     def test_step_after_done_raises(self):
         from aic.env.aic_environment import AICEnvironment
