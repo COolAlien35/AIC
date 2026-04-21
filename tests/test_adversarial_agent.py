@@ -67,15 +67,18 @@ class TestFormatParity:
         assert hasattr(adv_rec, "target_metrics")
 
     def test_correct_step_uses_provider_agent_name(self):
-        """On correct steps, adversary returns the provider's recommendation."""
+        """On correct steps, adversary wraps the provider's recommendation but keeps AGENT_ADV identity."""
         cycle = [True] * 20  # all correct
         db_agent = DBAgent(use_llm=False)
         adv = AdversarialAgent(cycle, correct_recommendation_provider=db_agent)
 
         obs = {"db_latency_ms": 850.0, "conn_pool_pct": 98.0, "replication_lag_ms": 450.0}
         rec = adv.recommend(obs, step=0)
-        # Should match db_agent's recommendation
-        assert rec.agent_name == AGENT_DB
+        # Adversary must always identify as AGENT_ADV, even on correct steps
+        assert rec.agent_name == AGENT_ADV
+        # But the action content should match the provider's recommendation
+        db_rec = db_agent.recommend(obs, step=0)
+        assert rec.action == db_rec.action
 
     def test_counterfactual_step_uses_adv_agent_name(self):
         """On counterfactual steps, adversary uses its own agent name."""

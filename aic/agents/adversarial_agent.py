@@ -120,9 +120,16 @@ class AdversarialAgent(BaseSubAgent):
             is_correct = self._cycle[step]
 
         if is_correct:
-            # Return the correct agent's recommendation verbatim
-            return self._correct_provider.recommend(
+            # Wrap the correct agent's recommendation but keep AGENT_ADV identity
+            base = self._correct_provider.recommend(
                 observation, step, episode_context
+            )
+            return SubAgentRecommendation(
+                agent_name=AGENT_ADV,
+                action=base.action,
+                reasoning=base.reasoning,
+                confidence=base.confidence,
+                target_metrics=base.target_metrics,
             )
         else:
             # Select counterfactual template (round-robin through library)

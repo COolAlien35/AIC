@@ -71,6 +71,9 @@ def run_episode(
     prev_metrics = ws.snapshot()
     trust_evolution = []
 
+    early_termination = False
+    r2 = 0.0
+
     for step in range(SLA_STEPS):
         # Get sliced observations (with possible drift injection)
         db_obs_raw = ws.get_db_observation()
@@ -145,9 +148,18 @@ def run_episode(
 
         prev_metrics = ws.snapshot()
 
-    # Episode end reward
-    r2 = reward_eng.compute_episode_end_reward(ws.snapshot(), steps_remaining=0)
-    total_reward = reward_eng.get_total_episode_reward() + r2
+        # SLA early termination: check if all metrics are within SLA threshold
+        if ws.is_within_sla():
+            steps_remaining = SLA_STEPS - step - 1
+            r2 = reward_eng.compute_episode_end_reward(ws.snapshot(), steps_remaining)
+            early_termination = True
+            break
+
+    # Episode end reward (only if no early termination)
+    if not early_termination:
+        r2 = reward_eng.compute_episode_end_reward(ws.snapshot(), steps_remaining=0)
+
+    total_reward = reward_eng.get_total_episode_reward()
 
     return {
         "episode_id": episode_id,
@@ -181,6 +193,7 @@ def train(config: TrainingConfig = None) -> list[dict]:
     dummy_cycle = get_adversary_cycle(make_episode_rng(0, config.base_seed))
     adv_agent = AdversarialAgent(dummy_cycle, db)
     orchestrator = OrchestratorAgent(adv_agent, use_llm=config.use_llm_agents)
+    orchestrator.mode = "trained"
 
     all_episode_results = []
     cached_trajectories = {}

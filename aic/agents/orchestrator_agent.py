@@ -54,6 +54,7 @@ class OrchestratorAgent:
     ):
         self.adversarial_agent = adversarial_agent
         self.use_llm = use_llm
+        self.mode: str = "untrained"  # Set to "trained" to enable trust suppression
         self._client = None
         if use_llm:
             try:
@@ -66,12 +67,14 @@ class OrchestratorAgent:
         }
         self.trace_history: deque = deque(maxlen=TRACE_HISTORY_WINDOW)
         self._prev_recommendations: dict[str, SubAgentRecommendation] = {}
+        self._followed_agent: Optional[str] = None
 
     def reset(self) -> None:
         """Reset trust scores and trace history for a new episode."""
         self.trust_scores = {a: INITIAL_TRUST for a in ALL_AGENTS}
         self.trace_history = deque(maxlen=TRACE_HISTORY_WINDOW)
         self._prev_recommendations = {}
+        self._followed_agent = None
 
     def decide(
         self,
@@ -121,9 +124,12 @@ class OrchestratorAgent:
     ) -> None:
         """
         Bayesian trust update based on observed outcomes.
+        Only updates trust for the agent whose recommendation was actually followed.
         trust_new = (1 - TRUST_UPDATE_RATE) * trust_old + TRUST_UPDATE_RATE * outcome_score
         """
         if not self._prev_recommendations or not prev_metrics:
+            return
+        if self._followed_agent is None:
             return
 
         # Check if metrics improved: count metrics that moved toward target
@@ -140,9 +146,9 @@ class OrchestratorAgent:
 
         outcome_score = 1.0 if total > 0 and improvements > total / 2 else 0.0
 
-        for agent_name in ALL_AGENTS:
-            if agent_name not in self._prev_recommendations:
-                continue
+        # Only update trust for the agent whose recommendation was followed
+        agent_name = self._followed_agent
+        if agent_name in self._prev_recommendations:
             old_trust = self.trust_scores[agent_name]
             self.trust_scores[agent_name] = max(0.0, min(1.0,
                 (1 - TRUST_UPDATE_RATE) * old_trust
@@ -221,13 +227,44 @@ class OrchestratorAgent:
         step: int,
         recommendations: list[SubAgentRecommendation],
     ) -> OrchestratorAction:
-        """Rule-based fallback: trust highest-confidence non-adversary recommendation."""
-        non_adv = [r for r in recommendations if r.agent_name != AGENT_ADV]
-        best = (
-            max(non_adv, key=lambda r: r.confidence)
-            if non_adv
-            else recommendations[0]
-        )
+        """Rule-based fallback with trust-aware suppression in trained mode."""
+        trust_threshold = 0.4
+        override_agent = None
+
+        if self.mode == "trained":
+            # In trained mode, suppress agents with low trust scores
+            trusted = [
+                r for r in recommendations
+                if self.trust_scores.get(r.agent_name, 0.5) >= trust_threshold
+            ]
+            suppressed = [
+                r for r in recommendations
+                if self.trust_scores.get(r.agent_name, 0.5) < trust_threshold
+            ]
+
+            if trusted:
+                # Sort by confidence and pick the best trusted agent
+                best = max(trusted, key=lambda r: r.confidence)
+            else:
+                # All agents suppressed — fall back to highest confidence non-adversary
+                non_adv = [r for r in recommendations if r.agent_name != AGENT_ADV]
+                best = (
+                    max(non_adv, key=lambda r: r.confidence)
+                    if non_adv
+                    else recommendations[0]
+                )
+
+            # If the overall highest-confidence rec came from a suppressed agent,
+            # record the override
+            all_sorted = sorted(recommendations, key=lambda r: r.confidence, reverse=True)
+            if all_sorted and self.trust_scores.get(all_sorted[0].agent_name, 0.5) < trust_threshold:
+                override_agent = all_sorted[0].agent_name
+        else:
+            # Untrained mode: naive highest-confidence from all agents
+            best = max(recommendations, key=lambda r: r.confidence)
+
+        # Track which agent was followed for trust attribution
+        self._followed_agent = best.agent_name
 
         # Determine target service from first target metric
         if best.target_metrics:
@@ -241,17 +278,23 @@ class OrchestratorAgent:
         else:
             target_service = "db"
 
+        override_applied = override_agent is not None
         trace = ExplanationTrace(
             step=step,
             action_taken=best.action,
             reasoning=(
                 f"Following {best.agent_name} recommendation with highest "
                 f"confidence ({best.confidence:.2f}). "
+                f"Trust={self.trust_scores.get(best.agent_name, 0.5):.2f}. "
                 f"Causal path: {best.reasoning}"
             ),
             sub_agent_trust_scores=self.trust_scores.copy(),
-            override_applied=False,
-            override_reason=None,
+            override_applied=override_applied,
+            override_reason=(
+                f"Suppressed {override_agent} due to low trust "
+                f"({self.trust_scores.get(override_agent, 0.0):.2f} < {trust_threshold})"
+                if override_applied else None
+            ),
             predicted_2step_impact={m: -5.0 for m in best.target_metrics},
             schema_drift_detected=False,
             schema_drift_field=None,
@@ -261,6 +304,6 @@ class OrchestratorAgent:
             action_description=best.action,
             target_service=target_service,
             action_deltas={m: -10.0 for m in best.target_metrics},
-            trust_override=None,
+            trust_override=override_agent,
             explanation_trace=trace,
         )

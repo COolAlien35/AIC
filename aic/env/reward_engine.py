@@ -160,16 +160,22 @@ class RewardEngine:
         self._step_rewards.append(record)
         return record
 
+    def record_r2_bonus(self, r2: float) -> None:
+        """Record R2 bonus (can be called mid-episode on early SLA success)."""
+        self._r2_bonus = r2
+
     def compute_episode_end_reward(self, metrics: dict[str, float], steps_remaining: int) -> float:
         """Compute R2 at episode end."""
         episode_success = all(
             abs(metrics.get(m, 0) - METRIC_TARGETS[m]) / max(METRIC_TARGETS[m], 1e-6) <= SLA_HEALTH_THRESHOLD
             for m in METRIC_TARGETS
         )
-        return compute_r2(metrics, steps_remaining, episode_success)
+        r2 = compute_r2(metrics, steps_remaining, episode_success)
+        self._r2_bonus = r2
+        return r2
 
     def get_total_episode_reward(self) -> float:
-        return sum(r["total"] for r in self._step_rewards)
+        return sum(r["total"] for r in self._step_rewards) + getattr(self, '_r2_bonus', 0.0)
 
     def get_reward_history(self) -> list[dict]:
         return self._step_rewards.copy()
