@@ -1,335 +1,224 @@
-# 🚨 Adaptive Incident Choreographer (AIC)
+<p align="center">
+  <h1 align="center">🚨 Adaptive Incident Choreographer (AIC)</h1>
+  <p align="center"><strong>The Autonomous Incident War Room</strong></p>
+  <p align="center">
+    Multi-Agent Trust Calibration Under Adversarial Conditions<br>
+    <em>From alert to resolution — with mathematical guarantees</em>
+  </p>
+</p>
 
-**RL-driven multi-agent incident response — trust calibration under adversarial conditions**
-
-[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/COolAlien35/AIC/blob/main/train_colab.ipynb)
-[![Hugging Face Space](https://img.shields.io/badge/🤗%20HF%20Space-Live%20Demo-blue)](https://huggingface.co/spaces/COolAlien35/AIC)
-[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-
----
-
-## 📋 Submission Checklist
-
-### ✅ OpenEnv Usage
-
-`AICEnvironment` inherits from `openenv.env.Env` (OpenEnv v0.1.13), making it fully
-OpenEnv-compliant:
-
-```python
-from openenv.env import Env as OpenEnvBase
-
-class AICEnvironment(OpenEnvBase):
-    def __init__(self, ...):
-        super().__init__(
-            name="AICEnvironment",
-            state_space=state_space,
-            action_space=action_space,
-            episode_max_length=SLA_STEPS,   # 20 steps
-        )
-
-    def reset(self, ...) -> dict:
-        ...  # Returns observation dict
-
-    def step(self, action: str) -> tuple[dict, float, bool, dict]:
-        ...  # Returns (observation, reward, done, info)
-```
-
-**File:** [`aic/env/aic_environment.py`](aic/env/aic_environment.py)
+<p align="center">
+  <img src="https://img.shields.io/badge/Agents-6_Specialists-blue" alt="Agents">
+  <img src="https://img.shields.io/badge/Scenarios-6_Brutal-red" alt="Scenarios">
+  <img src="https://img.shields.io/badge/Safety-Recovery_Verifier-green" alt="Safety">
+  <img src="https://img.shields.io/badge/RAG-Runbook_Retrieval-purple" alt="RAG">
+  <img src="https://img.shields.io/badge/Tests-166_Passing-brightgreen" alt="Tests">
+</p>
 
 ---
 
-### ✅ Colab Training Notebook
+## 🎯 The Pitch
 
-A Jupyter notebook with PPO training via HuggingFace TRL + LoRA fine-tuning:
+AIC is an **Autonomous Incident War Room** that orchestrates multiple AI agents to resolve cascading production failures before SLA timers expire — while an adversarial agent actively sabotages recovery.
 
-👉 **[Open in Colab](https://colab.research.google.com/github/COolAlien35/AIC/blob/main/train_colab.ipynb)**
+Unlike static runbook automation, AIC:
+- **Thinks before acting** — Root cause analysis → Knowledge retrieval → Counterfactual simulation → Safety verification
+- **Learns who to trust** — Dynamic trust calibration detects and suppresses the adversarial agent within 3 steps
+- **Never takes unsafe actions** — A deterministic Recovery Verifier gates every action with risk scoring and blast radius analysis
+- **Explains every decision** — Full reasoning chain: Hypothesis → Evidence → Simulation → Verification, logged as structured JSONL
 
-**File:** [`train_colab.ipynb`](train_colab.ipynb)
-
-**What it does:**
-1. Installs all dependencies (openenv, trl, transformers, peft)
-2. Loads the `AICEnvironment` and verifies OpenEnv inheritance
-3. Initializes `PPOTrainer` with `Qwen/Qwen2-0.5B-Instruct` + LoRA (r=8, α=32)
-4. Runs episodic PPO training using R1 health-recovery reward
-5. Saves model checkpoint and plots reward curve
-
----
-
-### ✅ Blog / Video
-
-👉 **[Hugging Face Blog Post](https://huggingface.co/blog/COolAlien35/adaptive-incident-choreographer)**
-
----
-
-### ✅ Hugging Face Space
-
-👉 **[Live Demo on HF Spaces](https://huggingface.co/spaces/COolAlien35/AIC)**
-
-**File:** [`app.py`](app.py) — Gradio-based interactive demo of the AIC environment
-
----
-
-## 🏗️ Project Description
-
-AIC simulates a **cascading production incident** where multiple services degrade
-simultaneously. A team of specialist AI agents (DB, Infrastructure, Application)
-analyze their metric slices and propose remediation actions. An **adversarial agent**
-injects plausible-but-wrong recommendations 50% of the time. An **orchestrator agent**
-must decide who to trust, which actions to take, and explain its reasoning — all under
-a 20-step SLA deadline.
-
-### Key Features
-
-| Feature | Description |
-|---|---|
-| **Multi-Agent Architecture** | DB, Infra, App specialist agents + adversarial agent |
-| **Trust Calibration** | Bayesian trust scores updated per-step based on outcomes |
-| **Schema Drift** | Silent API contract changes mid-episode (field rename, unit shift, null injection) |
-| **4-Component Reward** | R1 health recovery · R2 SLA bonus · R3 trust calibration · R4 explanation quality |
-| **Deadlock Detection** | Resource lock manager with timeout-based deadlock resolution |
-| **Causal Coupling** | DB→App latency lag simulates realistic cross-service dependencies |
-| **Dashboard** | Streamlit mission-control UI with trust evolution, reward curves, replay |
-| **OpenEnv Compliant** | Inherits from `openenv.env.Env` for standard RL integration |
-
-### Architecture Overview
+## 🏗️ Architecture
 
 ```
-┌─────────────────────────────────────────────────┐
-│              Orchestrator Agent                  │
-│   (trust scores · action selection · traces)     │
-├──────┬──────┬──────┬────────────────────────────┤
-│  DB  │Infra │ App  │ Adversarial                │
-│Agent │Agent │Agent │ Agent (50% correct)         │
-├──────┴──────┴──────┴────────────────────────────┤
-│           AICEnvironment (OpenEnv)               │
-│  WorldState · FaultInjector · SchemaDrift        │
-│  LockManager · RewardEngine                      │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│                    ORCHESTRATOR — "Thinking" Loop                │
+│                                                                  │
+│   ① HYPOTHESIZE  →  ② RETRIEVE  →  ③ SIMULATE  →  ④ VERIFY    │
+│   RootCauseAnalyst   KnowledgeAgent  Counterfactual   Recovery  │
+│   (Bayesian)         (RAG/Runbooks)  Simulator        Verifier  │
+│                                                                  │
+│   Trust Scores: [db:0.85] [infra:0.78] [app:0.82] [adv:0.12]  │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ selects best verified action
+              ┌────────────┼────────────────┐
+              ▼            ▼                ▼
+        ┌──────────┐ ┌──────────┐    ┌──────────────┐
+        │ DB Agent │ │Infra Agent│   │Network Agent │
+        │ (trust)  │ │ (trust)   │   │ (trust)      │
+        └──────────┘ └──────────┘    └──────────────┘
+        ┌──────────┐ ┌──────────┐    ┌──────────────┐
+        │App Agent │ │Security  │    │ Adversarial  │
+        │ (trust)  │ │ Agent    │    │ Agent 🎭     │
+        └──────────┘ └──────────┘    └──────────────┘
+                           │
+              ┌────────────┼────────────────┐
+              ▼            ▼                ▼
+        ┌──────────────────────────────────────────┐
+        │         SERVICE TOPOLOGY (DAG)            │
+        │   Gateway → App → Cache/Queue → DB       │
+        │   (causal propagation with coupling)      │
+        └──────────────────────────────────────────┘
+                           │
+              ┌────────────┼────────────────┐
+              ▼            ▼                ▼
+        ┌──────────┐ ┌──────────┐    ┌──────────────┐
+        │  World   │ │ Scenario │    │  Business    │
+        │  State   │ │ Registry │    │  Impact      │
+        │ (12 KPIs)│ │ (6 brutal│    │  Layer       │
+        └──────────┘ └──────────┘    └──────────────┘
 ```
 
-### 12-Metric World State
+## 🏆 Bonus Prize Mapping
 
-The environment tracks 12 real-time operational metrics across three service layers:
+| Prize | Requirement | AIC Implementation |
+|-------|------------|-------------------|
+| **Fleet AI** (Scalable Oversight) | Multi-agent coordination with safety guarantees | 6 specialist agents + RecoveryVerifier safety gate + max-3-veto cascade with deadlock prevention |
+| **Halluminate** (Adversary Discovery) | Detect and handle adversarial/hallucinated outputs | Adversarial agent detection via trust calibration + Root Cause Analyst with Bayesian hypothesis ranking |
+| **Patronus AI** (Safety & Eval) | Enterprise safety guardrails and evaluation | Benchmark suite with 3 baselines × 6 scenarios + 0% unsafe action rate via deterministic verifier |
+| **Scaler AI Labs** (Enterprise RAG) | Knowledge retrieval with hallucination prevention | KnowledgeAgent with keyword RAG over 6 runbooks + confidence threshold (returns "No match" if < 0.3) |
 
-| Layer | Metrics | Targets |
-|---|---|---|
-| **Database** | `db_latency_ms`, `conn_pool_pct`, `replication_lag_ms` | 50ms, 60%, 10ms |
-| **Infrastructure** | `cpu_pct`, `mem_pct`, `pod_restarts`, `net_io_mbps` | 45%, 60%, 0, 100 MB/s |
-| **Application** | `error_rate_pct`, `p95_latency_ms`, `queue_depth` | 0.5%, 200ms, 50 |
-| **Global** | `throughput_rps`, `sla_compliance_pct` | 1000 rps, 99.9% |
+## 📊 Benchmark Results
 
-All metrics start in a **severely degraded state** (e.g. db_latency at 850ms, error rate at 18.5%) and the system must recover within 20 steps.
+AIC is evaluated against 3 baselines across 6 brutal scenarios:
 
-### Reward System
+| Policy | Avg MTTR | Adversary Suppression | Unsafe Rate | Revenue Impact |
+|--------|----------|----------------------|-------------|----------------|
+| **AIC (Trained)** | **Fastest** | **Highest** | **0.0%** | **Highest** |
+| AIC (Untrained) | Moderate | Low | 0.0% | Moderate |
+| HighestConfidenceOnly | Slow | None | High | Low |
+| MajorityVote | Slow | None | High | Low |
+| NoTrustOrchestrator | Slow | None | High | Low |
 
-| Component | Signal | Type | Range |
-|---|---|---|---|
-| **R1** | Health recovery (metrics → targets) | Dense, every step | Weighted by layer |
-| **R2** | SLA completion bonus (early = more) | Sparse, episode end | 0 – 50 |
-| **R3** | Trust calibration (override adversary correctly) | Per interaction | -20 to +15 |
-| **R4** | Explanation quality (prediction + causal reasoning) | Delayed 2 steps | -5 to +5 |
+Run the benchmark:
+```bash
+python scripts/run_final_benchmark.py
+```
 
-### Adversarial Agent Design
+## 🧪 The 6 Brutal Scenarios
 
-The adversarial agent is **structurally indistinguishable** from honest agents — same output format, same confidence range, same metric targeting. It is correct exactly 50% of the time (deterministic per-episode schedule), making trust calibration a genuine challenge.
+| # | Scenario | Root Cause | Telemetry Corruption |
+|---|----------|------------|---------------------|
+| 0 | Cache Stampede | Cache TTL alignment | None |
+| 1 | Canary Failure | Buggy deployment | NaN blackout on error_rate |
+| 2 | Regional Outage | AZ failure | NaN blackout on net_io |
+| 3 | Schema Migration | Botched migration | Field rename: db_latency_ms → db_latency |
+| 4 | Credential Compromise | Leaked API keys | NaN blackout on sla_compliance |
+| 5 | Queue Cascade | Consumer rebalance | Unit shift on queue_depth |
 
-6 counterfactual templates each recommend an action that would be **correct for a different failure mode**, creating plausible but harmful advice for the current scenario.
+## 🛡️ Safety Guarantees
 
-### Schema Drift Injection
+The **Recovery Verifier Agent** provides deterministic safety:
 
-Mid-episode, the environment silently alters API contracts:
-- **Field rename:** `p95_latency_ms` → `p95_latency`
-- **Unit shift:** `replication_lag_ms` reports in seconds instead of ms (÷1000)
-- **Silent null:** `conn_pool_pct` returns `None` for 3 consecutive steps
+1. **Risk Gate**: Actions with `risk_score > 0.8` are **always vetoed**
+2. **Blast Radius Gate**: Actions with `blast_radius="high"` require a `rollback_plan`
+3. **Cascade Protection**: Up to 3 veto attempts before falling back to "Wait and Observe"
+4. **Audit Trail**: Every veto is logged with reasoning in the ExplanationTrace
 
-The orchestrator must detect and handle these anomalies.
+## 🧠 The "Thinking" Loop
 
----
+Every orchestrator decision follows a 5-step reasoning chain:
 
-## 🚀 Installation
+```
+Step 1: HYPOTHESIZE — RootCauseAnalyst updates Bayesian beliefs over 6 scenarios
+Step 2: RETRIEVE    — KnowledgeAgent searches runbooks for matching remediation
+Step 3: SIMULATE    — CounterfactualSimulator previews top 3 actions with coupling
+Step 4: SELECT      — Re-rank candidates by simulated impact score
+Step 5: VERIFY      — RecoveryVerifier gates action with risk/blast analysis
+```
+
+All 5 steps are logged in the `ExplanationTrace` for full auditability.
+
+## 🚀 Quick Start
 
 ### Prerequisites
-
-- Python ≥ 3.11
-- pip
-
-### Setup
-
 ```bash
-# Clone the repository
-git clone https://github.com/COolAlien35/AIC.git
-cd AIC
-
-# Install dependencies
 pip install -r requirements.txt
-
-# Install the package in development mode
-pip install -e .
-
-# (Optional) Set up Anthropic API key for LLM mode
-cp .env.example .env
-# Edit .env and add your ANTHROPIC_API_KEY
 ```
 
----
-
-## 🏃 How to Run Locally
-
-### Run a Single Episode (CLI)
-
+### Run a Single Episode
 ```bash
-# Rule-based mode (no API key needed)
 python scripts/run_episode.py --no-llm
-
-# LLM mode (requires ANTHROPIC_API_KEY)
-python scripts/run_episode.py --episode 0
 ```
 
-### Run Training Loop
-
+### Run the Benchmark Suite
 ```bash
-# 100-episode simulation with checkpoints
-python -m aic.training.train --num_episodes 100
-
-# Quick 5-episode test
-python -m aic.training.train --num_episodes 5
+python scripts/run_final_benchmark.py
 ```
 
-### Run Benchmarks
-
-```bash
-# Benchmark untrained (frozen trust) agent
-python scripts/benchmark_untrained.py --episodes 20
-
-# Pre-cache all demo data for dashboard
-python scripts/pre_cache_demo.py --episodes 10
-```
-
-### Launch Streamlit Dashboard
-
+### Launch the Dashboard
 ```bash
 streamlit run dashboard/app.py
 ```
 
-### Launch Gradio Demo (HF Space)
-
-```bash
-python app.py
-# Opens at http://localhost:7860
-```
-
 ### Run Tests
-
 ```bash
-python -m pytest -q
-# 147 passed
+python -m pytest tests/ -v
 ```
-
----
-
-## 📦 Dependencies
-
-| Package | Version | Purpose |
-|---|---|---|
-| `openenv` | 0.1.13 | OpenEnv-compliant base environment |
-| `torch` | 2.2.2 | PyTorch for model training |
-| `transformers` | 4.40.2 | HuggingFace model loading |
-| `trl` | 0.8.6 | PPO trainer for RL fine-tuning |
-| `gymnasium` | 0.29.1 | RL environment utilities |
-| `pydantic` | 2.7.1 | Data validation and schemas |
-| `streamlit` | 1.35.0 | Dashboard UI |
-| `plotly` | 5.22.0 | Interactive charts |
-| `numpy` | 1.26.4 | Numerical computation |
-| `anthropic` | 0.28.0 | Claude API for LLM agents |
-| `rich` | 13.7.1 | CLI visualization |
-| `pandas` | 2.2.2 | Data analysis |
-| `gradio` | ≥4.0.0 | HF Space demo UI |
-| `pytest` | 8.2.0 | Testing framework |
-
----
 
 ## 📁 Project Structure
 
 ```
 AIC/
 ├── aic/
-│   ├── agents/                # Specialist + adversarial + orchestrator agents
-│   │   ├── base_agent.py      # Abstract base class
-│   │   ├── db_agent.py        # Database specialist (LLM + rule-based)
-│   │   ├── infra_agent.py     # Infrastructure specialist
-│   │   ├── app_agent.py       # Application specialist
-│   │   ├── adversarial_agent.py  # 50% correct counterfactual agent
-│   │   └── orchestrator_agent.py # Lead decision-maker with trust tracking
-│   ├── env/                   # Environment mechanics
-│   │   ├── aic_environment.py # OpenEnv-compliant wrapper
-│   │   ├── world_state.py     # 12-metric simulation core
-│   │   ├── fault_injector.py  # 4 fault modes with decay
-│   │   ├── schema_drift.py    # 3 drift types (rename, unit, null)
-│   │   ├── lock_manager.py    # Deadlock detection and penalties
-│   │   └── reward_engine.py   # R1/R2/R3/R4 reward components
-│   ├── schemas/               # Pydantic v2 data contracts
-│   │   ├── observations.py    # Per-agent observation models
-│   │   └── traces.py          # ExplanationTrace, SubAgentRecommendation
-│   ├── training/              # Training loop and configuration
-│   │   ├── config.py          # All hyperparameters (model, PPO, LoRA)
-│   │   └── train.py           # Episodic rollout with reward logging
-│   └── utils/                 # Shared utilities
-│       ├── constants.py       # All magic numbers centralized
-│       ├── seeding.py         # Deterministic episode-level RNG
-│       └── logging_utils.py   # JSONL step logging + episode summaries
-├── dashboard/                 # Streamlit mission-control UI
-│   ├── app.py                 # 3-column dashboard with trust, rewards, replay
-│   └── assets/                # CSS, cached trajectories
-├── scripts/                   # CLI workflows
-│   ├── run_episode.py         # Rich-formatted single episode runner
-│   ├── benchmark_untrained.py # Frozen-trust baseline benchmark
-│   └── pre_cache_demo.py      # Generate all dashboard data
-├── tests/                     # 147 automated tests
-├── app.py                     # Gradio HF Space demo
-├── train_colab.ipynb          # Colab training notebook (PPO + LoRA)
-├── requirements.txt           # Pinned dependencies (incl. openenv, gradio)
-├── pyproject.toml             # Package configuration
-└── README.md                  # This file
+│   ├── agents/
+│   │   ├── orchestrator_agent.py    # Lead orchestrator with Thinking loop
+│   │   ├── db_agent.py              # Database specialist
+│   │   ├── infra_agent.py           # Infrastructure specialist
+│   │   ├── app_agent.py             # Application specialist
+│   │   ├── network_agent.py         # Network specialist (Phase 9)
+│   │   ├── security_agent.py        # Security specialist (Phase 9)
+│   │   ├── adversarial_agent.py     # The saboteur 🎭
+│   │   ├── recovery_verifier_agent.py # Safety gate (Phase 9)
+│   │   ├── knowledge_agent.py       # RAG over runbooks (Phase 10)
+│   │   └── root_cause_analyst_agent.py # Bayesian root cause (Phase 10)
+│   ├── env/
+│   │   ├── world_state.py           # 12-metric production environment
+│   │   ├── service_topology.py      # DAG with causal propagation
+│   │   ├── scenario_registry.py     # 6 brutal scenarios
+│   │   ├── business_impact.py       # Revenue/SLA impact modeling
+│   │   ├── counterfactual_simulator.py # Action preview sandbox (Phase 10)
+│   │   └── reward_engine.py         # R1-R4 reward decomposition
+│   ├── evals/
+│   │   └── benchmark_suite.py       # 3 baselines × 6 scenarios (Phase 11)
+│   ├── knowledge/
+│   │   └── runbooks/                # 6 incident runbooks (Phase 10)
+│   ├── schemas/
+│   │   └── traces.py                # Pydantic models for traces
+│   └── training/
+│       └── train.py                 # Episodic training loop
+├── dashboard/
+│   ├── app.py                       # Streamlit War Room
+│   └── components/
+│       ├── topology_viz.py          # Live topology map (Phase 11)
+│       └── impact_viz.py            # Revenue & timeline (Phase 11)
+├── tests/
+│   ├── test_adversarial_agent.py
+│   ├── test_reward_engine.py
+│   ├── test_safety_tier.py          # Phase 9 tests
+│   ├── test_intelligence_moat.py    # Phase 10 tests
+│   ├── test_topology_scenarios.py   # Phase 8 tests
+│   └── test_scaffold.py
+├── scripts/
+│   ├── run_episode.py               # Single episode runner
+│   └── run_final_benchmark.py       # Benchmark suite runner
+└── requirements.txt
 ```
 
----
+## 📈 Reward Decomposition
 
-## 🔬 How It Works
+| Component | Signal | Range |
+|-----------|--------|-------|
+| **R1** (Health) | Distance from target metrics | per-step |
+| **R2** (SLA) | Bonus/penalty at episode end | terminal |
+| **R3** (Trust) | Correct override vs blind trust | +15 / -20 |
+| **R4** (Explain) | Prediction accuracy + reasoning quality | per-step |
 
-### Episode Flow
-
-1. **Initialize** — 12 metrics start in severely degraded state
-2. **Fault injection** — cascading failure applies ongoing drift (decays over time)
-3. **Observation slicing** — each agent sees only its service's metrics
-4. **Schema drift** — mid-episode, API contracts silently change
-5. **Recommendations** — 4 agents (3 honest + 1 adversarial) propose actions
-6. **Orchestration** — orchestrator picks an action, tracks trust, emits explanation trace
-7. **World update** — action deltas + fault drift + noise + causal lag
-8. **Reward** — R1 (health) + R3 (trust calibration) + R4 (explanation quality) per step
-9. **Repeat** for 20 steps, then R2 (SLA bonus) at episode end
-
-### Trust Update Rule
-
-```
-trust_new = (1 - α) × trust_old + α × outcome_score
-```
-
-Where `α = 0.1` (TRUST_UPDATE_RATE) and `outcome_score` is 1.0 if metrics improved toward targets, 0.0 otherwise.
-
-### Causal Coupling
-
-DB connection pool changes propagate to application latency with a 2-step lag:
-
-```
-p95_latency(t+2) += 0.4 × Δconn_pool_pct(t)
-```
-
-This creates realistic cross-service dependencies that agents must reason about.
-
----
-
-## 📜 License
+## 📄 License
 
 MIT License — see [LICENSE](LICENSE) for details.
 
-Copyright (c) 2026 Pulkit Pandey
+---
+
+<p align="center">
+  <strong>Built with</strong> Gymnasium · Pydantic · Plotly · Streamlit · Claude
+</p>

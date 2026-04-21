@@ -4,7 +4,7 @@ Orchestrator agent. Receives all sub-agent recommendations + SLA context.
 Decides which recommendations to follow, updates trust scores, emits ExplanationTrace.
 
 Phase 9: Consults RecoveryVerifierAgent after selecting a recommendation.
-If vetoed, cascades to next-best. Falls back to Safe Minimal Action after 3 vetoes.
+Phase 10: Hypothesize→Retrieve→Simulate→Select→Verify "Thinking" loop.
 """
 import json
 from collections import deque
@@ -13,6 +13,9 @@ from typing import Optional
 from aic.agents.base_agent import BaseSubAgent
 from aic.agents.adversarial_agent import AdversarialAgent
 from aic.agents.recovery_verifier_agent import RecoveryVerifierAgent
+from aic.agents.root_cause_analyst_agent import RootCauseAnalyst
+from aic.agents.knowledge_agent import KnowledgeAgent
+from aic.env.counterfactual_simulator import simulate_action, compare_actions
 from aic.schemas.traces import (
     ExplanationTrace, OrchestratorAction, SubAgentRecommendation,
 )
@@ -76,6 +79,12 @@ class OrchestratorAgent:
         self._verifier = RecoveryVerifierAgent()
         self._last_verifier_report: Optional[dict] = None
         self._vetoed_actions: list[dict] = []  # logged for dashboard visibility
+        # Phase 10: Intelligence Moat
+        self._root_cause_analyst = RootCauseAnalyst()
+        self._knowledge_agent = KnowledgeAgent()
+        self._last_hypothesis: Optional[dict] = None
+        self._last_runbook: Optional[dict] = None
+        self._last_sim_scores: Optional[dict] = None
 
     def reset(self) -> None:
         """Reset trust scores and trace history for a new episode."""
@@ -86,6 +95,10 @@ class OrchestratorAgent:
         self._verifier.reset()
         self._last_verifier_report = None
         self._vetoed_actions = []
+        self._root_cause_analyst.reset()
+        self._last_hypothesis = None
+        self._last_runbook = None
+        self._last_sim_scores = None
 
     def decide(
         self,
@@ -107,7 +120,9 @@ class OrchestratorAgent:
                 step, sla_remaining, sub_agent_recommendations, alert_summary,
             )
         else:
-            action = self._rule_based_decide(step, sub_agent_recommendations)
+            action = self._rule_based_decide(
+                step, sub_agent_recommendations, current_metrics,
+            )
 
         override_applied = (
             action.trust_override is not None
@@ -237,23 +252,52 @@ class OrchestratorAgent:
         self,
         step: int,
         recommendations: list[SubAgentRecommendation],
+        current_metrics: Optional[dict[str, float]] = None,
     ) -> OrchestratorAction:
-        """Rule-based fallback with trust suppression and verifier safety gate."""
+        """Rule-based with Hypothesize→Retrieve→Simulate→Select→Verify."""
         trust_threshold = 0.4
         override_agent = None
         self._vetoed_actions = []
+        metrics = current_metrics or {}
 
+        # ── Phase 10: HYPOTHESIZE ──────────────────────────────────
+        hypothesis_dict = None
+        if metrics:
+            self._root_cause_analyst.update(metrics)
+            hyp = self._root_cause_analyst.get_top_hypothesis()
+            hypothesis_dict = {
+                "scenario_name": hyp.scenario_name,
+                "scenario_id": hyp.scenario_id,
+                "confidence": hyp.confidence,
+                "evidence": hyp.evidence,
+            }
+        self._last_hypothesis = hypothesis_dict
+
+        # ── Phase 10: RETRIEVE ─────────────────────────────────────
+        runbook_dict = None
+        hyp_name = hypothesis_dict["scenario_name"] if hypothesis_dict else None
+        evidence = self._knowledge_agent.retrieve(metrics, hypothesis=hyp_name)
+        if evidence is not None:
+            runbook_dict = {
+                "incident_id": evidence.related_incident_id,
+                "incident_name": evidence.incident_name,
+                "remediation": evidence.suggested_remediation[:300],
+                "confidence": evidence.confidence_score,
+                "source_file": evidence.source_file,
+            }
+        else:
+            runbook_dict = {
+                "incident_id": None,
+                "note": "No matching runbook found — proceeding with simulation-based discovery",
+            }
+        self._last_runbook = runbook_dict
+
+        # ── Trust filtering ────────────────────────────────────────
         if self.mode == "trained":
-            # In trained mode, suppress agents with low trust scores
             trusted = [
                 r for r in recommendations
                 if self.trust_scores.get(r.agent_name, 0.5) >= trust_threshold
             ]
-            suppressed = [
-                r for r in recommendations
-                if self.trust_scores.get(r.agent_name, 0.5) < trust_threshold
-            ]
-
             if trusted:
                 candidates = sorted(trusted, key=lambda r: r.confidence, reverse=True)
             else:
@@ -262,17 +306,35 @@ class OrchestratorAgent:
                     non_adv if non_adv else recommendations,
                     key=lambda r: r.confidence, reverse=True,
                 )
-
-            # If the overall highest-confidence rec came from a suppressed agent,
-            # record the override
             all_sorted = sorted(recommendations, key=lambda r: r.confidence, reverse=True)
             if all_sorted and self.trust_scores.get(all_sorted[0].agent_name, 0.5) < trust_threshold:
                 override_agent = all_sorted[0].agent_name
         else:
-            # Untrained mode: naive highest-confidence from all agents
             candidates = sorted(recommendations, key=lambda r: r.confidence, reverse=True)
 
-        # Phase 9: Verifier safety gate — try up to 3 candidates
+        # ── Phase 10: SIMULATE ─────────────────────────────────────
+        sim_scores_dict = None
+        if metrics and len(candidates) > 0:
+            top_n = candidates[:3]
+            action_deltas_list = [
+                {m: -10.0 for m in c.target_metrics} for c in top_n
+            ]
+            sim_results = compare_actions(metrics, action_deltas_list)
+            sim_scores_dict = {}
+            for i, (cand, result) in enumerate(zip(top_n, sim_results)):
+                sim_scores_dict[cand.agent_name] = {
+                    "impact_score": round(result.impact_score, 4),
+                    "predicted_health": round(result.predicted_health, 4),
+                }
+            # Re-rank candidates by simulation impact_score (lower=better)
+            sim_ranked = sorted(
+                zip(top_n, sim_results),
+                key=lambda x: x[1].impact_score,
+            )
+            candidates = [c for c, _ in sim_ranked] + candidates[3:]
+        self._last_sim_scores = sim_scores_dict
+
+        # ── Phase 9: VERIFY ────────────────────────────────────────
         MAX_VETO_ATTEMPTS = 3
         best = None
         verifier_report_dict = None
@@ -286,7 +348,6 @@ class OrchestratorAgent:
                 self._last_verifier_report = verifier_report_dict
                 break
             else:
-                # Log the vetoed action for dashboard visibility
                 self._vetoed_actions.append({
                     "agent": candidate.agent_name,
                     "action": candidate.action,
@@ -296,7 +357,6 @@ class OrchestratorAgent:
                 })
 
         if best is None:
-            # All candidates vetoed — use Safe Minimal Action
             best = self._verifier.get_safe_minimal_action()
             verifier_report_dict = {
                 "approved": True,
@@ -310,10 +370,10 @@ class OrchestratorAgent:
             }
             self._last_verifier_report = verifier_report_dict
 
-        # Track which agent was followed for trust attribution
+        # Track which agent was followed
         self._followed_agent = best.agent_name
 
-        # Determine target service from first target metric
+        # Determine target service
         if best.target_metrics:
             first_metric = best.target_metrics[0]
             if any(k in first_metric for k in ("db_", "conn_", "replication")):
@@ -348,6 +408,9 @@ class OrchestratorAgent:
             schema_drift_detected=False,
             schema_drift_field=None,
             verifier_report=verifier_report_dict,
+            root_cause_hypothesis=hypothesis_dict,
+            runbook_evidence=runbook_dict,
+            simulation_scores=sim_scores_dict,
         )
 
         return OrchestratorAction(
