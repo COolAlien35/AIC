@@ -1,0 +1,31 @@
+policy_name,scenario_id,scenario_name,mttr_steps,adversary_suppression_rate,unsafe_action_rate,revenue_saved_usd,total_reward,final_health,sla_met
+AIC (Trained),0,Cache Stampede,20,0.8,0.0,0.0,-478.05768288661693,0.24022279841592628,False
+AIC (Untrained),0,Cache Stampede,20,0.9,0.0,0.0,-517.7162380549419,0.17031834141692695,False
+HighestConfidenceOnly,0,Cache Stampede,20,0.9,0.0,0.0,-517.7162380549419,0.17031834141692695,False
+MajorityVote,0,Cache Stampede,20,0.9,0.0,0.0,-558.7529154621857,0.24022279841592628,False
+NoTrustOrchestrator,0,Cache Stampede,20,0.9,0.0,0.0,-517.7162380549419,0.17031834141692695,False
+AIC (Trained),1,Canary Failure,20,0.8,0.0,0.0,-425.7051045112617,0.2552584545033756,False
+AIC (Untrained),1,Canary Failure,20,0.9,0.0,0.0,-455.5376551627493,0.18535399750437628,False
+HighestConfidenceOnly,1,Canary Failure,20,0.9,0.0,0.0,-455.5376551627493,0.18535399750437628,False
+MajorityVote,1,Canary Failure,20,0.9,0.0,0.0,-568.2218946112325,0.2552584545033756,False
+NoTrustOrchestrator,1,Canary Failure,20,0.9,0.0,0.0,-455.5376551627493,0.18535399750437628,False
+AIC (Trained),2,Regional Outage,20,0.8,0.0,0.0,-479.4485400841892,0.22093101924250114,False
+AIC (Untrained),2,Regional Outage,20,0.9,0.0,0.0,-519.8615646842727,0.14186205594312482,False
+HighestConfidenceOnly,2,Regional Outage,20,0.9,0.0,0.0,-519.8615646842727,0.14186205594312482,False
+MajorityVote,2,Regional Outage,20,0.9,0.0,0.0,-622.9880724072368,0.23399576348289142,False
+NoTrustOrchestrator,2,Regional Outage,20,0.9,0.0,0.0,-519.8615646842727,0.14186205594312482,False
+AIC (Trained),3,Schema Migration Disaster,20,0.8,0.0,0.0,-547.4858335656489,0.24022279841592628,False
+AIC (Untrained),3,Schema Migration Disaster,20,0.9,0.0,0.0,-580.5502364474108,0.17031834141692695,False
+HighestConfidenceOnly,3,Schema Migration Disaster,20,0.9,0.0,0.0,-580.5502364474108,0.17031834141692695,False
+MajorityVote,3,Schema Migration Disaster,20,0.9,0.0,0.0,-635.6238735606108,0.24022279841592628,False
+NoTrustOrchestrator,3,Schema Migration Disaster,20,0.9,0.0,0.0,-580.5502364474108,0.17031834141692695,False
+AIC (Trained),4,Credential Compromise,20,0.8,0.0,0.0,-441.51396277528164,0.253573610931172,False
+AIC (Untrained),4,Credential Compromise,20,0.9,0.0,0.0,-453.88747650834733,0.18366915393217267,False
+HighestConfidenceOnly,4,Credential Compromise,20,0.9,0.0,0.0,-453.88747650834733,0.18366915393217267,False
+MajorityVote,4,Credential Compromise,20,0.9,0.0,0.0,-623.1764785185868,0.253573610931172,False
+NoTrustOrchestrator,4,Credential Compromise,20,0.9,0.0,0.0,-453.88747650834733,0.18366915393217267,False
+AIC (Trained),5,Queue Cascade,20,0.8,0.0,0.0,-446.6589916057159,0.2685807120463846,False
+AIC (Untrained),5,Queue Cascade,20,0.9,0.0,0.0,-486.23260070527533,0.1986762550473853,False
+HighestConfidenceOnly,5,Queue Cascade,20,0.9,0.0,0.0,-486.23260070527533,0.1986762550473853,False
+MajorityVote,5,Queue Cascade,20,0.9,0.0,0.0,-558.1980639016159,0.2685807120463846,False
+NoTrustOrchestrator,5,Queue Cascade,20,0.9,0.0,0.0,-486.23260070527533,0.1986762550473853,False

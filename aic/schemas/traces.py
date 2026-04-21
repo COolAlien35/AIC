@@ -33,6 +33,18 @@ class ExplanationTrace(BaseModel):
         default=None,
         description="Recovery Verifier report: approved, risk_score, verification_reasoning",
     )
+    root_cause_hypothesis: Optional[dict] = Field(
+        default=None,
+        description="Root cause analyst hypothesis: scenario_name, confidence",
+    )
+    runbook_evidence: Optional[dict] = Field(
+        default=None,
+        description="Knowledge agent evidence: incident_id, remediation, confidence",
+    )
+    simulation_scores: Optional[dict] = Field(
+        default=None,
+        description="Counterfactual simulation results for the chosen action",
+    )
 
     @field_validator("sub_agent_trust_scores")
     @classmethod
