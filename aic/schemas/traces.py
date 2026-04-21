@@ -14,6 +14,10 @@ class ExplanationTrace(BaseModel):
     Stored in trace history, scored by reward engine.
     """
     step: int = Field(ge=0, le=20)
+    followed_agent: Optional[str] = Field(
+        default=None,
+        description="Agent whose recommendation was ultimately followed for this step",
+    )
     action_taken: str = Field(min_length=1, max_length=500)
     reasoning: str = Field(min_length=10, max_length=2000)
     sub_agent_trust_scores: dict[str, float] = Field(
@@ -44,6 +48,31 @@ class ExplanationTrace(BaseModel):
     simulation_scores: Optional[dict] = Field(
         default=None,
         description="Counterfactual simulation results for the chosen action",
+    )
+    # ── New: Debate / Commander / Observability ──────────────────────────
+    debate_transcript: Optional[list[dict]] = Field(
+        default=None,
+        description="Structured debate transcript for this step",
+    )
+    debate_changed_selection: Optional[bool] = Field(
+        default=None,
+        description="Whether the structured debate altered the pre-debate top selection",
+    )
+    commander_mode: Optional[str] = Field(
+        default=None,
+        description="Incident Commander strategic priority mode name",
+    )
+    commander_brief: Optional[str] = Field(
+        default=None,
+        description="One-line strategic brief from the Incident Commander",
+    )
+    observability_report: Optional[dict] = Field(
+        default=None,
+        description="ObservabilityAgent telemetry trustworthiness assessment",
+    )
+    business_impact_snapshot: Optional[dict] = Field(
+        default=None,
+        description="BusinessImpact snapshot at this step",
     )
 
     @field_validator("sub_agent_trust_scores")
@@ -104,6 +133,23 @@ class SubAgentRecommendation(BaseModel):
         default="",
         max_length=500,
         description="Description of how to rollback this action if it fails",
+    )
+    # ── Debate layer fields (populated by DebateCoordinator) ─────────────
+    criticisms: list[str] = Field(
+        default_factory=list,
+        description="Criticisms of this recommendation from other agents",
+    )
+    supports: list[str] = Field(
+        default_factory=list,
+        description="Agents/reasons that support this recommendation",
+    )
+    rebuttals: list[str] = Field(
+        default_factory=list,
+        description="Rebuttals to criticisms of this recommendation",
+    )
+    debate_round: int = Field(
+        default=0,
+        description="Debate round number this recommendation participated in",
     )
 
 

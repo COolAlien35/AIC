@@ -4,7 +4,9 @@
     "db_agent": 0.2657205000000001,
     "infra_agent": 0.32805000000000006,
     "app_agent": 0.2657205000000001,
-    "adversarial_agent": 0.36450000000000005
+    "adversarial_agent": 0.36450000000000005,
+    "network_agent": 0.5,
+    "security_agent": 0.5
   },
   "episode_results_so_far": [
     {

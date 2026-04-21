@@ -15,7 +15,11 @@ from aic.agents.adversarial_agent import AdversarialAgent
 from aic.agents.recovery_verifier_agent import RecoveryVerifierAgent
 from aic.agents.root_cause_analyst_agent import RootCauseAnalyst
 from aic.agents.knowledge_agent import KnowledgeAgent
+from aic.agents.debate_coordinator import DebateCoordinator
+from aic.agents.incident_commander_agent import IncidentCommanderAgent
+from aic.agents.observability_agent import ObservabilityAgent
 from aic.env.counterfactual_simulator import simulate_action, compare_actions
+from aic.env.business_impact import compute_business_impact
 from aic.schemas.traces import (
     ExplanationTrace, OrchestratorAction, SubAgentRecommendation,
 )
@@ -85,6 +89,14 @@ class OrchestratorAgent:
         self._last_hypothesis: Optional[dict] = None
         self._last_runbook: Optional[dict] = None
         self._last_sim_scores: Optional[dict] = None
+        # New: Debate / Commander / Observability
+        self._debate_coordinator = DebateCoordinator()
+        self._incident_commander = IncidentCommanderAgent()
+        self._observability_agent = ObservabilityAgent()
+        self._last_debate_round: Optional[dict] = None
+        self._last_commander_decision: Optional[dict] = None
+        self._last_observability_report: Optional[dict] = None
+        self._last_business_impact: Optional[dict] = None
 
     def reset(self) -> None:
         """Reset trust scores and trace history for a new episode."""
@@ -99,6 +111,13 @@ class OrchestratorAgent:
         self._last_hypothesis = None
         self._last_runbook = None
         self._last_sim_scores = None
+        self._debate_coordinator.reset()
+        self._incident_commander.reset()
+        self._observability_agent.reset()
+        self._last_debate_round = None
+        self._last_commander_decision = None
+        self._last_observability_report = None
+        self._last_business_impact = None
 
     def decide(
         self,
@@ -121,7 +140,7 @@ class OrchestratorAgent:
             )
         else:
             action = self._rule_based_decide(
-                step, sub_agent_recommendations, current_metrics,
+                step, sub_agent_recommendations, current_metrics, sla_remaining,
             )
 
         override_applied = (
@@ -253,6 +272,7 @@ class OrchestratorAgent:
         step: int,
         recommendations: list[SubAgentRecommendation],
         current_metrics: Optional[dict[str, float]] = None,
+        sla_remaining: int = 20,
     ) -> OrchestratorAction:
         """Rule-based with Hypothesize→Retrieve→Simulate→Select→Verify."""
         trust_threshold = 0.4
@@ -260,7 +280,7 @@ class OrchestratorAgent:
         self._vetoed_actions = []
         metrics = current_metrics or {}
 
-        # ── Phase 10: HYPOTHESIZE ──────────────────────────────────
+        # ── Phase 10: HYPOTHESIZE ────────────────────────────────────
         hypothesis_dict = None
         if metrics:
             self._root_cause_analyst.update(metrics)
@@ -272,6 +292,40 @@ class OrchestratorAgent:
                 "evidence": hyp.evidence,
             }
         self._last_hypothesis = hypothesis_dict
+
+        # ── NEW: OBSERVE (Observability Integrity) ───────────────────────
+        obs_report = None
+        if metrics:
+            obs_report = self._observability_agent.assess(metrics)
+            self._last_observability_report = obs_report.to_dict()
+
+        # ── NEW: COMMAND (Incident Commander) ─────────────────────────
+        commander_decision = None
+        biz_impact_dict = None
+        if metrics:
+            biz = compute_business_impact(metrics)
+            biz_impact_dict = {
+                "revenue_loss_per_minute": biz.revenue_loss_per_minute,
+                "users_impacted": biz.users_impacted,
+                "compliance_risk_score": biz.compliance_risk_score,
+                "severity_level": biz.severity_level,
+            }
+            self._last_business_impact = biz_impact_dict
+            commander_decision = self._incident_commander.assess_and_command(
+                step=step,
+                sla_remaining=sla_remaining,
+                current_metrics=metrics,
+                root_cause_hypothesis=hypothesis_dict,
+                business_severity=biz.severity_level,
+            )
+            self._last_commander_decision = {
+                "mode": commander_decision.mode.name,
+                "display_name": commander_decision.mode.display_name,
+                "strategic_brief": commander_decision.strategic_brief,
+                "mode_reason": commander_decision.mode_reason,
+                "urgency": commander_decision.mode.urgency,
+                "emoji": commander_decision.mode.emoji,
+            }
 
         # ── Phase 10: RETRIEVE ─────────────────────────────────────
         runbook_dict = None
@@ -333,6 +387,29 @@ class OrchestratorAgent:
             )
             candidates = [c for c, _ in sim_ranked] + candidates[3:]
         self._last_sim_scores = sim_scores_dict
+
+        # ── NEW: DEBATE ─────────────────────────────────────────────
+        debate_transcript = None
+        try:
+            candidates, debate_round = self._debate_coordinator.run_debate(
+                recommendations=candidates,
+                current_metrics=metrics,
+                root_cause_hypothesis=hypothesis_dict,
+            )
+            self._last_debate_round = {
+                "criticisms": debate_round.criticisms,
+                "supports": debate_round.supports,
+                "security_vetoes": debate_round.security_vetoes,
+                "consensus_agent": debate_round.consensus_agent,
+                "debate_changed_selection": debate_round.debate_changed_selection,
+            }
+            debate_transcript = [
+                *[{"type": "criticism", **c} for c in debate_round.criticisms],
+                *[{"type": "support", **s} for s in debate_round.supports],
+                *[{"type": "veto", **v} for v in debate_round.security_vetoes],
+            ]
+        except Exception:
+            pass  # debate is best-effort; never block main loop
 
         # ── Phase 9: VERIFY ────────────────────────────────────────
         MAX_VETO_ATTEMPTS = 3
@@ -411,6 +488,11 @@ class OrchestratorAgent:
             root_cause_hypothesis=hypothesis_dict,
             runbook_evidence=runbook_dict,
             simulation_scores=sim_scores_dict,
+            debate_transcript=debate_transcript,
+            commander_mode=self._last_commander_decision.get("mode") if self._last_commander_decision else None,
+            commander_brief=self._last_commander_decision.get("strategic_brief") if self._last_commander_decision else None,
+            observability_report=self._last_observability_report,
+            business_impact_snapshot=biz_impact_dict,
         )
 
         return OrchestratorAction(
