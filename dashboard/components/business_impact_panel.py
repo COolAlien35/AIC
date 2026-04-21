@@ -14,8 +14,8 @@ from __future__ import annotations
 import streamlit as st
 import plotly.graph_objects as go
 
-BG = "#0a0e17"
-GRID = "#2a3042"
+BG = "#0c0f0a"
+GRID = "#1e2b1a"
 TEMPLATE = "plotly_dark"
 
 REVENUE_PER_STEP_USD = 5000.0  # matches benchmark_suite
@@ -65,22 +65,25 @@ def render_business_impact_panel(
     )
 
     # ── Headline metrics ──────────────────────────────────────────────────
-    severity_colors = {"P1": "#ef4444", "P2": "#f59e0b", "P3": "#3b82f6", "P4": "#10b981"}
-    sev_color = severity_colors.get(severity, "#94a3b8")
+    severity_colors = {"P1": "#fb7185", "P2": "#fbbf24", "P3": "#14b8a6", "P4": "#34d399"}
+    sev_color = severity_colors.get(severity, "#6b7a68")
 
     st.markdown(
         f"""
         <div style="
-            background: linear-gradient(135deg, rgba(239,68,68,0.1), rgba(245,158,11,0.05));
-            border: 1px solid rgba(239,68,68,0.3);
-            border-radius: 12px;
-            padding: 12px 16px;
-            margin-bottom: 12px;
+            background: linear-gradient(135deg, rgba(251,191,36,0.06), rgba(251,113,133,0.04));
+            border: 1px solid rgba(251,191,36,0.2);
+            border-radius: 14px;
+            padding: 14px 18px;
+            margin-bottom: 14px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            animation: fadeInUp 0.4s ease-out both;
         ">
-            <span style="color:{sev_color};font-weight:700;font-size:1.1rem;">
+            <span style="color:{sev_color};font-weight:600;font-size:1rem;font-family:'Inter',sans-serif;">
                 🚨 Incident Severity: {severity}
             </span>
-            {'&nbsp;&nbsp;<span style="color:#ef4444;font-size:0.8rem;">● ACTIVE COMPLIANCE RISK</span>' if compliance_risk > 0.5 else ''}
+            {'&nbsp;&nbsp;<span style="color:#fb7185;font-size:0.75rem;font-family:JetBrains Mono,monospace;">● ACTIVE COMPLIANCE RISK</span>' if compliance_risk > 0.5 else ''}
         </div>
         """,
         unsafe_allow_html=True,
@@ -128,8 +131,8 @@ def render_business_impact_panel(
         x=steps, y=rev_loss_curve,
         name="Revenue Loss/min",
         fill="tozeroy",
-        line=dict(color="#ef4444", width=2),
-        fillcolor="rgba(239,68,68,0.1)",
+        line=dict(color="#fb7185", width=2),
+        fillcolor="rgba(251,113,133,0.08)",
         mode="lines",
     ))
 
@@ -147,7 +150,7 @@ def render_business_impact_panel(
         margin=dict(l=20, r=20, t=20, b=30),
         yaxis=dict(title="$/min", gridcolor=GRID),
         xaxis=dict(title="Step", gridcolor=GRID),
-        font=dict(family="Inter", color="#94a3b8"),
+        font=dict(family="Inter", color="#9ca89a"),
         showlegend=False,
     )
     st.plotly_chart(fig_rev, use_container_width=True)
@@ -158,22 +161,22 @@ def render_business_impact_panel(
     fig_gauge = go.Figure(go.Indicator(
         mode="gauge+number+delta",
         value=compliance_risk * 100,
-        title={"text": "Compliance Risk Score", "font": {"color": "#94a3b8", "size": 14}},
+        title={"text": "Compliance Risk Score", "font": {"color": "#9ca89a", "size": 14}},
         delta={"reference": 0, "suffix": "%"},
-        number={"suffix": "%", "font": {"color": "#94a3b8"}},
+        number={"suffix": "%", "font": {"color": "#9ca89a"}},
         gauge={
-            "axis": {"range": [0, 100], "tickcolor": "#94a3b8"},
+            "axis": {"range": [0, 100], "tickcolor": "#9ca89a"},
             "bar": {"color": sev_color},
             "bgcolor": GRID,
-            "bordercolor": "#2a3042",
+            "bordercolor": "#1e2b1a",
             "steps": [
-                {"range": [0, 20], "color": "rgba(16,185,129,0.2)"},
-                {"range": [20, 50], "color": "rgba(245,158,11,0.2)"},
-                {"range": [50, 80], "color": "rgba(239,68,68,0.15)"},
-                {"range": [80, 100], "color": "rgba(239,68,68,0.3)"},
+                {"range": [0, 20], "color": "rgba(52,211,153,0.15)"},
+                {"range": [20, 50], "color": "rgba(251,191,36,0.12)"},
+                {"range": [50, 80], "color": "rgba(251,113,133,0.1)"},
+                {"range": [80, 100], "color": "rgba(251,113,133,0.2)"},
             ],
             "threshold": {
-                "line": {"color": "#ef4444", "width": 2},
+                "line": {"color": "#fb7185", "width": 2},
                 "thickness": 0.75,
                 "value": 80,
             },
@@ -184,7 +187,7 @@ def render_business_impact_panel(
         paper_bgcolor=BG,
         height=220,
         margin=dict(l=20, r=20, t=30, b=20),
-        font=dict(family="Inter", color="#94a3b8"),
+        font=dict(family="Inter", color="#9ca89a"),
     )
     st.plotly_chart(fig_gauge, use_container_width=True)
 

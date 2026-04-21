@@ -25,19 +25,19 @@ from aic.evals.leaderboard import (
     LeaderboardEntry, MEDALS, POLICY_IS_AIC,
 )
 
-BG = "#0a0e17"
-CARD = "#1a1f2e"
-GRID = "#2a3042"
+BG = "#0c0f0a"
+CARD = "#161e14"
+GRID = "#1e2b1a"
 TEMPLATE = "plotly_dark"
 
 _POLICY_COLORS = {
-    "AIC (Trained)": "#10b981",
-    "AIC (Untrained)": "#3b82f6",
-    "Oracle (Upper Bound)": "#8b5cf6",
-    "HighestConfidenceOnly": "#f59e0b",
-    "MajorityVote": "#64748b",
-    "NoTrustOrchestrator": "#ef4444",
-    "RandomRecovery": "#6b7280",
+    "AIC (Trained)": "#34d399",
+    "AIC (Untrained)": "#14b8a6",
+    "Oracle (Upper Bound)": "#a78bfa",
+    "HighestConfidenceOnly": "#fbbf24",
+    "MajorityVote": "#6b7a68",
+    "NoTrustOrchestrator": "#fb7185",
+    "RandomRecovery": "#64748b",
 }
 
 
@@ -107,11 +107,16 @@ def render_leaderboard_panel(arena_path: str = "logs/arena_results.json") -> Non
         st.markdown(
             f"""
             <div style="
-                background: rgba({('16,185,129' if is_aic else '100,116,139')},{bg_opacity});
-                border-left: 4px solid {color};
-                border-radius: 10px;
-                padding: 12px 16px;
-                margin-bottom: 8px;
+                background: rgba({('34,211,153' if is_aic else '107,122,104')},{bg_opacity});
+                border-left: 3px solid {color};
+                border-radius: 12px;
+                padding: 14px 18px;
+                margin-bottom: 10px;
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+                border: 1px solid rgba(52, 211, 153, {'0.15' if is_aic else '0.06'});
+                transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                animation: fadeInUp 0.4s ease-out both;
             ">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
@@ -119,9 +124,9 @@ def render_leaderboard_panel(arena_path: str = "logs/arena_results.json") -> Non
                         <strong style="color: {color}; font-size: 1rem; margin-left: 8px;">
                             #{entry.rank} {entry.policy}
                         </strong>
-                        {'<span style="background:#10b981;color:#0a0e17;padding:2px 8px;border-radius:12px;font-size:0.7rem;margin-left:8px;font-weight:700;">AIC</span>' if is_aic else ''}
+                        {'<span style="background:#34d399;color:#0c0f0a;padding:2px 8px;border-radius:12px;font-size:0.7rem;margin-left:8px;font-weight:700;">AIC</span>' if is_aic else ''}
                     </div>
-                    <div style="text-align: right; color: #94a3b8; font-size: 0.85rem;">
+                    <div style="text-align: right; color: #9ca89a; font-size: 0.82rem; font-family: 'JetBrains Mono', monospace;">
                         Score: <strong style="color:{color};">{entry.composite_score:.3f}</strong>
                         &nbsp;|&nbsp; MTTR: {entry.avg_mttr:.1f}
                         &nbsp;|&nbsp; SLA: {entry.sla_success_rate:.0f}%
@@ -173,7 +178,7 @@ def render_leaderboard_panel(arena_path: str = "logs/arena_results.json") -> Non
         margin=dict(l=20, r=60, t=20, b=20),
         xaxis=dict(title="Composite Score", gridcolor=GRID, range=[0, 1.05]),
         yaxis=dict(autorange="reversed"),
-        font=dict(family="Inter", color="#94a3b8"),
+        font=dict(family="Inter", color="#9ca89a"),
     )
     st.plotly_chart(fig_bar, use_container_width=True)
 
@@ -203,7 +208,7 @@ def render_leaderboard_panel(arena_path: str = "logs/arena_results.json") -> Non
             fill="toself",
             name=e.policy,
             line=dict(color=color),
-            fillcolor=f"{color}22",
+            fillcolor=f"rgba({int(color[1:3], 16)},{int(color[3:5], 16)},{int(color[5:7], 16)},0.12)",
         ))
 
     fig_radar.update_layout(
@@ -218,6 +223,6 @@ def render_leaderboard_panel(arena_path: str = "logs/arena_results.json") -> Non
             bgcolor=BG,
         ),
         legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"),
-        font=dict(family="Inter", color="#94a3b8"),
+        font=dict(family="Inter", color="#9ca89a"),
     )
     st.plotly_chart(fig_radar, use_container_width=True)

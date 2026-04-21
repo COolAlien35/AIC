@@ -86,14 +86,17 @@ def render_postmortem_panel(
     st.markdown(
         f"""
         <div style="
-            background: linear-gradient(135deg, rgba(59,130,246,0.1), rgba(16,185,129,0.05));
-            border: 1px solid rgba(59,130,246,0.3);
+            background: linear-gradient(135deg, rgba(52,211,153,0.06), rgba(20,184,166,0.03));
+            border: 1px solid rgba(52,211,153,0.2);
             border-radius: 16px;
-            padding: 16px 20px;
-            margin-bottom: 16px;
+            padding: 18px 22px;
+            margin-bottom: 18px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            animation: fadeInUp 0.5s ease-out both;
         ">
-            <h3 style="margin:0;color:#3b82f6;">📋 Auto-Generated Postmortem</h3>
-            <p style="color:#94a3b8;margin:6px 0 0 0;font-size:0.85rem;">
+            <h3 style="margin:0;color:#34d399;font-family:'Outfit',sans-serif;">📋 Auto-Generated Postmortem</h3>
+            <p style="color:#6b7a68;margin:6px 0 0 0;font-size:0.82rem;font-family:'Inter',sans-serif;">
                 {report.scenario_name} · {report.severity} · 
                 Health: {health_pct} · SLA: {sla_icon} · 
                 Revenue Protected: ${report.revenue_impact_usd:,.0f}
@@ -113,12 +116,14 @@ def render_postmortem_panel(
         st.markdown(
             f"""
             <div style="
-                background: rgba(255,255,255,0.03);
-                border-radius: 10px;
+                background: rgba(22, 30, 20, 0.5);
+                backdrop-filter: blur(8px);
+                border-radius: 12px;
                 padding: 16px;
-                color: #cbd5e1;
-                font-size: 0.95rem;
+                color: #b8c4b6;
+                font-size: 0.9rem;
                 line-height: 1.7;
+                border: 1px solid rgba(52, 211, 153, 0.06);
             ">
                 {report.executive_summary}
             </div>
@@ -143,12 +148,14 @@ def render_postmortem_panel(
         st.markdown(
             f"""
             <div style="
-                background: rgba(255,255,255,0.03);
-                border-radius: 10px;
+                background: rgba(22, 30, 20, 0.5);
+                backdrop-filter: blur(8px);
+                border-radius: 12px;
                 padding: 16px;
-                color: #cbd5e1;
+                color: #b8c4b6;
                 font-size: 0.85rem;
                 line-height: 1.6;
+                border: 1px solid rgba(52, 211, 153, 0.06);
             ">
                 {report.engineering_summary}
             </div>
@@ -186,12 +193,14 @@ def render_postmortem_panel(
         st.markdown(
             f"""
             <div style="
-                background: rgba(255,255,255,0.03);
-                border-radius: 10px;
+                background: rgba(22, 30, 20, 0.5);
+                backdrop-filter: blur(8px);
+                border-radius: 12px;
                 padding: 16px;
-                color: #cbd5e1;
+                color: #b8c4b6;
                 font-size: 0.9rem;
                 line-height: 1.7;
+                border: 1px solid rgba(52, 211, 153, 0.06);
             ">
                 {report.customer_safe_summary}
             </div>

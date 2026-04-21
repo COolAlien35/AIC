@@ -28,23 +28,25 @@ def render_debate_panel(trace: dict) -> None:
     # ── Commander brief ────────────────────────────────────────────────────
     if commander_brief:
         mode_colors = {
-            "fastest_recovery": "#f59e0b",
-            "safest_recovery": "#3b82f6",
-            "protect_data": "#8b5cf6",
-            "minimize_user_impact": "#10b981",
-            "contain_compromise": "#ef4444",
+            "fastest_recovery": "#fbbf24",
+            "safest_recovery": "#34d399",
+            "protect_data": "#a78bfa",
+            "minimize_user_impact": "#14b8a6",
+            "contain_compromise": "#fb7185",
         }
-        color = mode_colors.get(commander_mode, "#94a3b8")
+        color = mode_colors.get(commander_mode, "#6b7a68")
         st.markdown(
             f"""
             <div style="
                 border-left: 3px solid {color};
-                background: rgba(255,255,255,0.03);
-                border-radius: 0 8px 8px 0;
-                padding: 8px 12px;
+                background: rgba(52, 211, 153, 0.04);
+                backdrop-filter: blur(8px);
+                border-radius: 0 12px 12px 0;
+                padding: 10px 14px;
                 margin-bottom: 12px;
-                font-size: 0.85rem;
+                font-size: 0.82rem;
                 color: {color};
+                animation: slideInLeft 0.3s ease-out both;
             ">
                 {commander_brief}
             </div>
@@ -65,19 +67,19 @@ def render_debate_panel(trace: dict) -> None:
 
         if event_type == "veto":
             icon = "🔒"
-            color = "#ef4444"
-            bg = "rgba(239,68,68,0.08)"
+            color = "#fb7185"
+            bg = "rgba(251,113,133,0.06)"
             label = "SECURITY VETO"
         elif event_type == "criticism":
             icon = "⚠️"
-            color = "#f59e0b"
-            bg = "rgba(245,158,11,0.08)"
+            color = "#fbbf24"
+            bg = "rgba(251,191,36,0.06)"
             severity = event.get("severity", "medium")
             label = f"CHALLENGE ({severity.upper()})"
         else:  # support
             icon = "✅"
-            color = "#10b981"
-            bg = "rgba(16,185,129,0.08)"
+            color = "#34d399"
+            bg = "rgba(52,211,153,0.06)"
             label = "SUPPORTS"
 
         critic = event.get("critic") or event.get("supporter", "")
@@ -88,14 +90,16 @@ def render_debate_panel(trace: dict) -> None:
             <div style="
                 background: {bg};
                 border-left: 3px solid {color};
-                border-radius: 0 8px 8px 0;
-                padding: 8px 12px;
+                border-radius: 0 12px 12px 0;
+                padding: 10px 14px;
                 margin-bottom: 6px;
-                font-size: 0.8rem;
+                font-size: 0.78rem;
+                backdrop-filter: blur(8px);
+                animation: fadeInUp 0.3s ease-out both;
             ">
-                <span style="color:{color};font-weight:700;">{icon} {label}</span>
-                <span style="color:#64748b;"> — {critic} → {target}</span><br>
-                <span style="color:#cbd5e1;">{text[:200]}</span>
+                <span style="color:{color};font-weight:600;font-family:'Inter',sans-serif;">{icon} {label}</span>
+                <span style="color:#6b7a68;"> — {critic} → {target}</span><br>
+                <span style="color:#b8c4b6;">{text[:200]}</span>
             </div>
             """,
             unsafe_allow_html=True,

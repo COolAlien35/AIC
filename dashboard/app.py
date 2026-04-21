@@ -99,12 +99,12 @@ if trained_data is None:
 if untrained_data is None:
     untrained_data = get_demo_trajectory()
 
-# ── Color palette ───────────────────────────────────────────────────────
+# ── Emerald Color Palette ───────────────────────────────────────────────
 AGENT_COLORS = {
-    "db_agent": "#3b82f6",
-    "infra_agent": "#10b981",
-    "app_agent": "#f59e0b",
-    "adversarial_agent": "#ef4444",
+    "db_agent": "#34d399",
+    "infra_agent": "#14b8a6",
+    "app_agent": "#fbbf24",
+    "adversarial_agent": "#fb7185",
 }
 AGENT_ICONS = {
     "db_agent": "🗄️",
@@ -114,9 +114,9 @@ AGENT_ICONS = {
 }
 
 PLOTLY_TEMPLATE = "plotly_dark"
-BG_COLOR = "#0a0e17"
-CARD_COLOR = "#1a1f2e"
-GRID_COLOR = "#2a3042"
+BG_COLOR = "#0c0f0a"
+CARD_COLOR = "#161e14"
+GRID_COLOR = "#1e2b1a"
 
 # ── Sidebar ─────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -161,17 +161,36 @@ with st.sidebar:
 # ── Header ──────────────────────────────────────────────────────────────
 st.markdown(
     """
-    <div style="text-align: center; padding: 0.5rem 0 0.5rem 0;">
+    <div style="text-align: center; padding: 1.2rem 0 0.8rem 0; animation: fadeInUp 0.6s ease-out both;">
+        <div style="
+            display: inline-block;
+            background: rgba(52, 211, 153, 0.08);
+            border: 1px solid rgba(52, 211, 153, 0.15);
+            border-radius: 20px;
+            padding: 4px 16px;
+            margin-bottom: 12px;
+            font-size: 0.72rem;
+            font-family: 'JetBrains Mono', monospace;
+            color: #34d399;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+        ">WAR ROOM · LIVE</div>
         <h1 style="
-            background: linear-gradient(135deg, #3b82f6, #06b6d4, #10b981);
+            background: linear-gradient(135deg, #059669, #10b981, #34d399, #6ee7b7);
+            background-size: 300% 100%;
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
-            font-size: 2.2rem;
+            font-size: 2.4rem;
+            font-family: 'Outfit', sans-serif;
+            font-weight: 700;
+            letter-spacing: -0.03em;
             margin-bottom: 0;
-        ">🚨 Adaptive Incident Choreographer</h1>
-        <p style="color: #94a3b8; font-size: 1rem; margin-top: 4px;">
-            Autonomous Incident Command Arena · Multi-Agent Trust Calibration Under Adversarial Conditions
+            line-height: 1.2;
+        ">Adaptive Incident Choreographer</h1>
+        <p style="color: #6b7a68; font-size: 0.88rem; margin-top: 8px; font-family: 'Inter', sans-serif; font-weight: 400; letter-spacing: 0.02em;">
+            Autonomous Incident Command · Multi-Agent Trust Calibration
         </p>
+        <div style="width: 60px; height: 2px; background: linear-gradient(90deg, #059669, #34d399); margin: 12px auto 0; border-radius: 1px;"></div>
     </div>
     """,
     unsafe_allow_html=True,
@@ -192,7 +211,7 @@ tab_mc, tab_lb, tab_jc, tab_biz, tab_pm = st.tabs([
 with tab_mc:
     step_data = trajectory[step]
     health = step_data["health"]
-    health_color = "#10b981" if health > 0.5 else "#f59e0b" if health > 0.3 else "#ef4444"
+    health_color = "#34d399" if health > 0.5 else "#fbbf24" if health > 0.3 else "#fb7185"
 
     # Status bar
     cols_status = st.columns([2, 2, 2, 2, 2])
@@ -216,17 +235,18 @@ with tab_mc:
     if commander_brief and _NEW_COMPONENTS:
         commander_mode = trace.get("commander_mode", "fastest_recovery")
         mode_colors = {
-            "fastest_recovery": "#f59e0b",
-            "safest_recovery": "#3b82f6",
-            "protect_data": "#8b5cf6",
-            "minimize_user_impact": "#10b981",
-            "contain_compromise": "#ef4444",
+            "fastest_recovery": "#fbbf24",
+            "safest_recovery": "#34d399",
+            "protect_data": "#a78bfa",
+            "minimize_user_impact": "#14b8a6",
+            "contain_compromise": "#fb7185",
         }
-        cmd_color = mode_colors.get(commander_mode, "#94a3b8")
+        cmd_color = mode_colors.get(commander_mode, "#6b7a68")
         st.markdown(
-            f"""<div style="border-left: 3px solid {cmd_color}; background: rgba(255,255,255,0.03);
-                border-radius: 0 8px 8px 0; padding: 8px 12px; margin-bottom: 12px;
-                font-size: 0.85rem; color: {cmd_color};">
+            f"""<div style="border-left: 3px solid {cmd_color}; background: rgba(52, 211, 153, 0.04);
+                border-radius: 0 12px 12px 0; padding: 10px 14px; margin-bottom: 14px;
+                font-size: 0.82rem; color: {cmd_color}; backdrop-filter: blur(8px);
+                animation: slideInLeft 0.4s ease-out both;">
                 {commander_brief}
             </div>""",
             unsafe_allow_html=True,
@@ -280,20 +300,25 @@ with tab_mc:
             color = AGENT_COLORS.get(agent_name, "#6b7280")
 
             is_adversary = agent_name == AGENT_ADV
-            border_style = f"border-left: 4px solid {color};"
+            border_style = f"border-left: 3px solid {color};"
             if is_adversary and trust < 0.4:
-                border_style = f"border-left: 4px solid #ef4444; background: rgba(239, 68, 68, 0.05);"
+                border_style = f"border-left: 3px solid #fb7185; background: rgba(251, 113, 133, 0.04);"
 
             # Get recommendation from trace
             action_text = trace.get("action_taken", "N/A") if not is_adversary else "See trace for details"
 
             with st.container():
                 st.markdown(
-                    f"""<div style="{border_style} padding: 8px 12px; border-radius: 8px;
-                        margin-bottom: 8px; background: {CARD_COLOR};">
+                    f"""<div style="{border_style} padding: 10px 14px; border-radius: 12px;
+                        margin-bottom: 8px; background: rgba(22, 30, 20, 0.65);
+                        backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+                        border: 1px solid rgba(52, 211, 153, 0.08);
+                        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                        animation: fadeInUp 0.4s ease-out both;">
                         <span style="font-size: 1.1rem;">{icon}</span>
-                        <strong style="color: {color};">{agent_name.replace('_', ' ').title()}</strong>
-                        <span style="float: right; color: {'#ef4444' if trust < 0.4 else '#94a3b8'};">
+                        <strong style="color: {color}; font-family: 'Inter', sans-serif;">{agent_name.replace('_', ' ').title()}</strong>
+                        <span style="float: right; color: {'#fb7185' if trust < 0.4 else '#6b7a68'};
+                            font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;">
                             Trust: {trust:.2f}
                         </span>
                     </div>""",
@@ -343,7 +368,7 @@ with tab_mc:
             yaxis=dict(range=[0, 1.05], title="Trust Score", gridcolor=GRID_COLOR),
             xaxis=dict(title="Step", gridcolor=GRID_COLOR),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10)),
-            font=dict(family="Inter", color="#94a3b8"),
+            font=dict(family="Inter", color="#9ca89a"),
         )
         st.plotly_chart(fig_trust, use_container_width=True)
 
@@ -388,7 +413,7 @@ with tab_mc:
                             current_m = metrics.get(metric, 0.0)
                             actual_val = future.get(metric, current_m) - current_m
 
-                        acc_color = "#10b981" if abs(pred_val - actual_val) < abs(pred_val) * 0.5 else "#ef4444"
+                        acc_color = "#34d399" if abs(pred_val - actual_val) < abs(pred_val) * 0.5 else "#fb7185"
                         st.markdown(
                             f"**{metric}**: predicted `{pred_val:+.1f}` → actual `{actual_val:+.1f}` "
                             f"<span style='color:{acc_color}'>{'✅' if abs(pred_val - actual_val) < abs(pred_val) * 0.5 else '❌'}</span>",
@@ -415,7 +440,7 @@ with tab_mc:
         fig_reward.add_trace(go.Scatter(
             x=list(trained_eps), y=trained_rewards,
             name="Trained (Trust Update)",
-            line=dict(color="#10b981", width=3),
+            line=dict(color="#34d399", width=3),
             mode="lines+markers", marker=dict(size=8, symbol="circle"),
         ))
 
@@ -424,7 +449,7 @@ with tab_mc:
         fig_reward.add_trace(go.Scatter(
             x=list(untrained_eps), y=untrained_rewards,
             name="Untrained (Frozen Trust)",
-            line=dict(color="#ef4444", width=3, dash="dot"),
+            line=dict(color="#fb7185", width=3, dash="dot"),
             mode="lines+markers", marker=dict(size=8, symbol="diamond"),
         ))
 
@@ -436,7 +461,7 @@ with tab_mc:
             yaxis=dict(title="Total Reward", gridcolor=GRID_COLOR),
             xaxis=dict(title="Episode", gridcolor=GRID_COLOR),
             legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1, font=dict(size=10)),
-            font=dict(family="Inter", color="#94a3b8"),
+            font=dict(family="Inter", color="#9ca89a"),
         )
         st.plotly_chart(fig_reward, use_container_width=True)
 
@@ -495,7 +520,7 @@ with tab_mc:
         sim_r3 = trust_map[sim_trust_case]
         sim_r4 = R4_MIN_PER_STEP + sim_accuracy * (R4_MAX_PER_STEP - R4_MIN_PER_STEP)
         sim_total = sim_r1 + sim_r3 + sim_r4
-        total_color = "#10b981" if sim_total > 0 else "#ef4444"
+        total_color = "#34d399" if sim_total > 0 else "#fb7185"
 
         sc1, sc2, sc3 = st.columns(3)
         with sc1:
@@ -506,10 +531,12 @@ with tab_mc:
             st.metric("Sim R4", f"{sim_r4:+.1f}")
 
         st.markdown(
-            f"<div style='text-align:center; padding:12px; background:{CARD_COLOR}; "
-            f"border-radius:12px; margin-top:8px;'>"
-            f"<span style='font-size:0.85rem; color:#94a3b8;'>Simulated Total</span><br>"
-            f"<span style='font-size:2rem; font-weight:700; color:{total_color};'>"
+            f"<div style='text-align:center; padding:14px; background:rgba(22,30,20,0.65); "
+            f"backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); "
+            f"border:1px solid rgba(52,211,153,0.1); "
+            f"border-radius:14px; margin-top:8px;'>"
+            f"<span style='font-size:0.78rem; color:#6b7a68; font-family:JetBrains Mono,monospace; text-transform:uppercase; letter-spacing:0.08em;'>Simulated Total</span><br>"
+            f"<span style='font-size:2rem; font-weight:700; color:{total_color}; font-family:JetBrains Mono,monospace;'>"
             f"{sim_total:+.1f}</span></div>",
             unsafe_allow_html=True,
         )
@@ -624,9 +651,11 @@ if autoplay:
 # ── Footer ──────────────────────────────────────────────────────────────
 st.divider()
 st.markdown(
-    "<div style='text-align:center; color:#64748b; font-size:0.8rem; padding:8px;'>"
-    "Adaptive Incident Choreographer — Autonomous Incident Command Arena<br>"
-    "Built with Gymnasium · Pydantic · Plotly · Streamlit · Claude"
-    "</div>",
+    "<div style='text-align:center; padding:12px;'>"
+    "<div style='width:80px; height:1px; background:linear-gradient(90deg, transparent, rgba(52,211,153,0.3), transparent); margin:0 auto 12px;'></div>"
+    "<span style='color:#3d4a3b; font-size:0.75rem; font-family:Inter,sans-serif; letter-spacing:0.03em;'>"
+    "Adaptive Incident Choreographer · Autonomous Command Arena<br>"
+    "Gymnasium · Pydantic · Plotly · Streamlit"
+    "</span></div>",
     unsafe_allow_html=True,
 )

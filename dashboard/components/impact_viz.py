@@ -55,12 +55,12 @@ def render_war_room_timeline(
     fig = go.Figure()
 
     type_colors = {
-        "incident": "#ef4444",
-        "hypothesis": "#8b5cf6",
-        "veto": "#f59e0b",
-        "recovery": "#10b981",
-        "runbook": "#3b82f6",
-        "simulation": "#06b6d4",
+        "incident": "#fb7185",
+        "hypothesis": "#a78bfa",
+        "veto": "#fbbf24",
+        "recovery": "#34d399",
+        "runbook": "#14b8a6",
+        "simulation": "#2dd4bf",
     }
     type_symbols = {
         "incident": "x",
@@ -77,7 +77,7 @@ def render_war_room_timeline(
     x_vals = [e["step"] for e in events]
     y_vals = list(range(len(events) - 1, -1, -1))  # reversed for newest at top
     texts = [e["message"] for e in events]
-    colors = [type_colors.get(e["type"], "#94a3b8") for e in events]
+    colors = [type_colors.get(e["type"], "#6b7a68") for e in events]
     symbols = [type_symbols.get(e["type"], "circle") for e in events]
 
     fig.add_trace(go.Scatter(
@@ -99,13 +99,13 @@ def render_war_room_timeline(
 
     fig.update_layout(
         template="plotly_dark",
-        paper_bgcolor="#0a0e17",
-        plot_bgcolor="#0a0e17",
+        paper_bgcolor="#0c0f0a",
+        plot_bgcolor="#0c0f0a",
         height=height,
         margin=dict(l=20, r=200, t=30, b=20),
-        xaxis=dict(title="Step", gridcolor="#2a3042"),
+        xaxis=dict(title="Step", gridcolor="#1e2b1a"),
         yaxis=dict(visible=False),
-        font=dict(family="Inter", color="#94a3b8"),
+        font=dict(family="Inter", color="#9ca89a"),
         title=dict(
             text="⏱️ War Room Timeline",
             font=dict(size=14),
@@ -132,11 +132,11 @@ def render_benchmark_comparison(
     rewards = [r.get("avg_reward", 0) for r in results]
 
     policy_colors = {
-        "AIC (Trained)": "#10b981",
-        "AIC (Untrained)": "#6366f1",
-        "HighestConfidenceOnly": "#f59e0b",
-        "MajorityVote": "#ef4444",
-        "NoTrustOrchestrator": "#94a3b8",
+        "AIC (Trained)": "#34d399",
+        "AIC (Untrained)": "#14b8a6",
+        "HighestConfidenceOnly": "#fbbf24",
+        "MajorityVote": "#fb7185",
+        "NoTrustOrchestrator": "#6b7a68",
     }
     colors = [policy_colors.get(p, "#6b7280") for p in policies]
 
@@ -151,12 +151,12 @@ def render_benchmark_comparison(
 
     fig.update_layout(
         template="plotly_dark",
-        paper_bgcolor="#0a0e17",
-        plot_bgcolor="#0a0e17",
+        paper_bgcolor="#0c0f0a",
+        plot_bgcolor="#0c0f0a",
         height=height,
         margin=dict(l=20, r=20, t=40, b=60),
-        yaxis=dict(title="MTTR (steps)", gridcolor="#2a3042"),
-        font=dict(family="Inter", color="#94a3b8"),
+        yaxis=dict(title="MTTR (steps)", gridcolor="#1e2b1a"),
+        font=dict(family="Inter", color="#9ca89a"),
         title=dict(
             text="📊 Benchmark: Mean Time to Recovery",
             font=dict(size=14),

@@ -36,17 +36,17 @@ from aic.evals.benchmark_suite import (
     HighestConfidencePolicy, MajorityVotePolicy, NoTrustOrchestratorPolicy,
 )
 
-BG = "#0a0e17"
-CARD = "#1a1f2e"
-GRID = "#2a3042"
+BG = "#0c0f0a"
+CARD = "#161e14"
+GRID = "#1e2b1a"
 TEMPLATE = "plotly_dark"
 
 _POLICY_COLORS = {
-    "AIC (Full Stack)": "#10b981",
-    "AIC (No Trust)": "#3b82f6",
-    "Highest Confidence": "#f59e0b",
-    "Majority Vote": "#64748b",
-    "No Trust Orch.": "#ef4444",
+    "AIC (Full Stack)": "#34d399",
+    "AIC (No Trust)": "#14b8a6",
+    "Highest Confidence": "#fbbf24",
+    "Majority Vote": "#6b7a68",
+    "No Trust Orch.": "#fb7185",
 }
 
 _SCENARIO_NAMES = {s.scenario_id: s.name for s in SCENARIO_REGISTRY.values()}
@@ -184,17 +184,21 @@ def render_judge_challenge_panel() -> None:
     st.markdown(
         """
         <div style="
-            background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(59,130,246,0.1));
-            border: 1px solid rgba(16,185,129,0.3);
+            background: linear-gradient(135deg, rgba(52,211,153,0.08), rgba(20,184,166,0.04));
+            border: 1px solid rgba(52,211,153,0.2);
             border-radius: 16px;
             padding: 20px 24px;
             margin-bottom: 20px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            animation: fadeInUp 0.5s ease-out both;
         ">
-            <h2 style="margin: 0; background: linear-gradient(135deg, #10b981, #3b82f6);
-                -webkit-background-clip: text; -webkit-text-fill-color: transparent;">
+            <h2 style="margin: 0; background: linear-gradient(135deg, #059669, #34d399);
+                -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+                font-family: 'Outfit', sans-serif;">
                 🎮 Judge Challenge Mode
             </h2>
-            <p style="color: #94a3b8; margin: 8px 0 0 0;">
+            <p style="color: #6b7a68; margin: 8px 0 0 0; font-family: 'Inter', sans-serif;">
                 Pick any scenario, crank up the adversary, and watch AIC race against baselines.
             </p>
         </div>
@@ -292,21 +296,25 @@ def render_judge_challenge_panel() -> None:
     for col, r in zip(summary_cols, results):
         with col:
             color = _POLICY_COLORS.get(r["policy"], "#64748b")
-            health_color = "#10b981" if r["sla_met"] else "#ef4444"
+            health_color = "#34d399" if r["sla_met"] else "#fb7185"
             st.markdown(
                 f"""
                 <div style="
-                    border: 2px solid {color};
-                    border-radius: 12px;
-                    padding: 12px;
+                    border: 1px solid {color};
+                    border-radius: 14px;
+                    padding: 14px;
                     text-align: center;
-                    background: rgba(255,255,255,0.03);
+                    background: rgba(22, 30, 20, 0.65);
+                    backdrop-filter: blur(12px);
+                    -webkit-backdrop-filter: blur(12px);
+                    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+                    animation: fadeInUp 0.4s ease-out both;
                 ">
-                    <div style="color:{color};font-weight:700;font-size:0.9rem;">{r['policy']}</div>
-                    <div style="color:{health_color};font-size:1.8rem;font-weight:700;margin:4px 0;">
+                    <div style="color:{color};font-weight:600;font-size:0.85rem;font-family:'Inter',sans-serif;">{r['policy']}</div>
+                    <div style="color:{health_color};font-size:1.8rem;font-weight:700;margin:6px 0;font-family:'JetBrains Mono',monospace;">
                         {r['final_health']:.0%}
                     </div>
-                    <div style="color:#94a3b8;font-size:0.75rem;">
+                    <div style="color:#6b7a68;font-size:0.72rem;font-family:'JetBrains Mono',monospace;">
                         MTTR: {r['mttr']} | SLA: {'✅' if r['sla_met'] else '❌'}<br>
                         Adv followed: {r['adversary_followed']} | Unsafe: {r['unsafe_count']}
                     </div>
@@ -330,7 +338,7 @@ def render_judge_challenge_panel() -> None:
             mode="lines",
         ))
 
-    fig.add_hline(y=0.5, line_dash="dash", line_color="#f59e0b",
+    fig.add_hline(y=0.5, line_dash="dash", line_color="#fbbf24",
                   annotation_text="SLA threshold", annotation_position="right")
 
     fig.update_layout(
@@ -341,6 +349,6 @@ def render_judge_challenge_panel() -> None:
         yaxis=dict(title="System Health", range=[0, 1.05], gridcolor=GRID),
         xaxis=dict(title="Step", gridcolor=GRID),
         legend=dict(orientation="h", y=1.05, x=0.5, xanchor="center"),
-        font=dict(family="Inter", color="#94a3b8"),
+        font=dict(family="Inter", color="#9ca89a"),
     )
     st.plotly_chart(fig, use_container_width=True)

@@ -1,127 +1,475 @@
-/* Cyber-SRE Dark Mode Dashboard Styles */
+/* ═══════════════════════════════════════════════════════════════════════
+   AIC War Room — Emerald Obsidian Design System
+   Premium minimal dashboard with glassmorphism + micro-animations
+   ═══════════════════════════════════════════════════════════════════════ */
 
-/* Import modern fonts */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* ── Typography ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap');
 
-/* Root variables */
+/* ── Design Tokens ──────────────────────────────────────────────────────── */
 :root {
-    --bg-primary: #0a0e17;
-    --bg-secondary: #111827;
-    --bg-card: #1a1f2e;
-    --bg-card-hover: #222840;
-    --border-color: #2a3042;
-    --border-glow: #3b82f6;
-    --text-primary: #e2e8f0;
-    --text-secondary: #94a3b8;
-    --text-muted: #64748b;
-    --accent-blue: #3b82f6;
-    --accent-cyan: #06b6d4;
-    --accent-green: #10b981;
-    --accent-red: #ef4444;
-    --accent-yellow: #f59e0b;
-    --accent-purple: #8b5cf6;
-    --gradient-primary: linear-gradient(135deg, #3b82f6, #06b6d4);
-    --gradient-danger: linear-gradient(135deg, #ef4444, #f97316);
-    --gradient-success: linear-gradient(135deg, #10b981, #06b6d4);
-    --shadow-glow: 0 0 20px rgba(59, 130, 246, 0.15);
-    --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    /* Backgrounds — warm charcoal, not cold navy */
+    --bg-primary:    #0c0f0a;
+    --bg-secondary:  #111610;
+    --bg-tertiary:   #161b14;
+    --bg-card:       rgba(22, 30, 20, 0.65);
+    --bg-card-solid: #161e14;
+    --bg-card-hover: rgba(28, 38, 24, 0.8);
+    --bg-glass:      rgba(16, 24, 14, 0.45);
+    --bg-glass-hover: rgba(22, 32, 18, 0.6);
+
+    /* Borders */
+    --border-subtle:  rgba(52, 211, 153, 0.08);
+    --border-default: rgba(52, 211, 153, 0.15);
+    --border-hover:   rgba(52, 211, 153, 0.3);
+    --border-active:  rgba(52, 211, 153, 0.5);
+
+    /* Emerald spectrum — hero accent */
+    --emerald-50:  #ecfdf5;
+    --emerald-100: #d1fae5;
+    --emerald-200: #a7f3d0;
+    --emerald-300: #6ee7b7;
+    --emerald-400: #34d399;
+    --emerald-500: #10b981;
+    --emerald-600: #059669;
+    --emerald-700: #047857;
+    --emerald-800: #065f46;
+    --emerald-900: #064e3b;
+
+    /* Secondary accents */
+    --gold-400:    #fbbf24;
+    --gold-500:    #f59e0b;
+    --gold-600:    #d97706;
+    --amber-500:   #f59e0b;
+    --rose-400:    #fb7185;
+    --rose-500:    #f43f5e;
+    --rose-600:    #e11d48;
+    --jade-400:    #2dd4bf;
+    --jade-500:    #14b8a6;
+    --slate-300:   #cbd5e1;
+    --slate-400:   #94a3b8;
+    --slate-500:   #64748b;
+    --slate-600:   #475569;
+    --slate-700:   #334155;
+
+    /* Text */
+    --text-primary:   #e8ede6;
+    --text-secondary: #9ca89a;
+    --text-muted:     #6b7a68;
+    --text-emerald:   #34d399;
+
+    /* Gradients */
+    --gradient-emerald: linear-gradient(135deg, #059669, #10b981, #34d399);
+    --gradient-emerald-subtle: linear-gradient(135deg, rgba(5, 150, 105, 0.15), rgba(52, 211, 153, 0.05));
+    --gradient-gold: linear-gradient(135deg, #d97706, #f59e0b);
+    --gradient-rose: linear-gradient(135deg, #e11d48, #fb7185);
+    --gradient-glass: linear-gradient(135deg, rgba(52, 211, 153, 0.06), rgba(20, 184, 166, 0.03));
+
+    /* Shadows & Glows */
+    --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.4), 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-card-hover: 0 8px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(52, 211, 153, 0.08);
+    --shadow-glow-emerald: 0 0 30px rgba(52, 211, 153, 0.12), 0 0 60px rgba(52, 211, 153, 0.05);
+    --shadow-glow-gold: 0 0 20px rgba(245, 158, 11, 0.12);
+    --shadow-glow-rose: 0 0 20px rgba(244, 63, 94, 0.12);
+
+    /* Timing */
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+    --ease-out: cubic-bezier(0, 0, 0.2, 1);
+    --duration-fast: 150ms;
+    --duration-normal: 250ms;
+    --duration-slow: 400ms;
 }
 
-/* Global overrides */
+/* ── Keyframe Animations ────────────────────────────────────────────────── */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(12px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-16px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes shimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+@keyframes pulseEmerald {
+    0%, 100% {
+        box-shadow: 0 0 8px rgba(52, 211, 153, 0.15);
+    }
+    50% {
+        box-shadow: 0 0 24px rgba(52, 211, 153, 0.3), 0 0 48px rgba(52, 211, 153, 0.1);
+    }
+}
+
+@keyframes pulseGold {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes breathe {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+}
+
+@keyframes borderGlow {
+    0%, 100% { border-color: rgba(52, 211, 153, 0.15); }
+    50% { border-color: rgba(52, 211, 153, 0.35); }
+}
+
+@keyframes gradientShift {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+@keyframes countUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Global App Override ────────────────────────────────────────────────── */
 .stApp {
     background-color: var(--bg-primary) !important;
-    font-family: 'Inter', -apple-system, sans-serif !important;
+    background-image:
+        radial-gradient(ellipse at 20% 50%, rgba(5, 150, 105, 0.04) 0%, transparent 60%),
+        radial-gradient(ellipse at 80% 20%, rgba(20, 184, 166, 0.03) 0%, transparent 50%);
+    font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif !important;
     color: var(--text-primary) !important;
 }
 
-/* Headers */
-h1, h2, h3 {
-    font-family: 'Inter', sans-serif !important;
-    font-weight: 600 !important;
-    letter-spacing: -0.025em !important;
+/* ── Typography ─────────────────────────────────────────────────────────── */
+h1 {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.03em !important;
+    color: var(--text-primary) !important;
 }
 
-/* Metric cards */
+h2 {
+    font-family: 'Outfit', sans-serif !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+    color: var(--text-primary) !important;
+}
+
+h3 {
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.015em !important;
+    color: var(--emerald-300) !important;
+    font-size: 1.05rem !important;
+}
+
+p, span, div {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* ── Glassmorphic Metric Cards ──────────────────────────────────────────── */
 [data-testid="stMetric"] {
-    background: var(--bg-card) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 12px !important;
-    padding: 16px !important;
+    background: var(--bg-glass) !important;
+    backdrop-filter: blur(16px) saturate(140%) !important;
+    -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+    border: 1px solid var(--border-default) !important;
+    border-radius: 14px !important;
+    padding: 18px 16px !important;
     box-shadow: var(--shadow-card) !important;
-    transition: all 0.2s ease !important;
+    transition: all var(--duration-normal) var(--ease-smooth) !important;
+    animation: fadeInUp 0.5s var(--ease-out) both;
+    position: relative;
+    overflow: hidden;
+}
+
+[data-testid="stMetric"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--gradient-emerald);
+    opacity: 0;
+    transition: opacity var(--duration-normal) var(--ease-smooth);
 }
 
 [data-testid="stMetric"]:hover {
-    border-color: var(--border-glow) !important;
-    box-shadow: var(--shadow-glow) !important;
+    border-color: var(--border-hover) !important;
+    box-shadow: var(--shadow-card-hover) !important;
+    transform: translateY(-2px) !important;
+    background: var(--bg-glass-hover) !important;
+}
+
+[data-testid="stMetric"]:hover::before {
+    opacity: 1;
 }
 
 [data-testid="stMetricLabel"] {
     font-family: 'JetBrains Mono', monospace !important;
-    font-size: 0.75rem !important;
+    font-size: 0.7rem !important;
     text-transform: uppercase !important;
-    letter-spacing: 0.05em !important;
-    color: var(--text-secondary) !important;
+    letter-spacing: 0.08em !important;
+    color: var(--text-muted) !important;
 }
 
 [data-testid="stMetricValue"] {
     font-family: 'JetBrains Mono', monospace !important;
-    font-weight: 500 !important;
+    font-weight: 600 !important;
+    color: var(--text-primary) !important;
+    animation: countUp 0.4s var(--ease-out) both;
 }
 
-/* Expanders */
+[data-testid="stMetricDelta"] {
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 0.75rem !important;
+}
+
+/* Staggered animation for metric cards in a row */
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(1) [data-testid="stMetric"] {
+    animation-delay: 0ms;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(2) [data-testid="stMetric"] {
+    animation-delay: 60ms;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(3) [data-testid="stMetric"] {
+    animation-delay: 120ms;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(4) [data-testid="stMetric"] {
+    animation-delay: 180ms;
+}
+[data-testid="stHorizontalBlock"] > [data-testid="column"]:nth-child(5) [data-testid="stMetric"] {
+    animation-delay: 240ms;
+}
+
+/* ── Expanders — Glassmorphic ───────────────────────────────────────────── */
 [data-testid="stExpander"] {
-    background: var(--bg-card) !important;
-    border: 1px solid var(--border-color) !important;
-    border-radius: 12px !important;
+    background: var(--bg-glass) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid var(--border-default) !important;
+    border-radius: 14px !important;
+    overflow: hidden;
+    transition: all var(--duration-normal) var(--ease-smooth) !important;
+    animation: fadeInUp 0.5s var(--ease-out) both;
+}
+
+[data-testid="stExpander"]:hover {
+    border-color: var(--border-hover) !important;
+    box-shadow: var(--shadow-glow-emerald) !important;
+}
+
+[data-testid="stExpander"] summary {
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 500 !important;
+    color: var(--emerald-300) !important;
+    transition: color var(--duration-fast) var(--ease-smooth);
+}
+
+[data-testid="stExpander"] summary:hover {
+    color: var(--emerald-200) !important;
+}
+
+/* ── Buttons — Emerald Gradient ─────────────────────────────────────────── */
+.stButton > button {
+    background: var(--gradient-emerald) !important;
+    background-size: 200% 100% !important;
+    color: #0c0f0a !important;
+    border: none !important;
+    border-radius: 10px !important;
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 600 !important;
+    font-size: 0.85rem !important;
+    padding: 0.55rem 1.6rem !important;
+    letter-spacing: 0.01em !important;
+    transition: all var(--duration-normal) var(--ease-spring) !important;
+    box-shadow: 0 2px 12px rgba(5, 150, 105, 0.25) !important;
+    position: relative;
     overflow: hidden;
 }
 
-/* Buttons */
-.stButton > button {
-    background: var(--gradient-primary) !important;
-    color: white !important;
-    border: none !important;
-    border-radius: 8px !important;
-    font-weight: 500 !important;
-    padding: 0.5rem 1.5rem !important;
-    transition: all 0.2s ease !important;
-    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3) !important;
-}
-
 .stButton > button:hover {
-    transform: translateY(-1px) !important;
-    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4) !important;
+    transform: translateY(-2px) scale(1.02) !important;
+    box-shadow: 0 6px 24px rgba(5, 150, 105, 0.35), 0 0 40px rgba(52, 211, 153, 0.1) !important;
+    background-position: 100% 0 !important;
 }
 
-/* Slider */
+.stButton > button:active {
+    transform: translateY(0) scale(0.98) !important;
+    transition-duration: 80ms !important;
+}
+
+/* ── Slider — Emerald Accent ────────────────────────────────────────────── */
 .stSlider [data-testid="stThumbValue"] {
     font-family: 'JetBrains Mono', monospace !important;
+    color: var(--emerald-300) !important;
 }
 
-/* Radio buttons */
+.stSlider [data-baseweb="slider"] [role="slider"] {
+    background: var(--emerald-500) !important;
+    border-color: var(--emerald-400) !important;
+}
+
+/* ── Radio & Checkbox ───────────────────────────────────────────────────── */
 .stRadio > div {
     gap: 0.5rem !important;
 }
 
-/* Progress bar */
+.stRadio label span {
+    font-family: 'Inter', sans-serif !important;
+    transition: color var(--duration-fast) !important;
+}
+
+.stCheckbox label span {
+    font-family: 'Inter', sans-serif !important;
+}
+
+/* ── Progress Bar — Emerald Gradient Fill ────────────────────────────────── */
 .stProgress > div > div {
+    border-radius: 999px !important;
+    background: var(--gradient-emerald) !important;
+    transition: width 0.6s var(--ease-smooth) !important;
+}
+
+.stProgress > div {
+    background: rgba(52, 211, 153, 0.08) !important;
     border-radius: 999px !important;
 }
 
-/* Dividers */
-hr {
-    border-color: var(--border-color) !important;
-    opacity: 0.5 !important;
+/* ── Tabs — Emerald Underline ───────────────────────────────────────────── */
+.stTabs [data-baseweb="tab-list"] {
+    gap: 4px !important;
+    background: var(--bg-glass) !important;
+    backdrop-filter: blur(12px) !important;
+    -webkit-backdrop-filter: blur(12px) !important;
+    border: 1px solid var(--border-subtle) !important;
+    border-radius: 14px !important;
+    padding: 6px !important;
 }
 
-/* Sidebar */
+.stTabs [data-baseweb="tab"] {
+    font-family: 'Inter', sans-serif !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+    color: var(--text-secondary) !important;
+    border-radius: 10px !important;
+    padding: 8px 16px !important;
+    transition: all var(--duration-normal) var(--ease-smooth) !important;
+    border: none !important;
+}
+
+.stTabs [data-baseweb="tab"]:hover {
+    color: var(--emerald-300) !important;
+    background: rgba(52, 211, 153, 0.06) !important;
+}
+
+.stTabs [aria-selected="true"] {
+    color: var(--emerald-300) !important;
+    background: rgba(52, 211, 153, 0.12) !important;
+    font-weight: 600 !important;
+}
+
+.stTabs [data-baseweb="tab-highlight"] {
+    background-color: var(--emerald-500) !important;
+    height: 2px !important;
+    border-radius: 1px !important;
+}
+
+.stTabs [data-baseweb="tab-border"] {
+    display: none !important;
+}
+
+/* ── Dividers ───────────────────────────────────────────────────────────── */
+hr {
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, var(--border-default), transparent) !important;
+    opacity: 1 !important;
+    margin: 1rem 0 !important;
+}
+
+/* ── Sidebar — Frosted Glass ────────────────────────────────────────────── */
 [data-testid="stSidebar"] {
     background-color: var(--bg-secondary) !important;
-    border-right: 1px solid var(--border-color) !important;
+    background-image: 
+        radial-gradient(ellipse at 50% 0%, rgba(5, 150, 105, 0.06) 0%, transparent 60%);
+    border-right: 1px solid var(--border-subtle) !important;
 }
 
-/* Scrollbar */
+[data-testid="stSidebar"] h2 {
+    color: var(--emerald-300) !important;
+    font-size: 1rem !important;
+}
+
+[data-testid="stSidebar"] .stMetric {
+    animation-delay: 0ms !important;
+}
+
+/* ── Select boxes ───────────────────────────────────────────────────────── */
+[data-baseweb="select"] {
+    font-family: 'Inter', sans-serif !important;
+}
+
+[data-baseweb="select"] > div {
+    background: var(--bg-glass) !important;
+    border-color: var(--border-default) !important;
+    border-radius: 10px !important;
+    transition: all var(--duration-fast) var(--ease-smooth) !important;
+}
+
+[data-baseweb="select"] > div:hover {
+    border-color: var(--border-hover) !important;
+}
+
+/* ── Multiselect ────────────────────────────────────────────────────────── */
+[data-baseweb="tag"] {
+    background: rgba(52, 211, 153, 0.15) !important;
+    border: 1px solid rgba(52, 211, 153, 0.3) !important;
+    border-radius: 6px !important;
+    color: var(--emerald-300) !important;
+}
+
+/* ── Number input ───────────────────────────────────────────────────────── */
+[data-baseweb="input"] {
+    background: var(--bg-glass) !important;
+    border-color: var(--border-default) !important;
+    border-radius: 10px !important;
+}
+
+/* ── Code blocks ────────────────────────────────────────────────────────── */
+.stCodeBlock {
+    border: 1px solid var(--border-default) !important;
+    border-radius: 12px !important;
+}
+
+/* ── Toast / Alerts ─────────────────────────────────────────────────────── */
+[data-testid="stAlert"] {
+    border-radius: 12px !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    animation: fadeInUp 0.3s var(--ease-out) both;
+}
+
+/* ── Scrollbar — Emerald ────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
     width: 6px;
     height: 6px;
@@ -132,49 +480,102 @@ hr {
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--border-color);
+    background: rgba(52, 211, 153, 0.2);
     border-radius: 3px;
+    transition: background 0.2s;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background: rgba(52, 211, 153, 0.4);
 }
 
-/* Agent card styles */
+/* ── Agent Card Custom Classes ──────────────────────────────────────────── */
 .agent-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
+    background: var(--bg-glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border-default);
+    border-radius: 14px;
     padding: 16px;
     margin-bottom: 8px;
-    transition: all 0.2s ease;
+    transition: all var(--duration-normal) var(--ease-smooth);
+    animation: fadeInUp 0.4s var(--ease-out) both;
 }
 
 .agent-card:hover {
-    border-color: var(--accent-blue);
+    border-color: var(--border-hover);
+    box-shadow: var(--shadow-glow-emerald);
+    transform: translateY(-1px);
 }
 
 .agent-card-adversary {
-    border-color: var(--accent-red) !important;
-    box-shadow: 0 0 12px rgba(239, 68, 68, 0.15);
+    border-color: var(--rose-500) !important;
+    box-shadow: var(--shadow-glow-rose);
 }
 
-/* Pulse animation for critical metrics */
-@keyframes pulse-red {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.7; }
-}
-
+/* ── Pulse Animations for Live Data ─────────────────────────────────────── */
 .metric-critical {
-    animation: pulse-red 2s ease-in-out infinite;
-}
-
-/* Glow effect for active step */
-@keyframes glow {
-    0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.3); }
-    50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.6); }
+    animation: pulseGold 2s ease-in-out infinite;
 }
 
 .step-active {
-    animation: glow 2s ease-in-out infinite;
+    animation: pulseEmerald 2s ease-in-out infinite;
+}
+
+.metric-live {
+    animation: borderGlow 3s ease-in-out infinite;
+}
+
+/* ── Download Button ────────────────────────────────────────────────────── */
+.stDownloadButton > button {
+    background: var(--bg-glass) !important;
+    border: 1px solid var(--border-default) !important;
+    color: var(--emerald-300) !important;
+    border-radius: 10px !important;
+    transition: all var(--duration-normal) var(--ease-smooth) !important;
+}
+
+.stDownloadButton > button:hover {
+    border-color: var(--border-hover) !important;
+    box-shadow: var(--shadow-glow-emerald) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* ── Spinner ────────────────────────────────────────────────────────────── */
+.stSpinner > div {
+    border-top-color: var(--emerald-400) !important;
+}
+
+/* ── Tooltip ────────────────────────────────────────────────────────────── */
+[data-testid="stTooltipIcon"] {
+    color: var(--text-muted) !important;
+}
+
+/* ── Caption text ───────────────────────────────────────────────────────── */
+.stCaption {
+    color: var(--text-muted) !important;
+    font-size: 0.78rem !important;
+}
+
+/* ── Plotly chart containers ────────────────────────────────────────────── */
+[data-testid="stPlotlyChart"] {
+    animation: fadeIn 0.6s var(--ease-out) both;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+/* ── Select slider ──────────────────────────────────────────────────────── */
+[data-testid="stSlider"] {
+    animation: fadeIn 0.3s var(--ease-out) both;
+}
+
+/* ── Container blocks ───────────────────────────────────────────────────── */
+[data-testid="stVerticalBlock"] > div {
+    animation: fadeIn 0.2s var(--ease-out) both;
+}
+
+/* ── Warning/Error/Success/Info overrides ────────────────────────────────── */
+div[data-testid="stAlert"][data-baseweb="notification"] {
+    border-radius: 12px !important;
+    font-family: 'Inter', sans-serif !important;
 }

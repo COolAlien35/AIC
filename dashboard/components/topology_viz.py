@@ -44,11 +44,11 @@ NODE_LABELS: dict[str, str] = {
 def _health_color(health: float) -> str:
     """Map health score to color."""
     if health > 0.7:
-        return "#10b981"   # green
+        return "#34d399"   # emerald
     elif health > 0.4:
-        return "#f59e0b"   # yellow
+        return "#fbbf24"   # gold
     else:
-        return "#ef4444"   # red
+        return "#fb7185"   # rose
 
 
 def _health_size(health: float) -> int:
@@ -121,7 +121,7 @@ def render_topology_map(
                 opacity=0.9,
                 line=dict(
                     width=4 if is_root else 2,
-                    color="#ef4444" if is_root else "rgba(255,255,255,0.3)",
+                    color="#fbbf24" if is_root else "rgba(52,211,153,0.2)",
                 ),
                 symbol="circle",
             ),
@@ -145,8 +145,8 @@ def render_topology_map(
 
     fig.update_layout(
         template="plotly_dark",
-        paper_bgcolor="#0a0e17",
-        plot_bgcolor="#0a0e17",
+        paper_bgcolor="#0c0f0a",
+        plot_bgcolor="#0c0f0a",
         height=height,
         margin=dict(l=20, r=20, t=30, b=20),
         xaxis=dict(
@@ -157,7 +157,7 @@ def render_topology_map(
             visible=False, range=[0.1, 1.15],
             fixedrange=True,
         ),
-        font=dict(family="Inter", color="#94a3b8"),
+        font=dict(family="Inter", color="#9ca89a"),
         title=dict(
             text="🔗 Service Topology",
             font=dict(size=14),
