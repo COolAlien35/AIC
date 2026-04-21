@@ -20,6 +20,7 @@ from aic.agents.incident_commander_agent import IncidentCommanderAgent
 from aic.agents.observability_agent import ObservabilityAgent
 from aic.env.counterfactual_simulator import simulate_action, compare_actions
 from aic.env.business_impact import compute_business_impact
+from aic.utils.war_room_utils import build_action_deltas
 from aic.schemas.traces import (
     ExplanationTrace, OrchestratorAction, SubAgentRecommendation,
 )
@@ -495,10 +496,15 @@ class OrchestratorAgent:
             business_impact_snapshot=biz_impact_dict,
         )
 
+        # Resolve action deltas from the selected recommendation
+        resolved_deltas = build_action_deltas(best)
+        if not resolved_deltas:
+            resolved_deltas = {m: -10.0 for m in best.target_metrics}
+
         return OrchestratorAction(
             action_description=best.action,
             target_service=target_service,
-            action_deltas={m: -10.0 for m in best.target_metrics},
+            action_deltas=resolved_deltas,
             trust_override=override_agent,
             explanation_trace=trace,
         )

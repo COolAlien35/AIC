@@ -1,33 +1,33 @@
 {
   "episode_id": 4,
   "trust_scores": {
-    "db_agent": 0.2657205000000001,
-    "infra_agent": 0.32805000000000006,
-    "app_agent": 0.2657205000000001,
+    "db_agent": 0.36450000000000005,
+    "infra_agent": 0.36450000000000005,
+    "app_agent": 0.36450000000000005,
     "adversarial_agent": 0.36450000000000005,
-    "network_agent": 0.5,
+    "network_agent": 0.36450000000000005,
     "security_agent": 0.5
   },
   "episode_results_so_far": [
     {
       "episode_id": 0,
-      "total_reward": -465.2816555428869
+      "total_reward": -479.5175170204708
     },
     {
       "episode_id": 1,
-      "total_reward": -465.06782683997926
+      "total_reward": -488.93496983130467
     },
     {
       "episode_id": 2,
-      "total_reward": -496.79719947394506
+      "total_reward": -481.87291376781764
     },
     {
       "episode_id": 3,
-      "total_reward": -463.4357991197242
+      "total_reward": -478.80193419900723
     },
     {
       "episode_id": 4,
-      "total_reward": -464.924421992653
+      "total_reward": -489.3688152348033
     }
   ]
 }

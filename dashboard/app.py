@@ -37,6 +37,9 @@ try:
     from dashboard.components.business_impact_panel import render_business_impact_panel
     from dashboard.components.postmortem_panel import render_postmortem_panel
     from dashboard.components.agent_debate_panel import render_debate_panel, render_debate_summary_panel
+    from dashboard.components.topology_viz import render_topology_map
+    from dashboard.components.impact_viz import extract_timeline_events, render_war_room_timeline
+    from aic.utils.war_room_utils import project_metrics_to_topology_state
     _NEW_COMPONENTS = True
 except ImportError:
     _NEW_COMPONENTS = False
@@ -529,6 +532,35 @@ with tab_mc:
     if _NEW_COMPONENTS:
         with st.expander("🗣️ Episode Debate Summary", expanded=False):
             render_debate_summary_panel(trajectory)
+
+    # Topology + War Room Timeline (full-width, inside Mission Control tab)
+    if _NEW_COMPONENTS:
+        topo_col, timeline_col = st.columns(2)
+        with topo_col:
+            # Service topology DAG colored by health
+            rca_node = None
+            rca_hyp = trace.get("root_cause_hypothesis")
+            if rca_hyp and isinstance(rca_hyp, dict):
+                scenario_name_lc = rca_hyp.get("scenario_name", "").lower()
+                if "cache" in scenario_name_lc:
+                    rca_node = "cache"
+                elif "db" in scenario_name_lc or "schema" in scenario_name_lc:
+                    rca_node = "db"
+                elif "queue" in scenario_name_lc:
+                    rca_node = "queue"
+                elif "credential" in scenario_name_lc or "security" in scenario_name_lc:
+                    rca_node = "app"
+                elif "regional" in scenario_name_lc or "network" in scenario_name_lc:
+                    rca_node = "gateway"
+            topo_state = project_metrics_to_topology_state(metrics, rca_node)
+            fig_topo = render_topology_map(topo_state, root_cause_node=rca_node, height=350)
+            st.plotly_chart(fig_topo, use_container_width=True)
+
+        with timeline_col:
+            # War room incident timeline
+            events = extract_timeline_events(trajectory[:step + 1])
+            fig_timeline = render_war_room_timeline(events, height=350)
+            st.plotly_chart(fig_timeline, use_container_width=True)
 
 # ════════════════════════════════════════════════════════════════════════
 # TAB 2 — Leaderboard

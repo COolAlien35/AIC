@@ -22,6 +22,9 @@ import pandas as pd
 from aic.training.config import TrainingConfig
 from aic.utils.seeding import make_episode_rng, get_t_drift, get_adversary_cycle
 from aic.utils.constants import SLA_STEPS
+from aic.utils.war_room_utils import (
+    build_action_deltas, build_network_observation, build_security_observation,
+)
 from aic.env.world_state import WorldState
 from aic.env.fault_injector import FaultInjector
 from aic.env.schema_drift import SchemaDriftInjector
@@ -30,6 +33,8 @@ from aic.env.reward_engine import RewardEngine
 from aic.agents.db_agent import DBAgent
 from aic.agents.infra_agent import InfraAgent
 from aic.agents.app_agent import AppAgent
+from aic.agents.network_agent import NetworkAgent
+from aic.agents.security_agent import SecurityAgent
 from aic.agents.adversarial_agent import AdversarialAgent
 from aic.agents.orchestrator_agent import OrchestratorAgent
 
@@ -45,6 +50,8 @@ def run_episode(
     db: DBAgent,
     infra: InfraAgent,
     app: AppAgent,
+    net: NetworkAgent = None,
+    sec: SecurityAgent = None,
 ) -> dict:
     """
     Run a single 20-step episode and return trajectory + reward summary.
@@ -91,6 +98,15 @@ def run_episode(
             adv.recommend(db_obs, step),
         ]
 
+        # Add specialist agent recommendations if available
+        current_snap = ws.snapshot()
+        if net is not None:
+            net_obs = build_network_observation(current_snap)
+            recs.append(net.recommend(net_obs, step))
+        if sec is not None:
+            sec_obs = build_security_observation(current_snap)
+            recs.append(sec.recommend(sec_obs, step))
+
         # Alert summary
         health = ws.get_health_score()
         alert = (
@@ -109,8 +125,15 @@ def run_episode(
         )
 
         # Apply action and fault to world state
+        selected_rec = orchestrator._prev_recommendations.get(
+            orchestrator._followed_agent
+        )
+        if selected_rec is not None:
+            action_deltas = build_action_deltas(selected_rec)
+        else:
+            action_deltas = action.action_deltas
         faults = fi.get_contributions(step)
-        ws.step(action.action_deltas, faults)
+        ws.step(action_deltas, faults)
         lock_penalty = locks.detect_and_resolve_deadlocks()
 
         # Compute reward
@@ -161,6 +184,21 @@ def run_episode(
 
     total_reward = reward_eng.get_total_episode_reward()
 
+    # Determine scenario name from the last root cause hypothesis in the trace
+    scenario_name = "Unknown Scenario"
+    for t in reversed(trajectory):
+        hyp = t.get("trace", {}).get("root_cause_hypothesis")
+        if hyp and isinstance(hyp, dict) and hyp.get("scenario_name"):
+            scenario_name = hyp["scenario_name"]
+            break
+
+    # Compute MTTR: first step where health exceeds 0.5
+    mttr_steps = SLA_STEPS
+    for t in trajectory:
+        if t["health"] > 0.5:
+            mttr_steps = t["step"] + 1
+            break
+
     return {
         "episode_id": episode_id,
         "total_reward": total_reward,
@@ -169,6 +207,8 @@ def run_episode(
         "trust_evolution": trust_evolution,
         "trajectory": trajectory,
         "final_health": ws.get_health_score(),
+        "scenario_name": scenario_name,
+        "mttr": mttr_steps,
     }
 
 
@@ -188,6 +228,8 @@ def train(config: TrainingConfig = None) -> list[dict]:
     db = DBAgent(use_llm=config.use_llm_agents)
     infra_agent = InfraAgent(use_llm=config.use_llm_agents)
     app_agent = AppAgent(use_llm=config.use_llm_agents)
+    net_agent = NetworkAgent(use_llm=config.use_llm_agents)
+    sec_agent = SecurityAgent(use_llm=config.use_llm_agents)
 
     # Orchestrator with trust updating
     dummy_cycle = get_adversary_cycle(make_episode_rng(0, config.base_seed))
@@ -214,6 +256,7 @@ def train(config: TrainingConfig = None) -> list[dict]:
     for episode_id in range(config.num_episodes):
         result = run_episode(
             episode_id, config, orchestrator, db, infra_agent, app_agent,
+            net=net_agent, sec=sec_agent,
         )
         all_episode_results.append(result)
 
