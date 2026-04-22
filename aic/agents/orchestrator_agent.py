@@ -194,7 +194,7 @@ class OrchestratorAgent:
 
         # Only update trust for the agent whose recommendation was followed
         agent_name = self._followed_agent
-        if agent_name in self._prev_recommendations:
+        if agent_name in self._prev_recommendations and agent_name in self.trust_scores:
             old_trust = self.trust_scores[agent_name]
             self.trust_scores[agent_name] = max(0.0, min(1.0,
                 (1 - TRUST_UPDATE_RATE) * old_trust

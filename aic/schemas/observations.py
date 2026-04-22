@@ -1,9 +1,8 @@
 # aic/schemas/observations.py
-"""
-Pydantic V2 observation models for each agent type.
-Each sub-agent sees only its slice of the world state.
-"""
+"""Pydantic V2 observation models for each agent type and the orchestrator."""
 from pydantic import BaseModel, Field
+
+from aic.schemas.actions import CandidateRecommendation
 
 
 class DBObservation(BaseModel):
@@ -42,7 +41,12 @@ class OrchestratorObservation(BaseModel):
     """What the orchestrator sees each step — full situational awareness."""
     alert_summary_text: str
     sla_remaining_steps: int
-    sub_agent_recommendations: list[dict]  # Serialized SubAgentRecommendation list
-    trace_history: list[dict]              # Last N ExplanationTrace dicts
+    current_metrics: dict[str, float] = Field(default_factory=dict)
+    candidate_recommendations: list[CandidateRecommendation] = Field(default_factory=list)
+    sub_agent_recommendations: list[dict] = Field(default_factory=list)
+    current_recommendation_ids: list[int] = Field(default_factory=list)
+    trace_history: list[dict] = Field(default_factory=list)
     current_trust_scores: dict[str, float]
+    schema_drift_active: bool = False
+    schema_drift_type: str | None = None
     step: int

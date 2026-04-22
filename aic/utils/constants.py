@@ -32,6 +32,16 @@ R3_WRONG_TRUST: float = -20.0         # trusted, adversary was wrong
 R4_MAX_PER_STEP: float = 5.0
 R4_MIN_PER_STEP: float = -5.0
 
+R5_VALID_FORMAT: float = +1.0
+R5_INVALID_FORMAT: float = -4.0
+R5_INVALID_SELECTION: float = -6.0
+
+R6_VERIFIER_APPROVED: float = +1.5
+R6_VERIFIER_VETO: float = -8.0
+
+NOOP_ACTION_PENALTY: float = -1.5
+REPEATED_ACTION_PENALTY: float = -2.0
+
 DEADLOCK_PENALTY: float = -20.0
 LOCK_HANDOFF_BONUS: float = +5.0
 

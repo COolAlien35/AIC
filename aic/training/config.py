@@ -30,6 +30,7 @@ class TrainingConfig:
     output_dir: str = "checkpoints"
     log_dir: str = "logs"
     trajectories_dir: str = "dashboard/assets"
+    artifacts_dir: str = "artifacts"
 
     # Environment
     base_seed: int = 42
@@ -40,3 +41,32 @@ class TrainingConfig:
     max_new_tokens: int = 512
     temperature: float = 0.3
     do_sample: bool = True
+
+    # Prompting / sequence lengths
+    max_prompt_length: int = 2048
+    max_completion_length: int = 512
+
+    # SFT warm start
+    sft_dataset_path: str = "artifacts/sft/orchestrator_sft.jsonl"
+    sft_num_episodes: int = 32
+    sft_epochs: int = 1
+    sft_batch_size: int = 2
+    sft_learning_rate: float = 2e-5
+    sft_output_dir: str = "checkpoints/sft"
+    use_peft_for_sft: bool = True
+
+    # GRPO / RLVR
+    grpo_dataset_path: str = "artifacts/grpo/prompts.jsonl"
+    grpo_output_dir: str = "checkpoints/grpo"
+    grpo_num_generations: int = 4
+    grpo_max_steps: int = 100
+    grpo_per_device_train_batch_size: int = 1
+    grpo_gradient_accumulation_steps: int = 4
+
+    # Efficiency / export
+    use_unsloth: bool = True
+    export_dir: str = "exports"
+
+    # Serving
+    env_server_host: str = "0.0.0.0"
+    env_server_port: int = 8000

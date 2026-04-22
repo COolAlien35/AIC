@@ -12,6 +12,9 @@ from aic.utils.constants import (
     R2_SLA_BONUS_MAX, SLA_HEALTH_THRESHOLD, SLA_STEPS,
     R3_CORRECT_OVERRIDE, R3_CORRECT_TRUST, R3_WRONG_OVERRIDE, R3_WRONG_TRUST,
     R4_MAX_PER_STEP, R4_MIN_PER_STEP,
+    R5_VALID_FORMAT, R5_INVALID_FORMAT, R5_INVALID_SELECTION,
+    R6_VERIFIER_APPROVED, R6_VERIFIER_VETO,
+    NOOP_ACTION_PENALTY, REPEATED_ACTION_PENALTY,
     OBS_DB, OBS_INFRA, OBS_APP,
 )
 
@@ -70,6 +73,30 @@ def compute_r3(override_applied: bool, adversary_was_correct: bool) -> float:
         return R3_WRONG_OVERRIDE
     else:
         return R3_WRONG_TRUST
+
+
+def compute_r5(format_valid: bool, selection_valid: bool) -> float:
+    """Structured action / selection validity reward."""
+    if not format_valid:
+        return R5_INVALID_FORMAT
+    if not selection_valid:
+        return R5_INVALID_SELECTION
+    return R5_VALID_FORMAT
+
+
+def compute_r6(verifier_approved: bool) -> float:
+    """Safety verifier reward."""
+    return R6_VERIFIER_APPROVED if verifier_approved else R6_VERIFIER_VETO
+
+
+def compute_behavior_penalty(action_is_noop: bool, action_repeated: bool) -> float:
+    """Simple anti-stagnation penalties."""
+    penalty = 0.0
+    if action_is_noop:
+        penalty += NOOP_ACTION_PENALTY
+    if action_repeated:
+        penalty += REPEATED_ACTION_PENALTY
+    return penalty
 
 
 def compute_r4(
@@ -132,10 +159,16 @@ class RewardEngine:
         override_applied: bool, adversary_was_correct: bool,
         predicted_2step_impact: dict[str, float], reasoning: str,
         lock_penalty: float = 0.0,
+        format_valid: bool = True,
+        selection_valid: bool = True,
+        verifier_approved: bool = True,
+        action_is_noop: bool = False,
+        action_repeated: bool = False,
+        trust_signal_relevant: bool = True,
     ) -> dict[str, float]:
         """Compute all reward components for one step. Returns dict with r1..r4, total."""
         r1 = compute_r1(metrics)
-        r3 = compute_r3(override_applied, adversary_was_correct)
+        r3 = compute_r3(override_applied, adversary_was_correct) if trust_signal_relevant else 0.0
 
         r4 = 0.0
         pred_acc = 0.0
@@ -149,13 +182,24 @@ class RewardEngine:
                 outcome = f"Metrics improving: {improving}" if improving else "No clear improvement"
                 r4, pred_acc, causal_cons = compute_r4(old_pred, actual_delta, reasoning, outcome)
 
+        r5 = compute_r5(format_valid, selection_valid)
+        r6 = compute_r6(verifier_approved)
+        behavior_penalty = compute_behavior_penalty(action_is_noop, action_repeated)
+
         self._prediction_buffer.append((step, predicted_2step_impact, prev_metrics.copy()))
-        total = r1 + r3 + r4 + lock_penalty
+        total = r1 + r3 + r4 + r5 + r6 + lock_penalty + behavior_penalty
 
         record = {
             "step": step, "r1": r1, "r2": 0.0, "r3": r3, "r4": r4,
+            "r5": r5, "r6": r6,
             "prediction_accuracy": pred_acc, "causal_consistency": causal_cons,
-            "lock_adjustment": lock_penalty, "total": total,
+            "lock_adjustment": lock_penalty,
+            "behavior_penalty": behavior_penalty,
+            "format_valid": format_valid,
+            "selection_valid": selection_valid,
+            "verifier_approved": verifier_approved,
+            "trust_signal_relevant": trust_signal_relevant,
+            "total": total,
         }
         self._step_rewards.append(record)
         return record

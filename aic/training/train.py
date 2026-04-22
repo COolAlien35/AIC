@@ -1,46 +1,65 @@
 #!/usr/bin/env python3
 # aic/training/train.py
 """
-Training loop for the AIC orchestrator agent.
+Baseline rollout and pseudo-training loop for the AIC orchestrator.
 
-Runs episodic rollouts with the rule-based multi-agent system,
-logging per-component rewards (R1/R2/R3/R4), caching trajectories
-for the demo dashboard, and saving checkpoints periodically.
-
-Usage:
-    python -m aic.training.train
-    python -m aic.training.train --num_episodes 5
+All baseline rollouts execute through `AICEnvironment`, making the OpenEnv
+environment the single source of truth for state transitions, rewards, and
+logging. The heuristic `OrchestratorAgent` remains the teacher/baseline policy
+until GRPO training is enabled.
 """
+from __future__ import annotations
+
 import argparse
 import json
 import pickle
-import time
 from pathlib import Path
 
 import pandas as pd
 
-from aic.training.config import TrainingConfig
-from aic.utils.seeding import make_episode_rng, get_t_drift, get_adversary_cycle
-from aic.utils.constants import SLA_STEPS
-from aic.utils.war_room_utils import (
-    build_action_deltas, build_network_observation, build_security_observation,
-)
-from aic.env.world_state import WorldState
-from aic.env.fault_injector import FaultInjector
-from aic.env.schema_drift import SchemaDriftInjector
-from aic.env.lock_manager import ResourceLockManager
-from aic.env.reward_engine import RewardEngine
+from aic.agents.adversarial_agent import AdversarialAgent
+from aic.agents.app_agent import AppAgent
 from aic.agents.db_agent import DBAgent
 from aic.agents.infra_agent import InfraAgent
-from aic.agents.app_agent import AppAgent
 from aic.agents.network_agent import NetworkAgent
-from aic.agents.security_agent import SecurityAgent
-from aic.agents.adversarial_agent import AdversarialAgent
 from aic.agents.orchestrator_agent import OrchestratorAgent
+from aic.agents.security_agent import SecurityAgent
+from aic.env.aic_environment import AICEnvironment
+from aic.schemas.traces import SubAgentRecommendation
+from aic.training.config import TrainingConfig
+from aic.utils.constants import SLA_STEPS
+from aic.utils.seeding import get_adversary_cycle, make_episode_rng
 
 
-DRIFT_TYPES = ["field_rename", "unit_shift", "silent_null"]
 CACHE_EPISODES = {0, 25, 50, 75, 99}
+
+
+def _materialize_recommendations(obs: dict) -> list[SubAgentRecommendation]:
+    return [
+        SubAgentRecommendation.model_validate(rec)
+        for rec in obs.get("sub_agent_recommendations", [])
+    ]
+
+
+def _select_candidate_id(
+    obs: dict,
+    action_description: str,
+    followed_agent: str | None,
+) -> int:
+    candidates = obs.get("candidate_recommendations", [])
+    for candidate in candidates:
+        if (
+            candidate.get("agent_name") == followed_agent
+            and candidate.get("action") == action_description
+        ):
+            return int(candidate["recommendation_id"])
+    for candidate in candidates:
+        if candidate.get("action") == action_description:
+            return int(candidate["recommendation_id"])
+    for candidate in candidates:
+        if candidate.get("agent_name") == "recovery_verifier":
+            return int(candidate["recommendation_id"])
+    return 0
 
 
 def run_episode(
@@ -53,138 +72,88 @@ def run_episode(
     net: NetworkAgent = None,
     sec: SecurityAgent = None,
 ) -> dict:
-    """
-    Run a single 20-step episode and return trajectory + reward summary.
+    """Run a single episode via the environment and return trajectory + summary."""
+    env = AICEnvironment(
+        episode_id=episode_id,
+        base_seed=config.base_seed,
+        fault_mode=config.fault_mode,
+        log_dir=config.log_dir,
+        use_llm_agents=config.use_llm_agents,
+        db_agent=db,
+        infra_agent=infra,
+        app_agent=app,
+        net_agent=net,
+        sec_agent=sec,
+        include_network=net is not None,
+        include_security=sec is not None,
+        manage_trust_scores=False,
+    )
+    obs = env.reset()
 
-    Returns dict with: episode_id, total_reward, r2_bonus,
-    reward_history, trust_evolution, trajectory, final_health.
-    """
-    rng = make_episode_rng(episode_id, config.base_seed)
     cycle = get_adversary_cycle(make_episode_rng(episode_id, config.base_seed))
-    t_drift = get_t_drift(make_episode_rng(episode_id, config.base_seed))
-    drift_type = DRIFT_TYPES[episode_id % 3]
-
-    ws = WorldState(rng)
-    fi = FaultInjector(config.fault_mode)
-    drift = SchemaDriftInjector(t_drift, drift_type)
-    locks = ResourceLockManager()
-    reward_eng = RewardEngine()
-
     adv = AdversarialAgent(cycle, db)
     orchestrator.adversarial_agent = adv
     orchestrator.reset()
 
     trajectory = []
-    prev_metrics = ws.snapshot()
     trust_evolution = []
+    prev_metrics = obs["current_metrics"]
+    done = False
 
-    early_termination = False
-    r2 = 0.0
-
-    for step in range(SLA_STEPS):
-        # Get sliced observations (with possible drift injection)
-        db_obs_raw = ws.get_db_observation()
-        infra_obs_raw = ws.get_infra_observation()
-        app_obs_raw = ws.get_app_observation()
-
-        db_obs = drift.inject(step, "db", db_obs_raw)
-        app_obs = drift.inject(step, "app", app_obs_raw)
-
-        # Sub-agent recommendations
-        recs = [
-            db.recommend(db_obs, step),
-            infra.recommend(infra_obs_raw, step),
-            app.recommend(app_obs, step),
-            adv.recommend(db_obs, step),
-        ]
-
-        # Add specialist agent recommendations if available
-        current_snap = ws.snapshot()
-        if net is not None:
-            net_obs = build_network_observation(current_snap)
-            recs.append(net.recommend(net_obs, step))
-        if sec is not None:
-            sec_obs = build_security_observation(current_snap)
-            recs.append(sec.recommend(sec_obs, step))
-
-        # Alert summary
-        health = ws.get_health_score()
-        alert = (
-            f"Step {step}: Health={health:.2f}, "
-            f"SLA remaining={SLA_STEPS - step} steps. Critical metrics degraded."
-        )
-
-        # Orchestrator decision
+    while not done:
+        recommendations = _materialize_recommendations(obs)
         action, override_applied = orchestrator.decide(
-            step=step,
-            sla_remaining=SLA_STEPS - step,
-            sub_agent_recommendations=recs,
-            alert_summary=alert,
+            step=obs["step"],
+            sla_remaining=obs["sla_remaining_steps"],
+            sub_agent_recommendations=recommendations,
+            alert_summary=obs["alert_summary_text"],
             prev_metrics=prev_metrics,
-            current_metrics=ws.snapshot(),
+            current_metrics=obs["current_metrics"],
         )
 
-        # Apply action and fault to world state
-        selected_rec = orchestrator._prev_recommendations.get(
-            orchestrator._followed_agent
+        candidate_id = _select_candidate_id(
+            obs,
+            action.action_description,
+            getattr(orchestrator, "_followed_agent", None),
         )
-        if selected_rec is not None:
-            action_deltas = build_action_deltas(selected_rec)
-        else:
-            action_deltas = action.action_deltas
-        faults = fi.get_contributions(step)
-        ws.step(action_deltas, faults)
-        lock_penalty = locks.detect_and_resolve_deadlocks()
+        structured_action = {
+            "selected_recommendation_id": candidate_id,
+            "override_adversary": override_applied,
+            "reasoning": action.explanation_trace.reasoning,
+            "predicted_2step_impact": action.explanation_trace.predicted_2step_impact,
+            "schema_drift_detected": action.explanation_trace.schema_drift_detected,
+            "schema_drift_field": action.explanation_trace.schema_drift_field,
+        }
 
-        # Compute reward
-        adv_was_correct = adv.was_correct_at_step(step)
-        r = reward_eng.compute_step_reward(
-            step=step,
-            metrics=ws.snapshot(),
-            prev_metrics=prev_metrics,
-            override_applied=override_applied,
-            adversary_was_correct=adv_was_correct,
-            predicted_2step_impact=action.explanation_trace.predicted_2step_impact,
-            reasoning=action.explanation_trace.reasoning,
-            lock_penalty=lock_penalty,
-        )
+        env.trust_scores = orchestrator.trust_scores.copy()
+        next_obs, _reward, done, info = env.step(structured_action)
 
-        # Track trust evolution
         trust_evolution.append({
-            "step": step,
+            "step": obs["step"],
             **orchestrator.trust_scores.copy(),
         })
-
-        # Record trajectory step
         trajectory.append({
-            "step": step,
-            "metrics": ws.snapshot(),
-            "health": ws.get_health_score(),
+            "step": obs["step"],
+            "metrics": info["current_metrics"],
+            "health": info["health"],
             "action": action.action_description,
             "override_applied": override_applied,
-            "adv_was_correct": adv_was_correct,
+            "adv_was_correct": adv.was_correct_at_step(obs["step"]),
             "trust_scores": orchestrator.trust_scores.copy(),
-            "reward": r,
+            "reward": info["reward_record"],
             "trace": action.explanation_trace.model_dump(),
-            "drift_active": drift.was_active_at(step),
+            "env_trace": info["trace"],
+            "selected_candidate_id": candidate_id,
+            "drift_active": info["schema_drift_active"],
         })
 
-        prev_metrics = ws.snapshot()
+        prev_metrics = next_obs["current_metrics"]
+        obs = next_obs
 
-        # SLA early termination: check if all metrics are within SLA threshold
-        if ws.is_within_sla():
-            steps_remaining = SLA_STEPS - step - 1
-            r2 = reward_eng.compute_episode_end_reward(ws.snapshot(), steps_remaining)
-            early_termination = True
-            break
+    total_reward = env.reward_engine.get_total_episode_reward()
+    reward_history = env.reward_engine.get_reward_history()
+    r2_bonus = getattr(env.reward_engine, "_r2_bonus", 0.0)
 
-    # Episode end reward (only if no early termination)
-    if not early_termination:
-        r2 = reward_eng.compute_episode_end_reward(ws.snapshot(), steps_remaining=0)
-
-    total_reward = reward_eng.get_total_episode_reward()
-
-    # Determine scenario name from the last root cause hypothesis in the trace
     scenario_name = "Unknown Scenario"
     for t in reversed(trajectory):
         hyp = t.get("trace", {}).get("root_cause_hypothesis")
@@ -192,7 +161,6 @@ def run_episode(
             scenario_name = hyp["scenario_name"]
             break
 
-    # Compute MTTR: first step where health exceeds 0.5
     mttr_steps = SLA_STEPS
     for t in trajectory:
         if t["health"] > 0.5:
@@ -202,21 +170,18 @@ def run_episode(
     return {
         "episode_id": episode_id,
         "total_reward": total_reward,
-        "r2_bonus": r2,
-        "reward_history": reward_eng.get_reward_history(),
+        "r2_bonus": r2_bonus,
+        "reward_history": reward_history,
         "trust_evolution": trust_evolution,
         "trajectory": trajectory,
-        "final_health": ws.get_health_score(),
+        "final_health": env.world_state.get_health_score(),
         "scenario_name": scenario_name,
         "mttr": mttr_steps,
     }
 
 
 def train(config: TrainingConfig = None) -> list[dict]:
-    """
-    Main training loop. Runs num_episodes episodes, caches trajectories,
-    saves checkpoints, and writes reward_curve.csv.
-    """
+    """Run heuristic-baseline episodes, cache trajectories, and write metrics."""
     if config is None:
         config = TrainingConfig()
 
@@ -224,14 +189,12 @@ def train(config: TrainingConfig = None) -> list[dict]:
     Path(config.log_dir).mkdir(parents=True, exist_ok=True)
     Path(config.trajectories_dir).mkdir(parents=True, exist_ok=True)
 
-    # Initialize agents (rule-based for training speed)
     db = DBAgent(use_llm=config.use_llm_agents)
     infra_agent = InfraAgent(use_llm=config.use_llm_agents)
     app_agent = AppAgent(use_llm=config.use_llm_agents)
     net_agent = NetworkAgent(use_llm=config.use_llm_agents)
     sec_agent = SecurityAgent(use_llm=config.use_llm_agents)
 
-    # Orchestrator with trust updating
     dummy_cycle = get_adversary_cycle(make_episode_rng(0, config.base_seed))
     adv_agent = AdversarialAgent(dummy_cycle, db)
     orchestrator = OrchestratorAgent(adv_agent, use_llm=config.use_llm_agents)
@@ -240,12 +203,7 @@ def train(config: TrainingConfig = None) -> list[dict]:
     all_episode_results = []
     cached_trajectories = {}
 
-    # Determine which episodes to cache
-    cache_set = set()
-    for ep in CACHE_EPISODES:
-        if ep < config.num_episodes:
-            cache_set.add(ep)
-    # Always cache first and last
+    cache_set = {ep for ep in CACHE_EPISODES if ep < config.num_episodes}
     cache_set.add(0)
     cache_set.add(config.num_episodes - 1)
 
@@ -255,8 +213,14 @@ def train(config: TrainingConfig = None) -> list[dict]:
 
     for episode_id in range(config.num_episodes):
         result = run_episode(
-            episode_id, config, orchestrator, db, infra_agent, app_agent,
-            net=net_agent, sec=sec_agent,
+            episode_id,
+            config,
+            orchestrator,
+            db,
+            infra_agent,
+            app_agent,
+            net=net_agent,
+            sec=sec_agent,
         )
         all_episode_results.append(result)
 
@@ -267,12 +231,10 @@ def train(config: TrainingConfig = None) -> list[dict]:
             f"r2={result['r2_bonus']:.1f}"
         )
 
-        # Cache specific episodes for demo
         if episode_id in cache_set:
             cached_trajectories[episode_id] = result
             print(f"  → Cached trajectory for episode {episode_id}")
 
-        # Save checkpoint
         if (episode_id + 1) % config.checkpoint_interval == 0:
             checkpoint = {
                 "episode_id": episode_id,
@@ -290,13 +252,11 @@ def train(config: TrainingConfig = None) -> list[dict]:
                 json.dump(checkpoint, f, indent=2)
             print(f"  → Checkpoint saved to {cp_path}")
 
-    # Save all cached trajectories for dashboard
     traj_path = Path(config.trajectories_dir) / "trained_trajectories.pkl"
     with open(traj_path, "wb") as f:
         pickle.dump(cached_trajectories, f)
     print(f"Trajectories saved to {traj_path}")
 
-    # Save reward curve data with per-component breakdown
     reward_rows = []
     for r in all_episode_results:
         row = {
@@ -305,14 +265,10 @@ def train(config: TrainingConfig = None) -> list[dict]:
             "final_health": r["final_health"],
             "r2_bonus": r["r2_bonus"],
         }
-        # Aggregate per-component averages from step rewards
         if r["reward_history"]:
-            row["avg_r1"] = sum(s["r1"] for s in r["reward_history"]) / len(r["reward_history"])
-            row["avg_r3"] = sum(s["r3"] for s in r["reward_history"]) / len(r["reward_history"])
-            row["avg_r4"] = sum(s["r4"] for s in r["reward_history"]) / len(r["reward_history"])
-            row["sum_r1"] = sum(s["r1"] for s in r["reward_history"])
-            row["sum_r3"] = sum(s["r3"] for s in r["reward_history"])
-            row["sum_r4"] = sum(s["r4"] for s in r["reward_history"])
+            for key in ("r1", "r3", "r4", "r5", "r6"):
+                row[f"avg_{key}"] = sum(s.get(key, 0.0) for s in r["reward_history"]) / len(r["reward_history"])
+                row[f"sum_{key}"] = sum(s.get(key, 0.0) for s in r["reward_history"])
         reward_rows.append(row)
 
     reward_curve = pd.DataFrame(reward_rows)
