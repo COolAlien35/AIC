@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+
+# Large model files (use HF Hub instead)
+checkpoints/grpo/model.safetensors
+checkpoints/grpo/checkpoint-*/
+checkpoints/sft/checkpoint-*/
+*.bin
+!training_args.bin
+
+# Logs (keep structure, ignore bulk)
+logs/audit/*.jsonl
+logs/episode_*.jsonl
+
+# Temp
+/tmp/
+*.log
+nohup.out

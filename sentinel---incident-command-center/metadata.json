@@ -1,0 +1,6 @@
+{
+  "name": "Sentinel - Incident Command Center",
+  "description": "A high-performance observability and incident response dashboard with AI-driven insights, telemetry monitoring, and system topology mapping.",
+  "requestFramePermissions": [],
+  "majorCapabilities": []
+}

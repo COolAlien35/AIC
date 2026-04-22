@@ -206,12 +206,115 @@ AIC/
 
 ## 📈 Reward Decomposition
 
-| Component | Signal | Range |
-|-----------|--------|-------|
-| **R1** (Health) | Distance from target metrics | per-step |
-| **R2** (SLA) | Bonus/penalty at episode end | terminal |
-| **R3** (Trust) | Correct override vs blind trust | +15 / -20 |
-| **R4** (Explain) | Prediction accuracy + reasoning quality | per-step |
+| Component | Signal | Range | Type |
+|-----------|--------|-------|------|
+| **R1** (Health) | Distance from target metrics | per-step | Outcome |
+| **R2** (SLA) | Bonus/penalty at episode end | terminal | Outcome |
+| **R3** (Trust) | Correct override vs blind trust | +15 / -20 | Process |
+| **R4** (Explain) | Prediction accuracy + reasoning quality | per-step | Process |
+| **R5** (Format) | Action schema compliance | +2 / -5 | Format |
+| **R6** (Verifier) | Recovery verifier approval | +3 / -8 | Safety |
+| **R7** (Reasoning) | Causal coherence of reasoning trace | [-1, +3] | Process |
+| **R8** (Progress) | Delta toward metric targets | [-0.5, +2] | Process |
+
+---
+
+## 🏆 What We Built & Results
+
+### Full Training Pipeline
+
+```
+SFT Data Generation → Supervised Fine-Tuning → GRPO Reinforcement Learning → Export → Deploy
+     (32 episodes)        (LoRA on Qwen2)         (env-as-reward)          (merge)   (HF Space)
+```
+
+**Pipeline Components:**
+
+| Stage | Script | Status | Output |
+|-------|--------|--------|--------|
+| SFT Data | `generate_sft_data.py` | ✅ 640 records | `artifacts/sft/orchestrator_sft.jsonl` |
+| SFT Training | `run_sft.py` | ✅ LoRA checkpoint | `checkpoints/sft/` |
+| GRPO Training | `train_grpo.py` | ✅ Ready | `checkpoints/grpo/` |
+| Model Export | `eval/test_export.py` | ✅ Validated | `checkpoints/exported/` |
+| Deployment | `deploy/` | ✅ Dockerfile + guide | HF Space ready |
+
+### Curriculum Learning
+
+The `CurriculumScheduler` (`aic/training/curriculum.py`) implements progressive difficulty:
+
+| Tier | Fault Modes | SLA Steps | Features |
+|------|-------------|-----------|----------|
+| **Easy** | cascading_failure only | 30 | Basic agents, no drift |
+| **Medium** | +memory_leak, +db_saturation | 20 | All agents, standard SLA |
+| **Hard** | +network_storm | 15 | Schema drift, tough adversary |
+
+### Reward Hacking Protection
+
+The `RewardAuditLoop` (`aic/training/reward_audit.py`) provides:
+- **Repeated action detection**: Flags agents exploiting the same action pattern
+- **Reward spike detection**: Catches reward without state change
+- **Wall-clock + step timeouts**: Prevents infinite episodes
+- **Post-episode clamping**: Zeros rewards for flagged episodes
+
+### Process-Aware Feedback (R7 + R8)
+
+Two new modular reward components in `reward_engine.py`:
+- **R7 (Reasoning Quality)**: Scores causal coherence — does the reasoning reference metrics, use analytical language, and stay consistent with observed changes?
+- **R8 (Progress Signal)**: Partial credit for moving metrics toward targets, even if the episode doesn't fully resolve
+
+### Result Artifacts
+
+- [`results/reward_curve.png`](results/reward_curve.png) — Reward curve across training episodes
+- [`results/verifier_pass_rate.png`](results/verifier_pass_rate.png) — Verifier approval rate before vs after
+- [`results/before_after_demo.md`](results/before_after_demo.md) — Side-by-side episode comparisons
+
+### Quick Start
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Generate SFT data + train (minimal CPU run)
+python3 run_hackathon.py all
+
+# Or step by step:
+python3 run_hackathon.py plots demo   # Generate result artifacts
+python3 run_hackathon.py sft          # Run minimal SFT training
+python3 run_hackathon.py grpo         # Run GRPO (GPU recommended)
+
+# Evaluate
+python3 scripts/benchmark_untrained.py --episodes 10
+python3 eval/test_export.py --source checkpoints/sft
+
+# Deploy to HuggingFace Spaces
+# See deploy/deploy_instructions.md
+```
+
+---
+
+## ✅ Submission Checklist
+
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| OpenEnv-compliant environment | ✅ | `AICEnvironment` inherits from `openenv.env.Env` |
+| Structured actions & observations | ✅ | Pydantic schemas in `aic/schemas/` |
+| Multi-component reward (R1–R8) | ✅ | `aic/env/reward_engine.py` |
+| SFT data pipeline | ✅ | 640 records in `artifacts/sft/` |
+| SFT training run | ✅ | LoRA checkpoint in `checkpoints/sft/` |
+| GRPO training setup | ✅ | `aic/training/train_grpo.py` + config |
+| Curriculum learning | ✅ | `aic/training/curriculum.py` |
+| Reward hacking protection | ✅ | `aic/training/reward_audit.py` |
+| Process-aware feedback | ✅ | R7 + R8 in `reward_engine.py` |
+| Model export validation | ✅ | `eval/test_export.py` |
+| Deployment artifacts | ✅ | `deploy/Dockerfile` + instructions |
+| Reward curve plot | ✅ | `results/reward_curve.png` |
+| Verifier pass rate plot | ✅ | `results/verifier_pass_rate.png` |
+| Before/after demo | ✅ | `results/before_after_demo.md` |
+| Colab notebook | ✅ | `train_colab.ipynb` |
+| Interactive demo (Gradio) | ✅ | `app.py` |
+| FastAPI server | ✅ | `aic/server/env_api.py` |
+
+---
 
 ## 📄 License
 
@@ -220,5 +323,5 @@ MIT License — see [LICENSE](LICENSE) for details.
 ---
 
 <p align="center">
-  <strong>Built with</strong> Gymnasium · Pydantic · Plotly · Streamlit · Claude
+  <strong>Built with</strong> OpenEnv · TRL · Pydantic · Plotly · Streamlit · Gradio
 </p>

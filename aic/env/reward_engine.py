@@ -16,6 +16,8 @@ from aic.utils.constants import (
     R6_VERIFIER_APPROVED, R6_VERIFIER_VETO,
     NOOP_ACTION_PENALTY, REPEATED_ACTION_PENALTY,
     OBS_DB, OBS_INFRA, OBS_APP,
+    R7_REASONING_MAX, R7_REASONING_MIN,
+    R8_PROGRESS_MAX, R8_PROGRESS_MIN,
 )
 
 DB_METRICS = set(OBS_DB)
@@ -99,6 +101,109 @@ def compute_behavior_penalty(action_is_noop: bool, action_repeated: bool) -> flo
     return penalty
 
 
+def compute_r7_reasoning_quality(
+    reasoning: str,
+    prev_metrics: dict[str, float],
+    current_metrics: dict[str, float],
+) -> float:
+    """Reasoning trace scorer — rewards intermediate steps that are logically coherent.
+
+    Checks:
+    1. Does the reasoning reference the previous state or specific metrics?
+    2. Does the reasoning avoid contradictions (claiming improvement when metrics worsened)?
+    3. Does the reasoning use causal language?
+    """
+    score = 0.0
+    reasoning_lower = reasoning.lower()
+
+    # Check 1: References specific metric names from the observation
+    metric_names = list(METRIC_TARGETS.keys())
+    mentioned_metrics = sum(
+        1 for m in metric_names
+        if m in reasoning_lower or m.replace("_", " ") in reasoning_lower
+    )
+    if mentioned_metrics > 0:
+        score += 0.3 * min(1.0, mentioned_metrics / 3)
+
+    # Check 2: Uses causal / analytical language
+    causal_words = [
+        "because", "therefore", "since", "due to", "causes", "results in",
+        "leads to", "triggers", "in order to", "to reduce", "to improve",
+        "correlat", "impact", "affect",
+    ]
+    causal_count = sum(1 for w in causal_words if w in reasoning_lower)
+    if causal_count > 0:
+        score += 0.2 * min(1.0, causal_count / 3)
+
+    # Check 3: Consistency — if reasoning claims improvement, check metrics actually improved
+    claims_improvement = any(
+        w in reasoning_lower
+        for w in ["improv", "recover", "reduc", "fix", "resolv", "mitigat"]
+    )
+    actually_improved = False
+    improvements = 0
+    total = 0
+    for metric, target in METRIC_TARGETS.items():
+        if metric in prev_metrics and metric in current_metrics:
+            prev_dist = abs(prev_metrics[metric] - target)
+            curr_dist = abs(current_metrics[metric] - target)
+            total += 1
+            if curr_dist < prev_dist:
+                improvements += 1
+    if total > 0:
+        actually_improved = improvements > total / 2
+
+    if claims_improvement and actually_improved:
+        score += 0.3  # Consistent claim
+    elif claims_improvement and not actually_improved:
+        score -= 0.2  # Contradicted by reality
+    elif not claims_improvement and len(reasoning) > 20:
+        score += 0.1  # At least non-vacuous
+
+    # Check 4: Minimum length — penalize vacuous one-word reasoning
+    if len(reasoning.strip()) < 15:
+        score -= 0.3
+
+    # Scale to [R7_MIN, R7_MAX]
+    normalized = max(0.0, min(1.0, (score + 0.3) / 1.1))  # map [-0.3, 0.8] to [0, 1]
+    return R7_REASONING_MIN + normalized * (R7_REASONING_MAX - R7_REASONING_MIN)
+
+
+def compute_r8_progress_signal(
+    prev_metrics: dict[str, float],
+    current_metrics: dict[str, float],
+) -> float:
+    """Progress signal — partial credit for getting closer to targets.
+
+    Unlike R1 which measures absolute health, R8 measures the *delta*:
+    did this step move us closer to or further from the targets?
+    """
+    if not prev_metrics or not current_metrics:
+        return 0.0
+
+    progress_scores = []
+    for metric, target in METRIC_TARGETS.items():
+        if metric not in prev_metrics or metric not in current_metrics:
+            continue
+        prev_dist = abs(prev_metrics[metric] - target)
+        curr_dist = abs(current_metrics[metric] - target)
+        if prev_dist < 1e-6:
+            # Already at target, small bonus for maintaining
+            progress_scores.append(0.5 if curr_dist < 1e-6 else -0.5)
+        else:
+            # Fractional improvement: 1.0 = closed the gap completely, -1.0 = doubled the gap
+            improvement = (prev_dist - curr_dist) / prev_dist
+            progress_scores.append(max(-1.0, min(1.0, improvement)))
+
+    if not progress_scores:
+        return 0.0
+
+    mean_progress = sum(progress_scores) / len(progress_scores)
+    # Scale to [R8_MIN, R8_MAX]
+    normalized = (mean_progress + 1.0) / 2.0  # map [-1, 1] to [0, 1]
+    return R8_PROGRESS_MIN + normalized * (R8_PROGRESS_MAX - R8_PROGRESS_MIN)
+
+
 def compute_r4(
     predicted_2step_impact: dict[str, float],
     actual_2step_delta: dict[str, float],
@@ -165,6 +270,7 @@ class RewardEngine:
         action_is_noop: bool = False,
         action_repeated: bool = False,
         trust_signal_relevant: bool = True,
+        enable_process_feedback: bool = True,
     ) -> dict[str, float]:
         """Compute all reward components for one step. Returns dict with r1..r4, total."""
         r1 = compute_r1(metrics)
@@ -186,12 +292,19 @@ class RewardEngine:
         r6 = compute_r6(verifier_approved)
         behavior_penalty = compute_behavior_penalty(action_is_noop, action_repeated)
 
+        # Process-aware feedback (R7 + R8) — togglable via config
+        r7 = 0.0
+        r8 = 0.0
+        if enable_process_feedback:
+            r7 = compute_r7_reasoning_quality(reasoning, prev_metrics, metrics)
+            r8 = compute_r8_progress_signal(prev_metrics, metrics)
+
         self._prediction_buffer.append((step, predicted_2step_impact, prev_metrics.copy()))
-        total = r1 + r3 + r4 + r5 + r6 + lock_penalty + behavior_penalty
+        total = r1 + r3 + r4 + r5 + r6 + r7 + r8 + lock_penalty + behavior_penalty
 
         record = {
             "step": step, "r1": r1, "r2": 0.0, "r3": r3, "r4": r4,
-            "r5": r5, "r6": r6,
+            "r5": r5, "r6": r6, "r7": r7, "r8": r8,
             "prediction_accuracy": pred_acc, "causal_consistency": causal_cons,
             "lock_adjustment": lock_penalty,
             "behavior_penalty": behavior_penalty,

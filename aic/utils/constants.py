@@ -126,3 +126,9 @@ TEMPERATURE_AGENT: float = 0.3        # Low temp for reliable outputs
 # Dashboard
 TRACE_HISTORY_WINDOW: int = 5         # Steps of trace history shown to orchestrator
 DASHBOARD_REFRESH_SECONDS: int = 2
+
+# Process-Aware Feedback (R7 + R8)
+R7_REASONING_MAX: float = 3.0         # Max reward for high-quality reasoning trace
+R7_REASONING_MIN: float = -1.0        # Penalty for vacuous reasoning
+R8_PROGRESS_MAX: float = 2.0          # Max partial credit for progress toward target
+R8_PROGRESS_MIN: float = -0.5         # Small penalty for regression

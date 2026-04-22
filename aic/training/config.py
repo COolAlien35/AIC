@@ -70,3 +70,20 @@ class TrainingConfig:
     # Serving
     env_server_host: str = "0.0.0.0"
     env_server_port: int = 8000
+
+    # Curriculum learning
+    use_curriculum: bool = True
+    curriculum_advancement_threshold: float = -200.0
+    curriculum_rolling_window: int = 10
+    curriculum_min_episodes_per_tier: int = 5
+    curriculum_log_path: str = "logs/curriculum.jsonl"
+
+    # Reward audit
+    use_reward_audit: bool = True
+    audit_log_dir: str = "logs/audit"
+    audit_max_wall_clock: float = 120.0
+    audit_max_steps: int = 50
+    audit_severity_clamp_threshold: float = 0.5
+
+    # Process-aware feedback
+    enable_process_feedback: bool = True

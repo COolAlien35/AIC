@@ -1,0 +1,1 @@
+{"model": "Qwen/Qwen2-0.5B-Instruct", "steps": 3, "loss": 6.374234517415364, "dataset": "artifacts/sft/orchestrator_sft.jsonl"}
