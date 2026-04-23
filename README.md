@@ -117,6 +117,27 @@ This produces:
 
 This writes `checkpoints/sft/sft_metadata.json`. For a real model-sized run (e.g. Qwen 0.5B+), use a GPU box.
 
+### Final reproducible pass (Mac M3 Air)
+
+The final submission evidence pass was rerun on macOS using:
+
+```bash
+python3.12 -m venv .venv
+./.venv/bin/pip install -r requirements.txt
+./.venv/bin/python run_hackathon.py verify plots demo
+./.venv/bin/python run_hackathon.py sft
+```
+
+All listed artifacts were regenerated in that run and internally cross-checked for consistency.
+
+## 🌐 Remote deployment proof
+
+A real Hugging Face Space deployment was completed:
+
+- Space URL: [https://huggingface.co/spaces/KINGKK007/aic-incident-command-center](https://huggingface.co/spaces/KINGKK007/aic-incident-command-center)
+- Purpose: remote demo proof for submission reviewers
+- Note: this is deployment proof, not a GPU-scale training claim
+
 ## 🧪 The 6 Brutal Scenarios
 
 | # | Scenario | Root Cause | Telemetry Corruption |
@@ -166,17 +187,17 @@ python scripts/run_episode.py --no-llm
 
 ### Run the Benchmark Suite
 ```bash
-python scripts/run_final_benchmark.py
+./.venv/bin/python scripts/run_final_benchmark.py
 ```
 
 ### Launch the Dashboard
 ```bash
-streamlit run dashboard/app.py
+./.venv/bin/streamlit run dashboard/app.py
 ```
 
 ### Run Tests
 ```bash
-python -m pytest tests/ -v
+./.venv/bin/python -m pytest tests/ -v
 ```
 
 ## 📁 Project Structure

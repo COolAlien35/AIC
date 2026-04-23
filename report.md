@@ -11,6 +11,39 @@
 
 ---
 
+## Submission Hardening Addendum (Apr 23, 2026)
+
+This repository was run through a clean final proof pass on macOS (M3 Air class machine) with:
+
+```bash
+python3.12 -m venv .venv
+./.venv/bin/pip install -r requirements.txt
+./.venv/bin/python run_hackathon.py verify plots demo
+./.venv/bin/python run_hackathon.py sft
+```
+
+Verified generated evidence artifacts:
+
+- `logs/eval/policy_benchmark.jsonl`
+- `results/benchmark_summary.csv`
+- `results/reward_curve.png`
+- `results/verifier_pass_rate.png`
+- `results/before_after_demo.md`
+- `checkpoints/sft/sft_metadata.json`
+
+Internal consistency was validated by recomputing benchmark aggregates from JSONL and matching them against the CSV and demo tables.
+
+Optional/GPU-only path remains separate from this CPU-safe proof:
+
+- GRPO/model-scale training is available in code paths but is not required for the Mac-safe reproducibility pass.
+- The CPU-safe SFT run is a smoke-proof of the end-to-end training wiring, not a claim of large-model convergence.
+
+Remote deployment proof:
+
+- [https://huggingface.co/spaces/KINGKK007/aic-incident-command-center](https://huggingface.co/spaces/KINGKK007/aic-incident-command-center)
+
+---
+
 ## 1. Executive Summary
 
 Adaptive Incident Choreographer (AIC) is a **simulation and benchmarking system for multi-agent incident response**. It models a degraded production environment, generates specialist recommendations from DB, infrastructure, and application agents, injects adversarial recommendations and schema drift, and lets an orchestrator choose actions while tracking trust scores and explanation traces. The project also includes a Streamlit dashboard for replaying trajectories and comparing “trained” vs “untrained” behavior.
