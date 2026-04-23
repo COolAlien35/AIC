@@ -1,95 +1,72 @@
 import { 
-  AreaChart, 
-  Area, 
-  ResponsiveContainer, 
-  XAxis, 
-  YAxis, 
-  Tooltip,
-  BarChart,
-  Bar
+  AreaChart,
+  Area,
+  ResponsiveContainer,
+  Tooltip
 } from 'recharts';
-import { MoreHorizontal } from 'lucide-react';
+import { Activity } from 'lucide-react';
+import type { DashboardStep } from '@/src/data/dashboardData';
+import { metric } from '@/src/data/metrics';
 
-const generateData = (points: number, min: number, max: number) => {
-  return Array.from({ length: points }, (_, i) => ({
-    time: i,
-    value: Math.floor(Math.random() * (max - min + 1) + min)
-  }));
-};
-
-const cpuData = generateData(20, 40, 90);
-const latencyData = generateData(20, 200, 800);
-const errorData = generateData(20, 0, 5);
-
-function Sparkline({ data, color }: { data: any[], color: string }) {
-  return (
-    <div className="h-10 w-32">
-      <ResponsiveContainer width="100%" height="100%">
-        <AreaChart data={data}>
-          <defs>
-            <linearGradient id={`gradient-${color}`} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={color} stopOpacity={0.3}/>
-              <stop offset="95%" stopColor={color} stopOpacity={0}/>
-            </linearGradient>
-          </defs>
-          <Area 
-            type="monotone" 
-            dataKey="value" 
-            stroke={color} 
-            fillOpacity={1} 
-            fill={`url(#gradient-${color})`} 
-            strokeWidth={2}
-          />
-        </AreaChart>
-      </ResponsiveContainer>
-    </div>
-  );
+interface TelemetryCardProps {
+  step: DashboardStep | null;
+  trajectory: DashboardStep[];
+  stepIndex: number;
 }
 
-export function TelemetryCard() {
+export function TelemetryCard({ step, trajectory, stepIndex }: TelemetryCardProps) {
+  const metrics = step?.metrics ?? {};
+  const cpuLoad = metric(step, 'cpu');
+  const appLatency = metric(step, 'latency');
+  const errorRate = metric(step, 'errors');
+  const history = trajectory.slice(0, stepIndex + 1).map((item) => ({
+    step: item.step,
+    cpu: metric(item, 'cpu'),
+    latency: metric(item, 'latency'),
+    errors: metric(item, 'errors'),
+  }));
+  const health = Number(step?.health ?? 0);
+
   return (
     <div className="panel-geometric p-6 flex flex-col gap-6 h-full">
       <div className="flex items-center justify-between">
         <h3 className="text-xs font-bold uppercase tracking-widest text-slate-500">Live Telemetry</h3>
-        <MoreHorizontal size={16} className="text-slate-600 cursor-pointer hover:text-white" />
+        <Activity size={16} className="text-slate-500" />
       </div>
 
-      <div className="space-y-6 flex-1">
-        {/* CPU Usage */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-tighter">CPU Load</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xl font-bold text-white">85%</span>
-              <span className="text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1 py-0.5 rounded">+2.4%</span>
-            </div>
-          </div>
-          <Sparkline data={cpuData} color="#2563eb" />
+      <div className="grid grid-cols-2 gap-4">
+        <div className="card-geometric p-3">
+          <p className="text-[10px] uppercase tracking-widest text-slate-500">CPU</p>
+          <p className="text-lg font-semibold text-white mt-1">{cpuLoad.toFixed(1)}%</p>
         </div>
-
-        {/* Latency */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-[11px] text-slate-500 font-bold uppercase tracking-tighter">Latency</p>
-            <div className="flex items-center gap-2 mt-1">
-              <span className="text-xl font-bold text-white">540ms</span>
-              <span className="text-[10px] text-red-400 font-bold bg-red-500/10 px-1 py-0.5 rounded">+12%</span>
-            </div>
-          </div>
-          <Sparkline data={latencyData} color="#059669" />
+        <div className="card-geometric p-3">
+          <p className="text-[10px] uppercase tracking-widest text-slate-500">P95 Latency</p>
+          <p className="text-lg font-semibold text-white mt-1">{appLatency.toFixed(0)} ms</p>
+        </div>
+        <div className="card-geometric p-3">
+          <p className="text-[10px] uppercase tracking-widest text-slate-500">Error Rate</p>
+          <p className="text-lg font-semibold text-white mt-1">{errorRate.toFixed(2)}%</p>
+        </div>
+        <div className="card-geometric p-3">
+          <p className="text-[10px] uppercase tracking-widest text-slate-500">Health</p>
+          <p className="text-lg font-semibold text-white mt-1">{(health * 100).toFixed(1)}%</p>
         </div>
       </div>
 
-      <div className="pt-4 border-t border-slate-800">
-        <div className="h-12 flex items-end gap-1 px-1">
-          {Array.from({ length: 32 }).map((_, i) => (
-            <div 
-              key={i} 
-              className="flex-1 bg-blue-600/20 rounded-t-sm transition-all hover:bg-blue-600/50"
-              style={{ height: `${20 + Math.random() * 80}%` }}
-            />
-          ))}
-        </div>
+      <div className="pt-2 h-40">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={history}>
+            <defs>
+              <linearGradient id="telemetry-cpu" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4} />
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+              </linearGradient>
+            </defs>
+            <Tooltip contentStyle={{ background: '#0f172a', border: '1px solid #334155' }} />
+            <Area type="monotone" dataKey="cpu" stroke="#3b82f6" fill="url(#telemetry-cpu)" strokeWidth={2} />
+            <Area type="monotone" dataKey="latency" stroke="#10b981" fill="none" strokeWidth={1.5} />
+          </AreaChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

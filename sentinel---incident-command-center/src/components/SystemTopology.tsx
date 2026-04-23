@@ -7,9 +7,10 @@ import {
   CreditCard,
   AlertCircle,
   Activity,
-  MoreHorizontal
 } from 'lucide-react';
 import { cn } from '@/src/lib/utils';
+import type { DashboardStep } from '@/src/data/dashboardData';
+import { metric } from '@/src/data/metrics';
 
 interface NodeProps {
   icon: any;
@@ -70,7 +71,19 @@ function TopologyNode({ icon: Icon, label, sublabel, status, x, y }: NodeProps) 
   );
 }
 
-export function SystemTopology() {
+function statusFromValue(value: number, warnThreshold: number, criticalThreshold: number): 'healthy' | 'warning' | 'critical' {
+  if (value >= criticalThreshold) return 'critical';
+  if (value >= warnThreshold) return 'warning';
+  return 'healthy';
+}
+
+export function SystemTopology({ step }: { step: DashboardStep | null }) {
+  const gatewayStatus = statusFromValue(metric(step, 'network'), 280, 360);
+  const appStatus = statusFromValue(metric(step, 'latency'), 1500, 2200);
+  const dbStatus = statusFromValue(metric(step, 'dbLatency'), 700, 1000);
+  const queueStatus = statusFromValue(metric(step, 'queue'), 500, 800);
+  const cpuStatus = statusFromValue(metric(step, 'cpu'), 70, 85);
+
   return (
     <div className="panel-geometric p-6 flex-1 flex flex-col relative overflow-hidden bg-slate-950/20">
       <div className="flex items-center justify-between mb-8">
@@ -78,9 +91,10 @@ export function SystemTopology() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-            <span className="text-[10px] uppercase text-slate-600 font-bold">9 Systems Operational</span>
+            <span className="text-[10px] uppercase text-slate-600 font-bold">
+              Health {Math.round((step?.health ?? 0) * 100)}%
+            </span>
           </div>
-          <MoreHorizontal size={16} className="text-slate-600 cursor-pointer" />
         </div>
       </div>
 
@@ -102,16 +116,16 @@ export function SystemTopology() {
           <path d="M 450 250 L 600 250" stroke="white" strokeWidth="1" fill="none" />
         </svg>
 
-        <TopologyNode icon={CreditCard} label="Payment Gateway" status="healthy" x={30} y={30} />
-        <TopologyNode icon={Lock} label="Auth Service" status="healthy" x={50} y={30} />
+        <TopologyNode icon={CreditCard} label="Payment Gateway" status={gatewayStatus} x={30} y={30} />
+        <TopologyNode icon={Lock} label="Auth Service" status={cpuStatus} x={50} y={30} />
         
-        <TopologyNode icon={AlertCircle} label="Global Gateway" sublabel="Elevated Latency" status="critical" x={15} y={60} />
-        <TopologyNode icon={AlertCircle} label="Auth API" status="warning" x={35} y={60} />
-        <TopologyNode icon={Database} label="DB-Cluster-01" status="healthy" x={55} y={60} />
-        <TopologyNode icon={Globe} label="Cloud CDN" status="healthy" x={75} y={60} />
-        <TopologyNode icon={Server} label="Frontends" status="healthy" x={90} y={60} />
+        <TopologyNode icon={AlertCircle} label="Global Gateway" sublabel="Traffic" status={gatewayStatus} x={15} y={60} />
+        <TopologyNode icon={AlertCircle} label="Auth API" status={appStatus} x={35} y={60} />
+        <TopologyNode icon={Database} label="DB-Cluster-01" status={dbStatus} x={55} y={60} />
+        <TopologyNode icon={Globe} label="Cloud CDN" status={gatewayStatus} x={75} y={60} />
+        <TopologyNode icon={Server} label="Frontends" status={cpuStatus} x={90} y={60} />
 
-        <TopologyNode icon={Activity} label="Service Cluster" status="healthy" x={45} y={85} />
+        <TopologyNode icon={Activity} label="Service Cluster" status={queueStatus} x={45} y={85} />
       </div>
     </div>
   );

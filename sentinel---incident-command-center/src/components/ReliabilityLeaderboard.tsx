@@ -1,15 +1,24 @@
 import { Award } from 'lucide-react';
 import { motion } from 'motion/react';
+import type { DashboardStep } from '@/src/data/dashboardData';
+import { metric } from '@/src/data/metrics';
 
-const leaders = [
-  { service: 'Payments Service', uptime: '99.99%', rank: 'Gold', score: 98 },
-  { service: 'User Authentication', uptime: '99.95%', rank: 'Silver', score: 95 },
-  { service: 'Inventory', uptime: '99.95%', rank: 'Bronze', score: 92 },
-  { service: 'Search', uptime: '99.92%', rank: 'Stable', score: 88 },
-  { service: 'Order Processing', uptime: '99.85%', rank: 'Needs Attention', score: 72 },
-];
+export function ReliabilityLeaderboard({ step }: { step: DashboardStep | null }) {
+  const leaders = [
+    { service: 'Gateway', score: 100 - metric(step, 'network') / 5 },
+    { service: 'Application', score: 100 - metric(step, 'latency') / 40 },
+    { service: 'Database', score: 100 - metric(step, 'dbLatency') / 15 },
+    { service: 'Queue', score: 100 - metric(step, 'queue') / 18 },
+    { service: 'SLA', score: metric(step, 'sla') },
+  ]
+    .map((service) => ({ ...service, score: Math.max(5, Math.min(99, Math.round(service.score))) }))
+    .sort((a, b) => b.score - a.score)
+    .map((service, index) => ({
+      ...service,
+      uptime: `${Math.max(90, Math.min(99.99, (service.score / 100) * 100)).toFixed(2)}%`,
+      rank: index === 0 ? 'Gold' : index === 1 ? 'Silver' : index === 2 ? 'Bronze' : service.score > 70 ? 'Stable' : 'Needs Attention',
+    }));
 
-export function ReliabilityLeaderboard() {
   return (
     <div className="panel-geometric p-6 flex flex-col gap-6">
       <div className="flex items-center justify-between">
