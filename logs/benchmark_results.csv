@@ -1,31 +1,31 @@
 policy_name,scenario_id,scenario_name,mttr_steps,adversary_suppression_rate,unsafe_action_rate,revenue_saved_usd,total_reward,final_health,sla_met
-AIC (Trained),0,Cache Stampede,20,0.8,0.0,0.0,-478.05768288661693,0.24022279841592628,False
-AIC (Untrained),0,Cache Stampede,20,0.9,0.0,0.0,-517.7162380549419,0.17031834141692695,False
-HighestConfidenceOnly,0,Cache Stampede,20,0.9,0.0,0.0,-517.7162380549419,0.17031834141692695,False
-MajorityVote,0,Cache Stampede,20,0.9,0.0,0.0,-558.7529154621857,0.24022279841592628,False
-NoTrustOrchestrator,0,Cache Stampede,20,0.9,0.0,0.0,-517.7162380549419,0.17031834141692695,False
-AIC (Trained),1,Canary Failure,20,0.8,0.0,0.0,-425.7051045112617,0.2552584545033756,False
-AIC (Untrained),1,Canary Failure,20,0.9,0.0,0.0,-455.5376551627493,0.18535399750437628,False
-HighestConfidenceOnly,1,Canary Failure,20,0.9,0.0,0.0,-455.5376551627493,0.18535399750437628,False
-MajorityVote,1,Canary Failure,20,0.9,0.0,0.0,-568.2218946112325,0.2552584545033756,False
-NoTrustOrchestrator,1,Canary Failure,20,0.9,0.0,0.0,-455.5376551627493,0.18535399750437628,False
-AIC (Trained),2,Regional Outage,20,0.8,0.0,0.0,-479.4485400841892,0.22093101924250114,False
-AIC (Untrained),2,Regional Outage,20,0.9,0.0,0.0,-519.8615646842727,0.14186205594312482,False
-HighestConfidenceOnly,2,Regional Outage,20,0.9,0.0,0.0,-519.8615646842727,0.14186205594312482,False
-MajorityVote,2,Regional Outage,20,0.9,0.0,0.0,-622.9880724072368,0.23399576348289142,False
-NoTrustOrchestrator,2,Regional Outage,20,0.9,0.0,0.0,-519.8615646842727,0.14186205594312482,False
-AIC (Trained),3,Schema Migration Disaster,20,0.8,0.0,0.0,-547.4858335656489,0.24022279841592628,False
-AIC (Untrained),3,Schema Migration Disaster,20,0.9,0.0,0.0,-580.5502364474108,0.17031834141692695,False
-HighestConfidenceOnly,3,Schema Migration Disaster,20,0.9,0.0,0.0,-580.5502364474108,0.17031834141692695,False
-MajorityVote,3,Schema Migration Disaster,20,0.9,0.0,0.0,-635.6238735606108,0.24022279841592628,False
-NoTrustOrchestrator,3,Schema Migration Disaster,20,0.9,0.0,0.0,-580.5502364474108,0.17031834141692695,False
-AIC (Trained),4,Credential Compromise,20,0.8,0.0,0.0,-441.51396277528164,0.253573610931172,False
-AIC (Untrained),4,Credential Compromise,20,0.9,0.0,0.0,-453.88747650834733,0.18366915393217267,False
-HighestConfidenceOnly,4,Credential Compromise,20,0.9,0.0,0.0,-453.88747650834733,0.18366915393217267,False
-MajorityVote,4,Credential Compromise,20,0.9,0.0,0.0,-623.1764785185868,0.253573610931172,False
-NoTrustOrchestrator,4,Credential Compromise,20,0.9,0.0,0.0,-453.88747650834733,0.18366915393217267,False
-AIC (Trained),5,Queue Cascade,20,0.8,0.0,0.0,-446.6589916057159,0.2685807120463846,False
-AIC (Untrained),5,Queue Cascade,20,0.9,0.0,0.0,-486.23260070527533,0.1986762550473853,False
-HighestConfidenceOnly,5,Queue Cascade,20,0.9,0.0,0.0,-486.23260070527533,0.1986762550473853,False
-MajorityVote,5,Queue Cascade,20,0.9,0.0,0.0,-558.1980639016159,0.2685807120463846,False
-NoTrustOrchestrator,5,Queue Cascade,20,0.9,0.0,0.0,-486.23260070527533,0.1986762550473853,False
+AIC (Trained),0,Cache Stampede,20,0.8,0.0,0.0,-394.6686055350898,0.27042020856470467,False
+AIC (Untrained),0,Cache Stampede,20,0.9,0.0,0.0,-387.1756670585619,0.22586277958226675,False
+HighestConfidenceOnly,0,Cache Stampede,20,0.9,0.0,0.0,-446.982047730319,0.17031834141692695,False
+MajorityVote,0,Cache Stampede,20,0.9,0.0,0.0,-490.09253606590903,0.24022279841592628,False
+NoTrustOrchestrator,0,Cache Stampede,20,0.9,0.0,0.0,-446.982047730319,0.17031834141692695,False
+AIC (Trained),1,Canary Failure,20,0.8,0.0,0.0,-419.6851119212649,0.27498362713400587,False
+AIC (Untrained),1,Canary Failure,20,0.9,0.0,0.0,-420.13526758732934,0.19090955305993185,False
+HighestConfidenceOnly,1,Canary Failure,20,0.9,0.0,0.0,-383.4659533387704,0.18535399750437628,False
+MajorityVote,1,Canary Failure,20,0.9,0.0,0.0,-495.78482938202484,0.2552584545033756,False
+NoTrustOrchestrator,1,Canary Failure,20,0.9,0.0,0.0,-383.4659533387704,0.18535399750437628,False
+AIC (Trained),2,Regional Outage,20,0.8,0.0,0.0,-393.1341207420007,0.19070301276567406,False
+AIC (Untrained),2,Regional Outage,20,0.9,0.0,0.0,-401.65586219697155,0.14741761149868038,False
+HighestConfidenceOnly,2,Regional Outage,20,0.9,0.0,0.0,-452.9537319266616,0.14186205594312482,False
+MajorityVote,2,Regional Outage,20,0.9,0.0,0.0,-551.6475241152581,0.23399576348289142,False
+NoTrustOrchestrator,2,Regional Outage,20,0.9,0.0,0.0,-452.9537319266616,0.14186205594312482,False
+AIC (Trained),3,Schema Migration Disaster,20,0.8,0.0,0.0,-446.58789937775833,0.2360590821576677,False
+AIC (Untrained),3,Schema Migration Disaster,20,0.9,0.0,0.0,-452.70416942969024,0.17031834141692695,False
+HighestConfidenceOnly,3,Schema Migration Disaster,20,0.9,0.0,0.0,-508.0841106258064,0.17031834141692695,False
+MajorityVote,3,Schema Migration Disaster,20,0.9,0.0,0.0,-565.1559321745688,0.24022279841592628,False
+NoTrustOrchestrator,3,Schema Migration Disaster,20,0.9,0.0,0.0,-508.0841106258064,0.17031834141692695,False
+AIC (Trained),4,Credential Compromise,20,0.8,0.0,0.0,-480.32618038385965,0.24420658748169977,False
+AIC (Untrained),4,Credential Compromise,20,0.9,0.0,0.0,-489.4247420843071,0.18922470948772827,False
+HighestConfidenceOnly,4,Credential Compromise,20,0.9,0.0,0.0,-385.7156649359248,0.18366915393217267,False
+MajorityVote,4,Credential Compromise,20,0.9,0.0,0.0,-552.6206504011574,0.253573610931172,False
+NoTrustOrchestrator,4,Credential Compromise,20,0.9,0.0,0.0,-385.7156649359248,0.18366915393217267,False
+AIC (Trained),5,Queue Cascade,20,0.8,0.0,0.0,-403.10485753639335,0.27460220842306554,False
+AIC (Untrained),5,Queue Cascade,20,0.9,0.0,0.0,-406.4344323441378,0.20448650498703502,False
+HighestConfidenceOnly,5,Queue Cascade,20,0.9,0.0,0.0,-416.62263326329145,0.1986762550473853,False
+MajorityVote,5,Queue Cascade,20,0.9,0.0,0.0,-487.60014111933395,0.2685807120463846,False
+NoTrustOrchestrator,5,Queue Cascade,20,0.9,0.0,0.0,-416.62263326329145,0.1986762550473853,False

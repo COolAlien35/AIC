@@ -1,4 +1,0 @@
-{
-  "dataset": "artifacts/grpo/prompts.jsonl",
-  "backend": "transformers"
-}

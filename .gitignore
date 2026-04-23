@@ -34,3 +34,7 @@ logs/episode_*.jsonl
 /tmp/
 *.log
 nohup.out
+
+# Large generated artifacts
+exports/
+checkpoints/grpo/
