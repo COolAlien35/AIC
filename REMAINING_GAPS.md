@@ -1,70 +1,87 @@
-# Remaining Gaps (Only Next Work)
+# Remaining Gaps (Deferred, GPU Required)
 
-This file tracks only unresolved items.
+This file lists only unresolved work after the Mac CPU submission-hardening pass.
 
-## 1) Prove real trained uplift (SFT/GRPO vs baseline)
-
-**Gap**
-- Current evidence pass is reproducible, but does not yet prove consistent trained uplift over baseline across held-out seeds.
-
-**Next actions**
-- Run a longer SFT + GRPO training pass (GPU recommended).
-- Evaluate baseline vs SFT vs GRPO on held-out seeds.
-- Publish aggregate uplift metrics (reward, final health, verifier pass rate, MTTR).
-
-## 2) Make end-to-end training evidence judge-proof
+## 1) Prove trained uplift vs baseline on held-out seeds
 
 **Gap**
-- Need one fully documented training-to-eval chain with artifacts that clearly show what was trained, how long, and with what outcome.
+- We have reproducible CPU-safe evidence, but no GPU-scale proof yet that trained policy consistently outperforms baseline.
 
-**Next actions**
-- Save run config, training logs, checkpoint metadata, and eval summaries in a single evidence bundle.
-- Add one concise results table for judges (baseline/SFT/GRPO).
-- Ensure all claims in docs reference generated artifacts.
+**Run**
+```bash
+./.venv/bin/python run_hackathon.py grpo
+./.venv/bin/python scripts/run_final_benchmark.py
+```
 
-## 3) Harden training dependency reliability
+**Expected outputs**
+- `checkpoints/grpo/` (trained checkpoint artifacts)
+- `logs/eval/policy_benchmark.jsonl` with trained-policy rows
+- `results/benchmark_summary.csv` showing baseline vs trained aggregates
+- Updated `results/reward_curve.png` and `results/verifier_pass_rate.png`
 
-**Gap**
-- `unsloth` is optional/missing in the Mac proof environment; runtime behavior must be explicit and deterministic across environments.
-
-**Next actions**
-- Decide official path: `unsloth` required vs optional fallback.
-- Update dependency docs and preflight checks accordingly.
-- Keep clear diagnostics in training scripts for dependency mode (Unsloth vs Transformers fallback).
-
-## 4) Integrate reward-audit outputs into GRPO results
+## 2) Publish judge-proof training evidence bundle
 
 **Gap**
-- Reward-audit logic exists, but final GRPO reports need explicit audit statistics and filtering behavior.
+- Need one end-to-end, single-location proof bundle (config + logs + checkpoints + eval summary) from an actual GPU training run.
 
-**Next actions**
-- Log flagged episodes during GRPO runs.
-- Report audit counts/rates in final benchmark output.
-- Document how flagged episodes affect optimization (filter/clamp policy).
+**Run**
+```bash
+./.venv/bin/python run_hackathon.py verify grpo plots demo
+```
 
-## 5) Integrate curriculum progression into real training runs
+**Expected outputs**
+- `results/evidence_manifest.json`
+- `results/evidence_manifest.md`
+- GRPO checkpoint metadata in `checkpoints/grpo/`
+- Benchmark/demo artifacts regenerated from that run
 
-**Gap**
-- Curriculum scaffolding exists; needs evidence that training actually progresses through tiers and benefits from it.
-
-**Next actions**
-- Record tier transitions during training.
-- Report reward/health trend by tier.
-- Include curriculum evidence in final training report.
-
-## 6) Validate model export on a genuinely trained checkpoint
+## 3) Reward-audit reporting in final GRPO evidence
 
 **Gap**
-- Export path exists, but needs proof on a non-smoke, actually trained checkpoint.
+- Audit files are produced, but final judge-facing summary must explicitly report audit counts/rates and optimization handling.
 
-**Next actions**
-- Export trained SFT/GRPO checkpoint.
-- Reload and run inference/eval smoke checks.
-- Save export validation results in `results/`.
+**Run / verify**
+```bash
+./.venv/bin/python run_hackathon.py grpo
+```
 
-## Recommended execution order
+**Expected outputs**
+- `logs/audit/` summaries for GRPO episodes
+- Documented aggregate audit stats in final results docs
 
-1. Run GPU-backed SFT + GRPO + held-out eval.
-2. Add audit + curriculum reporting to that run.
-3. Validate export on resulting checkpoint.
-4. Update final evidence docs with measured uplift only.
+## 4) Curriculum progression evidence in trained run
+
+**Gap**
+- Curriculum scheduler exists, but we still need proof of tier progression and outcome trend in a real training run.
+
+**Run / verify**
+```bash
+./.venv/bin/python run_hackathon.py grpo
+```
+
+**Expected outputs**
+- Training logs/artifacts showing tier transitions
+- Reported reward/health trend by tier in final docs
+
+## 5) Export validation on a genuinely trained checkpoint
+
+**Gap**
+- Export flow exists, but validation on a fully trained GRPO checkpoint is still pending.
+
+**Run**
+```bash
+./.venv/bin/python eval/test_export.py --source checkpoints/grpo
+```
+
+**Expected outputs**
+- Exported model artifacts (target export directory)
+- Reload/inference smoke-test pass logs
+- Export validation result referenced in submission docs
+
+## Execution order
+
+1. GRPO training on GPU.
+2. Held-out benchmark and plot/demo regeneration.
+3. Audit + curriculum evidence extraction.
+4. Export validation on trained checkpoint.
+5. Final docs update with measured uplift only.

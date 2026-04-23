@@ -30,6 +30,8 @@ Verified generated evidence artifacts:
 - `results/verifier_pass_rate.png`
 - `results/before_after_demo.md`
 - `checkpoints/sft/sft_metadata.json`
+- `results/evidence_manifest.json`
+- `results/evidence_manifest.md`
 
 Internal consistency was validated by recomputing benchmark aggregates from JSONL and matching them against the CSV and demo tables.
 
@@ -37,6 +39,7 @@ Optional/GPU-only path remains separate from this CPU-safe proof:
 
 - GRPO/model-scale training is available in code paths but is not required for the Mac-safe reproducibility pass.
 - The CPU-safe SFT run is a smoke-proof of the end-to-end training wiring, not a claim of large-model convergence.
+- Export validation against a truly trained GRPO checkpoint remains deferred to a GPU-backed run.
 
 Remote deployment proof:
 

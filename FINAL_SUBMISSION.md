@@ -62,6 +62,8 @@ Expected key outputs:
 - `logs/eval/policy_benchmark.jsonl`
 - `results/benchmark_summary.csv`
 - `checkpoints/sft/sft_metadata.json`
+- `results/evidence_manifest.json`
+- `results/evidence_manifest.md`
 
 ## 7) Remote deployment proof
 
@@ -74,3 +76,11 @@ Live Space URL:
 The repository includes SFT/GRPO training paths for model-scale runs.  
 For judge-safe reproducibility on Mac CPU, the final proof uses benchmark + plotting + demo + minimal SFT smoke training.  
 Future work is to run longer GPU-backed GRPO and report held-out uplift at larger scale.
+
+Suggested deferred proof commands (GPU):
+
+```bash
+./.venv/bin/python run_hackathon.py grpo
+./.venv/bin/python scripts/run_final_benchmark.py
+./.venv/bin/python eval/test_export.py --source checkpoints/grpo
+```

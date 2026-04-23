@@ -77,21 +77,18 @@ Unlike static runbook automation, AIC:
 | **Patronus AI** (Safety & Eval) | Enterprise safety guardrails and evaluation | Benchmark suite with 3 baselines × 6 scenarios + 0% unsafe action rate via deterministic verifier |
 | **Scaler AI Labs** (Enterprise RAG) | Knowledge retrieval with hallucination prevention | KnowledgeAgent with keyword RAG over 6 runbooks + confidence threshold (returns "No match" if < 0.3) |
 
-## 📊 Benchmark Results
+## 📊 CPU-safe benchmark snapshot (real run)
 
-AIC is evaluated against 3 baselines across 6 brutal scenarios:
+From the latest Mac proof run (`run_hackathon.py verify plots demo`), the benchmark summary reports:
 
-| Policy | Avg MTTR | Adversary Suppression | Unsafe Rate | Revenue Impact |
-|--------|----------|----------------------|-------------|----------------|
-| **AIC (Trained)** | **Fastest** | **Highest** | **0.0%** | **Highest** |
-| AIC (Untrained) | Moderate | Low | 0.0% | Moderate |
-| HighestConfidenceOnly | Slow | None | High | Low |
-| MajorityVote | Slow | None | High | Low |
-| NoTrustOrchestrator | Slow | None | High | Low |
+| Policy | Episodes | Avg Total Reward | Avg Final Health | Success Rate | Avg MTTR |
+|--------|----------|------------------|------------------|--------------|----------|
+| `baseline_frozen_trust` | 3 | -287.41 | 0.2458 | 0.0 | 20.0 |
+| `baseline_adaptive_trust` | 3 | -291.61 | 0.2332 | 0.0 | 20.0 |
 
-Run the benchmark:
+Run/recompute the benchmark:
 ```bash
-python scripts/run_final_benchmark.py
+./.venv/bin/python scripts/run_final_benchmark.py
 ```
 
 ## ✅ Mac-verified evidence (no projections)
@@ -129,6 +126,9 @@ python3.12 -m venv .venv
 ```
 
 All listed artifacts were regenerated in that run and internally cross-checked for consistency.
+The run also emits:
+- `results/evidence_manifest.json`
+- `results/evidence_manifest.md`
 
 ## 🌐 Remote deployment proof
 
@@ -137,6 +137,13 @@ A real Hugging Face Space deployment was completed:
 - Space URL: [https://huggingface.co/spaces/KINGKK007/aic-incident-command-center](https://huggingface.co/spaces/KINGKK007/aic-incident-command-center)
 - Purpose: remote demo proof for submission reviewers
 - Note: this is deployment proof, not a GPU-scale training claim
+
+## ☁️ Colab GPU proof path
+
+For closing GPU-only remaining gaps (GRPO uplift + export validation), use:
+
+- `COLAB_GPU_RUNBOOK.md`
+- `scripts/colab_gpu_proof.sh`
 
 ## 🧪 The 6 Brutal Scenarios
 
@@ -266,22 +273,22 @@ AIC/
 
 ## 🏆 What We Built & Results
 
-### Full Training Pipeline
+### Training Pipeline Status
 
 ```
 SFT Data Generation → Supervised Fine-Tuning → GRPO Reinforcement Learning → Export → Deploy
-     (32 episodes)        (LoRA on Qwen2)         (env-as-reward)          (merge)   (HF Space)
+      (CPU-safe run)        (CPU smoke proof)      (GPU recommended)        (pending trained proof)   (remote demo proof)
 ```
 
 **Pipeline Components:**
 
 | Stage | Script | Status | Output |
 |-------|--------|--------|--------|
-| SFT Data | `generate_sft_data.py` | ✅ 640 records | `artifacts/sft/orchestrator_sft.jsonl` |
-| SFT Training | `run_sft.py` | ✅ LoRA checkpoint | `checkpoints/sft/` |
-| GRPO Training | `train_grpo.py` | ✅ Ready | `checkpoints/grpo/` |
-| Model Export | `eval/test_export.py` | ✅ Validated | `checkpoints/exported/` |
-| Deployment | `deploy/` | ✅ Dockerfile + guide | HF Space ready |
+| SFT Data | `generate_sft_data.py` | ✅ CPU-safe generated | `artifacts/sft/orchestrator_sft.jsonl` |
+| SFT Training | `run_sft.py` | ✅ CPU smoke proof completed | `checkpoints/sft/` |
+| GRPO Training | `train_grpo.py` | ⚠️ Codepath ready, full proof deferred (GPU) | `checkpoints/grpo/` |
+| Model Export | `eval/test_export.py` | ⚠️ Needs validation on a fully trained checkpoint | `checkpoints/exported/` |
+| Deployment | `deploy/` | ✅ Remote Space proof completed | HF Space URL recorded |
 
 ### Curriculum Learning
 
