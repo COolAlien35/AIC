@@ -6,74 +6,73 @@ Side-by-side comparisons of AIC orchestrator behavior
 
 ---
 
-## Episode 0
+## Episode 10000
 
 | Metric | Untrained | Trained |
 |--------|-----------|---------|
-| Total Reward | -278.22 | -278.22 |
-| Final Health | 0.255 | 0.255 |
+| Total Reward | -302.59 | -312.62 |
+| Final Health | 0.231 | 0.282 |
 | R2 SLA Bonus | 0.0 | 0.0 |
-| **Improvement** | — | **+0.00 (+0.0%)** |
+| **Improvement** | — | **-10.03 (-3.3%)** |
 
-### Action Trace (first 3 steps)
+### Trace Snippet (first 3 steps)
 
 **Untrained:**
-- Step 0: override=False | adversary ❌
-- Step 1: override=False | adversary ✅
-- Step 2: override=False | adversary ❌
+- Step 0: followed=app_agent | adv_trust=n/a
+- Step 1: followed=app_agent | adv_trust=n/a
+- Step 2: followed=adversarial_agent | adv_trust=n/a
 
 **Trained:**
-- Step 0: override=False | adversary ❌
-- Step 1: override=False | adversary ✅
-- Step 2: override=False | adversary ❌
+- Step 0: followed=app_agent | adv_trust=n/a
+- Step 1: followed=app_agent | adv_trust=n/a
+- Step 2: followed=adversarial_agent | adv_trust=n/a
 
-## Episode 1
+## Episode 10001
 
 | Metric | Untrained | Trained |
 |--------|-----------|---------|
-| Total Reward | -285.42 | -285.42 |
-| Final Health | 0.271 | 0.271 |
+| Total Reward | -276.25 | -295.29 |
+| Final Health | 0.251 | 0.207 |
 | R2 SLA Bonus | 0.0 | 0.0 |
-| **Improvement** | — | **+0.00 (+0.0%)** |
+| **Improvement** | — | **-19.04 (-6.9%)** |
 
-### Action Trace (first 3 steps)
+### Trace Snippet (first 3 steps)
 
 **Untrained:**
-- Step 0: override=False | adversary ❌
-- Step 1: override=False | adversary ✅
-- Step 2: override=False | adversary ❌
+- Step 0: followed=adversarial_agent | adv_trust=n/a
+- Step 1: followed=app_agent | adv_trust=n/a
+- Step 2: followed=app_agent | adv_trust=n/a
 
 **Trained:**
-- Step 0: override=False | adversary ❌
-- Step 1: override=False | adversary ✅
-- Step 2: override=False | adversary ❌
+- Step 0: followed=adversarial_agent | adv_trust=n/a
+- Step 1: followed=app_agent | adv_trust=n/a
+- Step 2: followed=app_agent | adv_trust=n/a
 
-## Episode 2
+## Episode 10002
 
 | Metric | Untrained | Trained |
 |--------|-----------|---------|
-| Total Reward | -284.33 | -284.33 |
-| Final Health | 0.250 | 0.250 |
+| Total Reward | -283.39 | -266.92 |
+| Final Health | 0.255 | 0.210 |
 | R2 SLA Bonus | 0.0 | 0.0 |
-| **Improvement** | — | **+0.00 (+0.0%)** |
+| **Improvement** | — | **+16.47 (+5.8%)** |
 
-### Action Trace (first 3 steps)
+### Trace Snippet (first 3 steps)
 
 **Untrained:**
-- Step 0: override=False | adversary ✅
-- Step 1: override=False | adversary ❌
-- Step 2: override=False | adversary ❌
+- Step 0: followed=adversarial_agent | adv_trust=n/a
+- Step 1: followed=app_agent | adv_trust=n/a
+- Step 2: followed=app_agent | adv_trust=n/a
 
 **Trained:**
-- Step 0: override=False | adversary ✅
-- Step 1: override=False | adversary ❌
-- Step 2: override=False | adversary ❌
+- Step 0: followed=adversarial_agent | adv_trust=n/a
+- Step 1: followed=app_agent | adv_trust=n/a
+- Step 2: followed=app_agent | adv_trust=n/a
 
 ---
 
 ## Key Observations
 
-1. **Trust calibration matters**: Trained agent suppresses adversary trust, avoiding sabotage.
-2. **Override decisions improve**: Correct overrides when adversary is wrong.
-3. **Health recovery is faster**: Adaptive trust → better action selection → lower MTTR.
-4. **Reward is consistently higher**: 15–25% more reward per episode.
+1. **Policy modes differ**: In trained-mode, low-trust recommendations are filtered first, then re-ranked by simulation and verifier gating.
+2. **Behavior is measurable**: The tables above and the saved benchmark logs are generated from real runs (no projected uplift).
+3. **Outcomes can vary by seed**: Some episodes improve, some regress; the aggregate benchmark table is the authoritative summary.

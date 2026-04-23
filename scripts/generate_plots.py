@@ -18,50 +18,54 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 
+def _load_policy_benchmark(path: str = "logs/eval/policy_benchmark.jsonl") -> dict[str, list[dict]]:
+    p = Path(path)
+    if not p.exists():
+        return {}
+    by_policy: dict[str, list[dict]] = {}
+    with open(p) as f:
+        for line in f:
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            by_policy.setdefault(row["policy"], []).append(row)
+    for policy in by_policy:
+        by_policy[policy] = sorted(by_policy[policy], key=lambda r: r["episode_id"])
+    return by_policy
+
+
 def plot_reward_curve(output_path: str = "results/reward_curve.png"):
-    """Plot reward curve from baseline rollouts and any training logs."""
+    """Plot reward curve from real benchmark logs."""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-    # Load baseline reward data
-    csv_path = Path("logs/reward_curve.csv")
-    episodes, rewards = [], []
-    if csv_path.exists():
-        import csv
-        with open(csv_path) as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                episodes.append(int(row["episode"]))
-                rewards.append(float(row["total_reward"]))
-
-    if not rewards:
-        # Generate fresh baseline data
-        from aic.training.config import TrainingConfig
-        from aic.training.train import train
-        config = TrainingConfig(num_episodes=10)
-        results = train(config)
-        episodes = [r["episode_id"] for r in results]
-        rewards = [r["total_reward"] for r in results]
+    by_policy = _load_policy_benchmark()
+    if not by_policy:
+        raise FileNotFoundError(
+            "Missing logs/eval/policy_benchmark.jsonl. Run `python run_hackathon.py plots` first."
+        )
 
     fig, ax = plt.subplots(figsize=(10, 5))
     fig.patch.set_facecolor("#0C0F0A")
     ax.set_facecolor("#111610")
 
-    # Plot baseline
-    ax.plot(episodes, rewards, color="#34D399", linewidth=2, marker="o",
-            markersize=4, label="Heuristic Baseline", alpha=0.9)
-    ax.fill_between(episodes, rewards, alpha=0.1, color="#34D399")
-
-    # Add rolling average
-    if len(rewards) >= 3:
-        window = min(5, len(rewards))
-        rolling = np.convolve(rewards, np.ones(window)/window, mode="valid")
-        ax.plot(range(window-1, len(rewards)), rolling, color="#10B981",
-                linewidth=2.5, linestyle="--", label=f"Rolling Avg (w={window})")
-
-    # Simulated "trained" improvement trajectory (shifted up)
-    trained_rewards = [r + abs(r) * 0.15 + 20 for r in rewards]
-    ax.plot(episodes, trained_rewards, color="#6EE7B7", linewidth=2,
-            marker="s", markersize=4, label="After RL Training (projected)", alpha=0.7)
+    palette = {
+        "baseline_frozen_trust": ("#14B8A6", "o", "Frozen trust (baseline)"),
+        "baseline_adaptive_trust": ("#34D399", "s", "Adaptive trust (trained-mode)"),
+    }
+    for policy, series in by_policy.items():
+        color, marker, label = palette.get(policy, ("#9CA89A", "o", policy))
+        episodes = [r["episode_id"] for r in series]
+        rewards = [float(r["total_reward"]) for r in series]
+        ax.plot(
+            episodes,
+            rewards,
+            color=color,
+            linewidth=2,
+            marker=marker,
+            markersize=4,
+            label=label,
+            alpha=0.9,
+        )
 
     ax.set_xlabel("Episode", color="#9CA89A", fontsize=12)
     ax.set_ylabel("Total Episode Reward", color="#9CA89A", fontsize=12)
@@ -81,35 +85,19 @@ def plot_reward_curve(output_path: str = "results/reward_curve.png"):
 
 
 def plot_verifier_pass_rate(output_path: str = "results/verifier_pass_rate.png"):
-    """Plot verifier pass rate comparison: before vs after training."""
+    """Plot verifier/SLA success comparison from real benchmark logs."""
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
 
-    # Load episode logs to compute verifier pass rates
-    log_dir = Path("logs")
-    before_rates, after_rates = [], []
-
-    for jsonl_path in sorted(log_dir.glob("episode_*.jsonl")):
-        total_steps, approved_steps = 0, 0
-        with open(jsonl_path) as f:
-            for line in f:
-                try:
-                    record = json.loads(line)
-                    extra = record.get("extra", {})
-                    vr = extra.get("verifier_report", {})
-                    if "approved" in vr:
-                        total_steps += 1
-                        if vr["approved"]:
-                            approved_steps += 1
-                except (json.JSONDecodeError, KeyError):
-                    continue
-        if total_steps > 0:
-            before_rates.append(approved_steps / total_steps * 100)
-
-    if not before_rates:
-        before_rates = [72, 75, 68, 80, 73, 78, 71, 76, 74, 77]
-
-    # Simulate improved rates after training
-    after_rates = [min(100, r + 12 + np.random.uniform(0, 5)) for r in before_rates]
+    by_policy = _load_policy_benchmark()
+    before_series = by_policy.get("baseline_frozen_trust", [])
+    after_series = by_policy.get("baseline_adaptive_trust", [])
+    n = min(len(before_series), len(after_series))
+    if n == 0:
+        raise FileNotFoundError(
+            "Missing baseline series in logs/eval/policy_benchmark.jsonl. Run `python run_hackathon.py plots` first."
+        )
+    before_rates = [100.0 if r.get("success") else 0.0 for r in before_series[:n]]
+    after_rates = [100.0 if r.get("success") else 0.0 for r in after_series[:n]]
 
     fig, ax = plt.subplots(figsize=(10, 5))
     fig.patch.set_facecolor("#0C0F0A")

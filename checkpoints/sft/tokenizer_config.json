@@ -1,19 +1,22 @@
 {
+  "add_bos_token": false,
   "add_prefix_space": false,
-  "backend": "tokenizers",
-  "bos_token": null,
-  "clean_up_tokenization_spaces": false,
-  "eos_token": "<|im_end|>",
+  "added_tokens_decoder": {
+    "50256": {
+      "content": "<|endoftext|>",
+      "lstrip": false,
+      "normalized": true,
+      "rstrip": false,
+      "single_word": false,
+      "special": true
+    }
+  },
+  "bos_token": "<|endoftext|>",
+  "clean_up_tokenization_spaces": true,
+  "eos_token": "<|endoftext|>",
   "errors": "replace",
-  "extra_special_tokens": [
-    "<|im_start|>",
-    "<|im_end|>"
-  ],
-  "is_local": false,
-  "local_files_only": false,
-  "model_max_length": 32768,
+  "model_max_length": 1024,
   "pad_token": "<|endoftext|>",
-  "split_special_tokens": false,
-  "tokenizer_class": "Qwen2Tokenizer",
-  "unk_token": null
+  "tokenizer_class": "GPT2Tokenizer",
+  "unk_token": "<|endoftext|>"
 }

@@ -12,15 +12,18 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-import matplotlib
-matplotlib.use("Agg")
-import matplotlib.pyplot as plt
-import numpy as np
-
 
 def ensure_dirs():
     for d in ["results", "checkpoints/sft", "checkpoints/grpo", "logs/audit"]:
         Path(d).mkdir(parents=True, exist_ok=True)
+
+def task_verify_env():
+    print("\n" + "=" * 60)
+    print("ENV CHECK: Dependency diagnostics")
+    print("=" * 60)
+    from aic.utils.dependency_diagnostics import print_dependency_diagnostics
+
+    print_dependency_diagnostics()
 
 
 def task_plots():
@@ -29,38 +32,50 @@ def task_plots():
     print("TASK 12a: Generating result plots...")
     print("=" * 60)
 
-    # --- Reward curve ---
-    csv_path = Path("logs/reward_curve.csv")
-    episodes, rewards = [], []
-    if csv_path.exists():
-        with open(csv_path) as f:
-            reader = csv.DictReader(f)
-            for row in reader:
-                episodes.append(int(row["episode"]))
-                rewards.append(float(row["total_reward"]))
-    else:
-        # Fallback: generate from env
-        from aic.training.config import TrainingConfig
-        from aic.training.train import train
-        config = TrainingConfig(num_episodes=10)
-        results = train(config)
-        episodes = [r["episode_id"] for r in results]
-        rewards = [r["total_reward"] for r in results]
+    try:
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        import numpy as np
+    except Exception as exc:
+        print(f"  ⚠️ Plotting dependencies missing: {exc}")
+        print("  Skipping plot generation. Install matplotlib to enable plots.")
+        return
+
+    # Generate real benchmark outputs (Mac-safe)
+    from scripts.run_policy_benchmark import run_benchmark
+
+    rows, _summary = run_benchmark(num_episodes=10, base_seed=42)
+
+    # Prepare series per policy
+    by_policy = {}
+    for r in rows:
+        by_policy.setdefault(r.policy, []).append(r)
+    # Sort episodes for plotting consistency
+    for policy in by_policy:
+        by_policy[policy] = sorted(by_policy[policy], key=lambda x: x.episode_id)
 
     fig, ax = plt.subplots(figsize=(10, 5))
     fig.patch.set_facecolor("#0C0F0A")
     ax.set_facecolor("#111610")
-    ax.plot(episodes, rewards, color="#34D399", linewidth=2, marker="o",
-            markersize=4, label="Heuristic Baseline", alpha=0.9)
-    ax.fill_between(episodes, rewards, alpha=0.1, color="#34D399")
-    if len(rewards) >= 3:
-        w = min(5, len(rewards))
-        rolling = np.convolve(rewards, np.ones(w)/w, mode="valid")
-        ax.plot(range(w-1, len(rewards)), rolling, color="#10B981",
-                linewidth=2.5, linestyle="--", label=f"Rolling Avg (w={w})")
-    trained = [r + abs(r)*0.15 + 20 for r in rewards]
-    ax.plot(episodes, trained, color="#6EE7B7", linewidth=2, marker="s",
-            markersize=4, label="After RL Training (projected)", alpha=0.7)
+    palette = {
+        "baseline_frozen_trust": ("#14B8A6", "o", "Frozen trust (baseline)"),
+        "baseline_adaptive_trust": ("#34D399", "s", "Adaptive trust (trained-mode)"),
+    }
+    for policy, series in by_policy.items():
+        color, marker, label = palette.get(policy, ("#9CA89A", "o", policy))
+        episodes = [r.episode_id for r in series]
+        rewards = [r.total_reward for r in series]
+        ax.plot(
+            episodes,
+            rewards,
+            color=color,
+            linewidth=2,
+            marker=marker,
+            markersize=4,
+            label=label,
+            alpha=0.9,
+        )
     ax.set_xlabel("Episode", color="#9CA89A", fontsize=12)
     ax.set_ylabel("Total Episode Reward", color="#9CA89A", fontsize=12)
     ax.set_title("AIC Training — Reward Curve", color="#E8EDE6",
@@ -75,9 +90,11 @@ def task_plots():
     print("  ✅ results/reward_curve.png")
 
     # --- Verifier pass rate ---
-    np.random.seed(42)
-    before = np.array([72, 75, 68, 80, 73, 78, 71, 76, 74, 77], dtype=float)
-    after = np.minimum(100, before + 12 + np.random.uniform(0, 5, len(before)))
+    before_series = by_policy.get("baseline_frozen_trust", [])
+    after_series = by_policy.get("baseline_adaptive_trust", [])
+    n = min(len(before_series), len(after_series))
+    before = np.array([100.0 if r.success else 0.0 for r in before_series[:n]], dtype=float)
+    after = np.array([100.0 if r.success else 0.0 for r in after_series[:n]], dtype=float)
     fig, ax = plt.subplots(figsize=(10, 5))
     fig.patch.set_facecolor("#0C0F0A")
     ax.set_facecolor("#111610")
@@ -107,21 +124,6 @@ def task_demo():
     print("TASK 12b: Generating before/after demo...")
     print("=" * 60)
 
-    from aic.agents.adversarial_agent import AdversarialAgent
-    from aic.agents.app_agent import AppAgent
-    from aic.agents.db_agent import DBAgent
-    from aic.agents.infra_agent import InfraAgent
-    from aic.agents.orchestrator_agent import OrchestratorAgent
-    from aic.training.config import TrainingConfig
-    from aic.training.train import run_episode
-    from aic.utils.constants import ALL_AGENTS, INITIAL_TRUST
-    from aic.utils.seeding import get_adversary_cycle, make_episode_rng
-
-    config = TrainingConfig(num_episodes=3, use_llm_agents=False)
-    db = DBAgent(use_llm=False)
-    infra = InfraAgent(use_llm=False)
-    app = AppAgent(use_llm=False)
-
     lines = [
         "# Before / After Training — Demo Evidence\n",
         "",
@@ -132,25 +134,45 @@ def task_demo():
         "",
     ]
 
+    # Always generate from the same real benchmark run used for plots
+    from scripts.run_policy_benchmark import run_benchmark
+    from aic.training.config import TrainingConfig
+    from aic.training.train import run_episode
+    from aic.agents.adversarial_agent import AdversarialAgent
+    from aic.agents.app_agent import AppAgent
+    from aic.agents.db_agent import DBAgent
+    from aic.agents.infra_agent import InfraAgent
+    from aic.agents.orchestrator_agent import OrchestratorAgent
+    from aic.utils.seeding import get_adversary_cycle, make_episode_rng
+
+    # Small real run to build the narrative (and to ensure non-placeholder numbers)
+    run_benchmark(num_episodes=3, base_seed=42)
+
+    config = TrainingConfig(num_episodes=1, use_llm_agents=False, base_seed=42)
+    db = DBAgent(use_llm=False)
+    infra = InfraAgent(use_llm=False)
+    app = AppAgent(use_llm=False)
+
+    class FrozenOrch(OrchestratorAgent):
+        def _update_trust_scores(self, step, prev, curr):  # type: ignore[override]
+            from aic.utils.constants import ALL_AGENTS, INITIAL_TRUST
+            self.trust_scores = {a: INITIAL_TRUST for a in ALL_AGENTS}
+
     for ep_id in range(3):
-        lines.append(f"## Episode {ep_id}\n")
+        heldout_ep = 10_000 + ep_id
+        lines.append(f"## Episode {heldout_ep}\n")
 
-        # Untrained (frozen trust)
-        cycle = get_adversary_cycle(make_episode_rng(ep_id, 42))
+        cycle = get_adversary_cycle(make_episode_rng(heldout_ep, 42))
         adv = AdversarialAgent(cycle, db)
-
-        class FrozenOrch(OrchestratorAgent):
-            def _update_trust_scores(self, step, prev, curr):
-                self.trust_scores = {a: INITIAL_TRUST for a in ALL_AGENTS}
-
         orch_frozen = FrozenOrch(adv, use_llm=False)
-        r_before = run_episode(ep_id, config, orch_frozen, db, infra, app)
+        orch_frozen.mode = "untrained"
+        r_before = run_episode(heldout_ep, config, orch_frozen, db, infra, app)
 
-        # Trained (adaptive trust)
-        cycle2 = get_adversary_cycle(make_episode_rng(ep_id, 42))
+        cycle2 = get_adversary_cycle(make_episode_rng(heldout_ep, 42))
         adv2 = AdversarialAgent(cycle2, db)
         orch_trained = OrchestratorAgent(adv2, use_llm=False)
-        r_after = run_episode(ep_id, config, orch_trained, db, infra, app)
+        orch_trained.mode = "trained"
+        r_after = run_episode(heldout_ep, config, orch_trained, db, infra, app)
 
         lines.append("| Metric | Untrained | Trained |")
         lines.append("|--------|-----------|---------|")
@@ -164,25 +186,34 @@ def task_demo():
         lines.append("")
 
         # Trajectory snippet
-        lines.append("### Action Trace (first 3 steps)\n")
+        lines.append("### Trace Snippet (first 3 steps)\n")
         lines.append("**Untrained:**")
         for sd in r_before.get("trajectory", [])[:3]:
-            ac = "✅" if sd.get("adv_was_correct") else "❌"
-            lines.append(f"- Step {sd['step']}: override={sd.get('override_applied')} | adversary {ac}")
+            trace = sd.get("env_trace", {}) or {}
+            followed = trace.get("followed_agent")
+            adv_trust = (sd.get("trust_scores", {}) or {}).get("adversarial", None)
+            lines.append(
+                f"- Step {sd['step']}: followed={followed} | "
+                f"adv_trust={adv_trust if adv_trust is not None else 'n/a'}"
+            )
         lines.append("")
         lines.append("**Trained:**")
         for sd in r_after.get("trajectory", [])[:3]:
-            ac = "✅" if sd.get("adv_was_correct") else "❌"
-            lines.append(f"- Step {sd['step']}: override={sd.get('override_applied')} | adversary {ac}")
+            trace = sd.get("env_trace", {}) or {}
+            followed = trace.get("followed_agent")
+            adv_trust = (sd.get("trust_scores", {}) or {}).get("adversarial", None)
+            lines.append(
+                f"- Step {sd['step']}: followed={followed} | "
+                f"adv_trust={adv_trust if adv_trust is not None else 'n/a'}"
+            )
         lines.append("")
 
     lines.extend([
         "---", "",
         "## Key Observations", "",
-        "1. **Trust calibration matters**: Trained agent suppresses adversary trust, avoiding sabotage.",
-        "2. **Override decisions improve**: Correct overrides when adversary is wrong.",
-        "3. **Health recovery is faster**: Adaptive trust → better action selection → lower MTTR.",
-        "4. **Reward is consistently higher**: 15–25% more reward per episode.",
+        "1. **Policy modes differ**: In trained-mode, low-trust recommendations are filtered first, then re-ranked by simulation and verifier gating.",
+        "2. **Behavior is measurable**: The tables above and the saved benchmark logs are generated from real runs (no projected uplift).",
+        "3. **Outcomes can vary by seed**: Some episodes improve, some regress; the aggregate benchmark table is the authoritative summary.",
         "",
     ])
 
@@ -198,50 +229,30 @@ def task_sft():
     print("TASK 4: Running minimal SFT training (3 steps)...")
     print("=" * 60)
 
-    from transformers import (AutoModelForCausalLM, AutoTokenizer,
-        TrainingArguments, Trainer, DataCollatorForLanguageModeling)
-    from datasets import load_dataset
-    from peft import LoraConfig, get_peft_model
+    from aic.training.config import TrainingConfig
+    from aic.training.generate_sft_data import generate_sft_dataset
+    from aic.training.run_sft import run_sft
 
-    MODEL = "Qwen/Qwen2-0.5B-Instruct"
-    OUT = "checkpoints/sft"
-    DATA = "artifacts/sft/orchestrator_sft.jsonl"
-
-    print("  Loading model...")
-    tok = AutoTokenizer.from_pretrained(MODEL)
-    if tok.pad_token is None:
-        tok.pad_token = tok.eos_token
-    model = AutoModelForCausalLM.from_pretrained(MODEL)
-    model = get_peft_model(model, LoraConfig(r=4, lora_alpha=16, lora_dropout=0.05, task_type="CAUSAL_LM"))
-    n = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"  Trainable: {n:,}")
-
-    print("  Loading data...")
-    ds = load_dataset("json", data_files=DATA, split="train")
-    def tokenize(ex):
-        text = ex["prompt"][:300] + "\n" + ex["completion"][:200]
-        t = tok(text, truncation=True, max_length=256, padding="max_length")
-        t["labels"] = t["input_ids"].copy()
-        return t
-    tds = ds.map(tokenize, remove_columns=ds.column_names)
-    tds.set_format("torch")
-
-    print("  Training...")
-    trainer = Trainer(
-        model=model,
-        args=TrainingArguments(
-            output_dir=OUT, max_steps=3, per_device_train_batch_size=2,
-            learning_rate=2e-5, logging_steps=1, save_steps=3,
-            save_strategy="steps", report_to=[], dataloader_pin_memory=False,
-        ),
-        train_dataset=tds,
+    config = TrainingConfig(
+        model_name="sshleifer/tiny-gpt2",
+        sft_num_episodes=2,
+        sft_epochs=1,
+        sft_batch_size=1,
+        max_prompt_length=128,
+        max_completion_length=64,
+        use_peft_for_sft=False,
+        lora_r=4,
+        lora_alpha=16,
+        sft_output_dir="checkpoints/sft",
     )
-    result = trainer.train()
-    trainer.save_model(OUT)
-    tok.save_pretrained(OUT)
-    with open(f"{OUT}/sft_metadata.json", "w") as f:
-        json.dump({"model": MODEL, "steps": 3, "loss": result.training_loss, "dataset": DATA}, f)
-    print(f"  ✅ SFT checkpoint: {OUT} (loss={result.training_loss:.4f})")
+
+    print("  Generating SFT dataset...")
+    dataset_path = generate_sft_dataset(config)
+    print(f"  ✅ SFT dataset: {dataset_path}")
+
+    print("  Running SFT...")
+    out_dir = run_sft(config)
+    print(f"  ✅ SFT checkpoint: {out_dir}")
 
 
 def task_grpo():
@@ -288,6 +299,9 @@ if __name__ == "__main__":
     ensure_dirs()
     
     args = set(sys.argv[1:]) if len(sys.argv) > 1 else {"plots", "demo"}
+
+    if "verify" in args or "all" in args:
+        task_verify_env()
     
     if "plots" in args or "all" in args:
         task_plots()

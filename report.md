@@ -103,9 +103,9 @@ From `requirements.txt`, the project declares:
 | Pandas | Used | Reward curves and comparison CSVs |
 | Rich | Used | CLI episode visualization |
 | Streamlit + Plotly | Used | Dashboard |
-| Torch | Not used in runtime logic | Declared but not integrated into actual training flow |
-| Transformers | Not used in runtime logic | Only implied by config |
-| TRL | Not used in runtime logic | PPO/GRPO training not implemented |
+| Torch | Used (optional) | Required for SFT/GRPO training paths; the core simulation can run without training |
+| Transformers | Used (optional) | Used by the SFT pipeline; not required for baseline rollouts |
+| TRL | Optional | GRPO entrypoint exists; typically requires GPU for meaningful runs |
 | OpenEnv | Not present in actual requirements/code usage | Mentioned in plan, absent in implementation |
 
 ### 4.3 Important Audit Conclusion on the Stack

@@ -9,6 +9,14 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+def step0_verify_env():
+    print("=" * 60)
+    print("STEP 0: Dependency diagnostics...")
+    print("=" * 60)
+    from aic.utils.dependency_diagnostics import print_dependency_diagnostics
+
+    print_dependency_diagnostics()
+
 
 def step1_generate_sft_data():
     """Generate SFT data from 2 heuristic episodes."""
@@ -45,12 +53,10 @@ def step2_run_sft():
         sft_epochs=1,
         sft_batch_size=1,
         sft_learning_rate=2e-5,
-        model_name="Qwen/Qwen2-0.5B-Instruct",
-        use_peft_for_sft=True,
-        lora_r=4,
-        lora_alpha=16,
-        max_prompt_length=512,
-        max_completion_length=128,
+        model_name="sshleifer/tiny-gpt2",
+        use_peft_for_sft=False,
+        max_prompt_length=128,
+        max_completion_length=64,
     )
     try:
         output_dir = run_sft(config)
@@ -116,6 +122,9 @@ def step4_run_grpo():
 
 if __name__ == "__main__":
     args = sys.argv[1:]
+
+    if not args or "verify" in args or "all" in args:
+        step0_verify_env()
     
     if not args or "sft-data" in args or "all" in args:
         step1_generate_sft_data()

@@ -27,6 +27,8 @@ from aic.agents.security_agent import SecurityAgent
 from aic.env.aic_environment import AICEnvironment
 from aic.schemas.traces import SubAgentRecommendation
 from aic.training.config import TrainingConfig
+from aic.training.curriculum import CurriculumScheduler
+from aic.training.reward_audit import RewardAuditLoop
 from aic.utils.constants import SLA_STEPS
 from aic.utils.seeding import get_adversary_cycle, make_episode_rng
 
@@ -71,12 +73,19 @@ def run_episode(
     app: AppAgent,
     net: NetworkAgent = None,
     sec: SecurityAgent = None,
+    fault_mode: str | None = None,
+    include_network: bool | None = None,
+    include_security: bool | None = None,
 ) -> dict:
     """Run a single episode via the environment and return trajectory + summary."""
+    effective_fault_mode = fault_mode or config.fault_mode
+    effective_include_network = (net is not None) if include_network is None else include_network
+    effective_include_security = (sec is not None) if include_security is None else include_security
+
     env = AICEnvironment(
         episode_id=episode_id,
         base_seed=config.base_seed,
-        fault_mode=config.fault_mode,
+        fault_mode=effective_fault_mode,
         log_dir=config.log_dir,
         use_llm_agents=config.use_llm_agents,
         db_agent=db,
@@ -84,8 +93,8 @@ def run_episode(
         app_agent=app,
         net_agent=net,
         sec_agent=sec,
-        include_network=net is not None,
-        include_security=sec is not None,
+        include_network=effective_include_network,
+        include_security=effective_include_security,
         manage_trust_scores=False,
     )
     obs = env.reset()
@@ -99,6 +108,16 @@ def run_episode(
     trust_evolution = []
     prev_metrics = obs["current_metrics"]
     done = False
+
+    audit: RewardAuditLoop | None = None
+    if getattr(config, "use_reward_audit", False):
+        audit = RewardAuditLoop(
+            log_dir=config.audit_log_dir,
+            max_wall_clock_seconds=config.audit_max_wall_clock,
+            max_steps_per_episode=config.audit_max_steps,
+            severity_clamp_threshold=config.audit_severity_clamp_threshold,
+        )
+        audit.begin_episode(episode_id=episode_id)
 
     while not done:
         recommendations = _materialize_recommendations(obs)
@@ -128,6 +147,17 @@ def run_episode(
         env.trust_scores = orchestrator.trust_scores.copy()
         next_obs, _reward, done, info = env.step(structured_action)
 
+        if audit is not None:
+            audit.record_step(
+                step=obs["step"],
+                action=structured_action,
+                reward=float(info.get("reward_record", {}).get("total", 0.0)),
+                metrics=info.get("current_metrics", {}),
+                info={"selection_valid": info.get("selection_valid"), "format_valid": info.get("format_valid")},
+            )
+            if audit.should_terminate_episode():
+                done = True
+
         trust_evolution.append({
             "step": obs["step"],
             **orchestrator.trust_scores.copy(),
@@ -153,6 +183,11 @@ def run_episode(
     total_reward = env.reward_engine.get_total_episode_reward()
     reward_history = env.reward_engine.get_reward_history()
     r2_bonus = getattr(env.reward_engine, "_r2_bonus", 0.0)
+    audit_result = None
+    adjusted_total_reward = total_reward
+    if audit is not None:
+        audit_result = audit.end_episode(total_reward=float(total_reward))
+        adjusted_total_reward = audit_result.adjusted_reward
 
     scenario_name = "Unknown Scenario"
     for t in reversed(trajectory):
@@ -170,6 +205,7 @@ def run_episode(
     return {
         "episode_id": episode_id,
         "total_reward": total_reward,
+        "adjusted_total_reward": adjusted_total_reward,
         "r2_bonus": r2_bonus,
         "reward_history": reward_history,
         "trust_evolution": trust_evolution,
@@ -177,6 +213,7 @@ def run_episode(
         "final_health": env.world_state.get_health_score(),
         "scenario_name": scenario_name,
         "mttr": mttr_steps,
+        "audit": audit_result.to_dict() if audit_result is not None else None,
     }
 
 
@@ -203,6 +240,15 @@ def train(config: TrainingConfig = None) -> list[dict]:
     all_episode_results = []
     cached_trajectories = {}
 
+    scheduler: CurriculumScheduler | None = None
+    if getattr(config, "use_curriculum", False):
+        scheduler = CurriculumScheduler(
+            advancement_threshold=config.curriculum_advancement_threshold,
+            rolling_window=config.curriculum_rolling_window,
+            min_episodes_per_tier=config.curriculum_min_episodes_per_tier,
+            log_path=config.curriculum_log_path,
+        )
+
     cache_set = {ep for ep in CACHE_EPISODES if ep < config.num_episodes}
     cache_set.add(0)
     cache_set.add(config.num_episodes - 1)
@@ -212,6 +258,15 @@ def train(config: TrainingConfig = None) -> list[dict]:
     print(f"Caching episodes: {sorted(cache_set)}")
 
     for episode_id in range(config.num_episodes):
+        fault_mode = config.fault_mode
+        include_network = net_agent is not None
+        include_security = sec_agent is not None
+        if scheduler is not None:
+            env_kwargs = scheduler.get_env_kwargs(episode_id=episode_id, base_seed=config.base_seed)
+            fault_mode = env_kwargs.get("fault_mode", fault_mode)
+            include_network = bool(env_kwargs.get("include_network", include_network))
+            include_security = bool(env_kwargs.get("include_security", include_security))
+
         result = run_episode(
             episode_id,
             config,
@@ -219,17 +274,27 @@ def train(config: TrainingConfig = None) -> list[dict]:
             db,
             infra_agent,
             app_agent,
-            net=net_agent,
-            sec=sec_agent,
+            net=net_agent if include_network else None,
+            sec=sec_agent if include_security else None,
+            fault_mode=fault_mode,
+            include_network=include_network,
+            include_security=include_security,
         )
         all_episode_results.append(result)
 
         print(
             f"Episode {episode_id:03d}: "
-            f"reward={result['total_reward']:+.2f}, "
+            f"reward={result['total_reward']:+.2f} (adj={result.get('adjusted_total_reward', result['total_reward']):+.2f}), "
             f"health={result['final_health']:.3f}, "
             f"r2={result['r2_bonus']:.1f}"
         )
+
+        if scheduler is not None:
+            scheduler.record_episode(
+                float(result.get("adjusted_total_reward", result["total_reward"])),
+                episode_id=episode_id,
+            )
+            scheduler.maybe_advance()
 
         if episode_id in cache_set:
             cached_trajectories[episode_id] = result

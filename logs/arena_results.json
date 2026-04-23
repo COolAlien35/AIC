@@ -8,8 +8,8 @@
       "adversary_suppression_rate": 0.8,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -478.05768288661693,
-      "final_health": 0.24022279841592628,
+      "total_reward": -394.6686055350898,
+      "final_health": 0.27042020856470467,
       "sla_met": false
     },
     {
@@ -20,8 +20,8 @@
       "adversary_suppression_rate": 0.8,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -425.7051045112617,
-      "final_health": 0.2552584545033756,
+      "total_reward": -419.6851119212649,
+      "final_health": 0.27498362713400587,
       "sla_met": false
     },
     {
@@ -32,8 +32,8 @@
       "adversary_suppression_rate": 0.8,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -479.4485400841892,
-      "final_health": 0.22093101924250114,
+      "total_reward": -393.1341207420007,
+      "final_health": 0.19070301276567406,
       "sla_met": false
     },
     {
@@ -44,8 +44,8 @@
       "adversary_suppression_rate": 0.8,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -547.4858335656489,
-      "final_health": 0.24022279841592628,
+      "total_reward": -446.58789937775833,
+      "final_health": 0.2360590821576677,
       "sla_met": false
     },
     {
@@ -56,8 +56,8 @@
       "adversary_suppression_rate": 0.8,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -441.51396277528164,
-      "final_health": 0.253573610931172,
+      "total_reward": -480.32618038385965,
+      "final_health": 0.24420658748169977,
       "sla_met": false
     },
     {
@@ -68,8 +68,8 @@
       "adversary_suppression_rate": 0.8,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -446.6589916057159,
-      "final_health": 0.2685807120463846,
+      "total_reward": -403.10485753639335,
+      "final_health": 0.27460220842306554,
       "sla_met": false
     },
     {
@@ -80,8 +80,8 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -517.7162380549419,
-      "final_health": 0.17031834141692695,
+      "total_reward": -387.1756670585619,
+      "final_health": 0.22586277958226675,
       "sla_met": false
     },
     {
@@ -92,8 +92,8 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -455.5376551627493,
-      "final_health": 0.18535399750437628,
+      "total_reward": -420.13526758732934,
+      "final_health": 0.19090955305993185,
       "sla_met": false
     },
     {
@@ -104,8 +104,8 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -519.8615646842727,
-      "final_health": 0.14186205594312482,
+      "total_reward": -401.65586219697155,
+      "final_health": 0.14741761149868038,
       "sla_met": false
     },
     {
@@ -116,7 +116,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -580.5502364474108,
+      "total_reward": -452.70416942969024,
       "final_health": 0.17031834141692695,
       "sla_met": false
     },
@@ -128,8 +128,8 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -453.88747650834733,
-      "final_health": 0.18366915393217267,
+      "total_reward": -489.4247420843071,
+      "final_health": 0.18922470948772827,
       "sla_met": false
     },
     {
@@ -140,8 +140,8 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -486.23260070527533,
-      "final_health": 0.1986762550473853,
+      "total_reward": -406.4344323441378,
+      "final_health": 0.20448650498703502,
       "sla_met": false
     },
     {
@@ -152,7 +152,7 @@
       "adversary_suppression_rate": 1.0,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -627.4793936848363,
+      "total_reward": -553.6059874291936,
       "final_health": 0.17031834141692695,
       "sla_met": false
     },
@@ -164,7 +164,7 @@
       "adversary_suppression_rate": 1.0,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -635.6005343213607,
+      "total_reward": -561.6204004521479,
       "final_health": 0.15757621972659852,
       "sla_met": false
     },
@@ -176,7 +176,7 @@
       "adversary_suppression_rate": 1.0,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -633.0724012497516,
+      "total_reward": -559.3558077675941,
       "final_health": 0.13259380050576944,
       "sla_met": false
     },
@@ -188,7 +188,7 @@
       "adversary_suppression_rate": 1.0,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -706.8169350187441,
+      "total_reward": -633.0046116128341,
       "final_health": 0.17031834141692695,
       "sla_met": false
     },
@@ -200,7 +200,7 @@
       "adversary_suppression_rate": 1.0,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -689.879914752208,
+      "total_reward": -615.9450340990494,
       "final_health": 0.15589137615439494,
       "sla_met": false
     },
@@ -212,7 +212,7 @@
       "adversary_suppression_rate": 1.0,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -626.6559120343596,
+      "total_reward": -552.7316179497642,
       "final_health": 0.17089847726960752,
       "sla_met": false
     },
@@ -224,7 +224,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -517.7162380549419,
+      "total_reward": -446.982047730319,
       "final_health": 0.17031834141692695,
       "sla_met": false
     },
@@ -236,7 +236,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -455.5376551627493,
+      "total_reward": -383.4659533387704,
       "final_health": 0.18535399750437628,
       "sla_met": false
     },
@@ -248,7 +248,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -519.8615646842727,
+      "total_reward": -452.9537319266616,
       "final_health": 0.14186205594312482,
       "sla_met": false
     },
@@ -260,7 +260,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -580.5502364474108,
+      "total_reward": -508.0841106258064,
       "final_health": 0.17031834141692695,
       "sla_met": false
     },
@@ -272,7 +272,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -453.88747650834733,
+      "total_reward": -385.7156649359248,
       "final_health": 0.18366915393217267,
       "sla_met": false
     },
@@ -284,7 +284,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -486.23260070527533,
+      "total_reward": -416.62263326329145,
       "final_health": 0.1986762550473853,
       "sla_met": false
     },
@@ -296,7 +296,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -558.7529154621857,
+      "total_reward": -490.09253606590903,
       "final_health": 0.24022279841592628,
       "sla_met": false
     },
@@ -308,7 +308,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -568.2218946112325,
+      "total_reward": -495.78482938202484,
       "final_health": 0.2552584545033756,
       "sla_met": false
     },
@@ -320,7 +320,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -622.9880724072368,
+      "total_reward": -551.6475241152581,
       "final_health": 0.23399576348289142,
       "sla_met": false
     },
@@ -332,7 +332,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -635.6238735606108,
+      "total_reward": -565.1559321745688,
       "final_health": 0.24022279841592628,
       "sla_met": false
     },
@@ -344,7 +344,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -623.1764785185868,
+      "total_reward": -552.6206504011574,
       "final_health": 0.253573610931172,
       "sla_met": false
     },
@@ -356,7 +356,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -558.1980639016159,
+      "total_reward": -487.60014111933395,
       "final_health": 0.2685807120463846,
       "sla_met": false
     },
@@ -368,7 +368,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -517.7162380549419,
+      "total_reward": -446.982047730319,
       "final_health": 0.17031834141692695,
       "sla_met": false
     },
@@ -380,7 +380,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -455.5376551627493,
+      "total_reward": -383.4659533387704,
       "final_health": 0.18535399750437628,
       "sla_met": false
     },
@@ -392,7 +392,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -519.8615646842727,
+      "total_reward": -452.9537319266616,
       "final_health": 0.14186205594312482,
       "sla_met": false
     },
@@ -404,7 +404,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -580.5502364474108,
+      "total_reward": -508.0841106258064,
       "final_health": 0.17031834141692695,
       "sla_met": false
     },
@@ -416,7 +416,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -453.88747650834733,
+      "total_reward": -385.7156649359248,
       "final_health": 0.18366915393217267,
       "sla_met": false
     },
@@ -428,7 +428,7 @@
       "adversary_suppression_rate": 0.9,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -486.23260070527533,
+      "total_reward": -416.62263326329145,
       "final_health": 0.1986762550473853,
       "sla_met": false
     },
@@ -440,7 +440,7 @@
       "adversary_suppression_rate": 0.65,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -519.315140284799,
+      "total_reward": -446.21860739985186,
       "final_health": 0.32162360594061495,
       "sla_met": false
     },
@@ -452,7 +452,7 @@
       "adversary_suppression_rate": 0.75,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -450.0496618023146,
+      "total_reward": -375.77979617763583,
       "final_health": 0.26451771376263483,
       "sla_met": false
     },
@@ -464,7 +464,7 @@
       "adversary_suppression_rate": 0.75,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -520.4890398879421,
+      "total_reward": -446.3326503941655,
       "final_health": 0.2420310312530429,
       "sla_met": false
     },
@@ -476,7 +476,7 @@
       "adversary_suppression_rate": 0.75,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -586.6574805101357,
+      "total_reward": -512.0289076946867,
       "final_health": 0.25874131693444474,
       "sla_met": false
     },
@@ -488,7 +488,7 @@
       "adversary_suppression_rate": 0.8,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -444.294161566731,
+      "total_reward": -369.64252193046127,
       "final_health": 0.22579583315339424,
       "sla_met": false
     },
@@ -500,7 +500,7 @@
       "adversary_suppression_rate": 0.7,
       "unsafe_action_rate": 0.0,
       "revenue_saved_usd": 0.0,
-      "total_reward": -500.8552095961947,
+      "total_reward": -427.6096054612559,
       "final_health": 0.27339555431095375,
       "sla_met": false
     }
@@ -527,7 +527,7 @@
       "adversary_suppression_rate": 90.0,
       "unsafe_action_rate": 0.0,
       "total_revenue_saved_usd": 0.0,
-      "avg_final_health": 0.175,
+      "avg_final_health": 0.188,
       "scenario_wins": 0
     },
     {
@@ -552,7 +552,7 @@
       "unsafe_action_rate": 0.0,
       "total_revenue_saved_usd": 0.0,
       "avg_final_health": 0.249,
-      "scenario_wins": 0
+      "scenario_wins": 1
     },
     {
       "rank": 5,
@@ -575,8 +575,8 @@
       "adversary_suppression_rate": 80.0,
       "unsafe_action_rate": 0.0,
       "total_revenue_saved_usd": 0.0,
-      "avg_final_health": 0.246,
-      "scenario_wins": 1
+      "avg_final_health": 0.248,
+      "scenario_wins": 2
     },
     {
       "rank": 7,
@@ -588,17 +588,17 @@
       "unsafe_action_rate": 0.0,
       "total_revenue_saved_usd": 0.0,
       "avg_final_health": 0.264,
-      "scenario_wins": 5
+      "scenario_wins": 3
     }
   ],
   "scenario_wins": {
-    "AIC (Trained)": 1,
+    "AIC (Trained)": 2,
     "AIC (Untrained)": 0,
     "Oracle (Upper Bound)": 0,
     "HighestConfidenceOnly": 0,
-    "MajorityVote": 0,
+    "MajorityVote": 1,
     "NoTrustOrchestrator": 0,
-    "RandomRecovery": 5
+    "RandomRecovery": 3
   },
   "composite_scores": {
     "Oracle (Upper Bound)": 0.35,

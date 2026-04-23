@@ -23,7 +23,7 @@ AIC is an **Autonomous Incident War Room** that orchestrates multiple AI agents 
 
 Unlike static runbook automation, AIC:
 - **Thinks before acting** — Root cause analysis → Knowledge retrieval → Counterfactual simulation → Safety verification
-- **Learns who to trust** — Dynamic trust calibration detects and suppresses the adversarial agent within 3 steps
+- **Learns who to trust** — Dynamic trust calibration down-weights unreliable recommendations over the episode
 - **Never takes unsafe actions** — A deterministic Recovery Verifier gates every action with risk scoring and blast radius analysis
 - **Explains every decision** — Full reasoning chain: Hypothesis → Evidence → Simulation → Verification, logged as structured JSONL
 
@@ -94,6 +94,29 @@ Run the benchmark:
 python scripts/run_final_benchmark.py
 ```
 
+## ✅ Mac-verified evidence (no projections)
+
+All artifacts below are generated from **real runs** (no synthetic “projected” curves):
+
+```bash
+./.venv/bin/python run_hackathon.py verify plots demo
+```
+
+This produces:
+- `results/reward_curve.png`
+- `results/verifier_pass_rate.png`
+- `results/before_after_demo.md`
+- `logs/eval/policy_benchmark.jsonl`
+- `results/benchmark_summary.csv`
+
+### Optional: tiny SFT proof run (CPU-safe)
+
+```bash
+./.venv/bin/python run_hackathon.py sft
+```
+
+This writes `checkpoints/sft/sft_metadata.json`. For a real model-sized run (e.g. Qwen 0.5B+), use a GPU box.
+
 ## 🧪 The 6 Brutal Scenarios
 
 | # | Scenario | Root Cause | Telemetry Corruption |
@@ -132,7 +155,8 @@ All 5 steps are logged in the `ExplanationTrace` for full auditability.
 
 ### Prerequisites
 ```bash
-pip install -r requirements.txt
+python3.12 -m venv .venv
+./.venv/bin/pip install -r requirements.txt
 ```
 
 ### Run a Single Episode

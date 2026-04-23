@@ -1,0 +1,6 @@
+{"policy": "baseline_frozen_trust", "episode_id": 10000, "total_reward": -302.58697281815915, "final_health": 0.23070410652380516, "r2_bonus": 0.0, "mttr": 20, "success": false, "override_rate": 0.0}
+{"policy": "baseline_adaptive_trust", "episode_id": 10000, "total_reward": -312.61760932014477, "final_health": 0.28186653364922437, "r2_bonus": 0.0, "mttr": 20, "success": false, "override_rate": 0.0}
+{"policy": "baseline_frozen_trust", "episode_id": 10001, "total_reward": -276.24997651948365, "final_health": 0.2513218520979448, "r2_bonus": 0.0, "mttr": 20, "success": false, "override_rate": 0.0}
+{"policy": "baseline_adaptive_trust", "episode_id": 10001, "total_reward": -295.29459893382915, "final_health": 0.2073820368733427, "r2_bonus": 0.0, "mttr": 20, "success": false, "override_rate": 0.0}
+{"policy": "baseline_frozen_trust", "episode_id": 10002, "total_reward": -283.3888595009979, "final_health": 0.25532060534015727, "r2_bonus": 0.0, "mttr": 20, "success": false, "override_rate": 0.0}
+{"policy": "baseline_adaptive_trust", "episode_id": 10002, "total_reward": -266.9235060700278, "final_health": 0.21022668342966436, "r2_bonus": 0.0, "mttr": 20, "success": false, "override_rate": 0.0}

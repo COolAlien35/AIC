@@ -87,6 +87,8 @@ def run_sft(config: TrainingConfig | None = None) -> Path:
         logging_steps=1,
         save_strategy="epoch",
         report_to=[],
+        no_cuda=True,
+        use_mps_device=False,
     )
     trainer = Trainer(
         model=model,
