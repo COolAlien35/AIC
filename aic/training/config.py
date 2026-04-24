@@ -11,11 +11,12 @@ class TrainingConfig:
     """All training hyperparameters."""
 
     # Model
-    model_name: str = "Qwen/Qwen2-0.5B-Instruct"  # Small, trainable on CPU/single GPU
+    model_name: str = "Qwen/Qwen2.5-3B-Instruct"  # Production model for hackathon
     use_peft: bool = True          # LoRA for memory efficiency
-    lora_r: int = 8
-    lora_alpha: int = 32
+    lora_r: int = 16
+    lora_alpha: int = 16
     lora_dropout: float = 0.05
+    load_in_4bit: bool = True      # Required for T4 VRAM budget
 
     # PPO hyperparameters
     learning_rate: float = 1e-4
@@ -43,25 +44,26 @@ class TrainingConfig:
     do_sample: bool = True
 
     # Prompting / sequence lengths
-    max_prompt_length: int = 2048
+    max_prompt_length: int = 1024
     max_completion_length: int = 512
 
     # SFT warm start
     sft_dataset_path: str = "artifacts/sft/orchestrator_sft.jsonl"
-    sft_num_episodes: int = 32
+    sft_num_episodes: int = 120       # 20 per scenario × 6 scenarios = 120
     sft_epochs: int = 1
     sft_batch_size: int = 2
     sft_learning_rate: float = 2e-5
     sft_output_dir: str = "checkpoints/sft"
+    sft_grad_accumulation: int = 4
     use_peft_for_sft: bool = True
 
     # GRPO / RLVR
     grpo_dataset_path: str = "artifacts/grpo/prompts.jsonl"
     grpo_output_dir: str = "checkpoints/grpo"
     grpo_num_generations: int = 4
-    grpo_max_steps: int = 100
+    grpo_max_steps: int = 150         # Enough for measurable learning
     grpo_per_device_train_batch_size: int = 1
-    grpo_gradient_accumulation_steps: int = 4
+    grpo_gradient_accumulation_steps: int = 8   # Effective batch = 8
 
     # Efficiency / export
     use_unsloth: bool = True
@@ -79,7 +81,7 @@ class TrainingConfig:
     curriculum_log_path: str = "logs/curriculum.jsonl"
 
     # Reward audit
-    use_reward_audit: bool = True
+    use_reward_audit: bool = True     # MUST be True — it's a prize feature
     audit_log_dir: str = "logs/audit"
     audit_max_wall_clock: float = 120.0
     audit_max_steps: int = 50

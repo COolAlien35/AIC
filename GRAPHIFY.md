@@ -1,13 +1,21 @@
 # AIC Repository Graph
 
+## ⚠️ CURRENT STATUS: ARCHITECTURE COMPLETE, TRAINING PROOF PENDING
+
+**What Works**: Multi-agent orchestration, OpenEnv compliance, safety guarantees, 248 tests  
+**What's Missing**: GPU training execution, trained model proof, measurable uplift  
+**See**: `BRUTAL_HACKATHON_AUDIT.md` for complete gap analysis
+
+---
+
 ## High-Level Architecture
 
 ```text
 AIC/
-├─ app.py
-├─ run_hackathon.py / run_training_smoke.py
+├─ app.py                              # Gradio demo (✅ working)
+├─ run_hackathon.py                    # Training orchestrator (⚠️ needs GPU)
 ├─ requirements.txt
-├─ README.md / DESIGN.md / report.md / plan.md
+├─ README.md / DESIGN.md / BRUTAL_HACKATHON_AUDIT.md
 │
 ├─ aic/
 │  ├─ agents/
