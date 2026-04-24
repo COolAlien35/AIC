@@ -79,16 +79,24 @@ def run_sft(config: TrainingConfig | None = None) -> Path:
         return tokenized
 
     tokenized_dataset = dataset.map(_tokenize, remove_columns=dataset.column_names)
+    try:
+        import torch
+        has_cuda = torch.cuda.is_available()
+    except Exception:
+        has_cuda = False
+
     args = TrainingArguments(
         output_dir=config.sft_output_dir,
         num_train_epochs=config.sft_epochs,
         per_device_train_batch_size=config.sft_batch_size,
+        gradient_accumulation_steps=config.sft_grad_accumulation,
         learning_rate=config.sft_learning_rate,
         logging_steps=1,
         save_strategy="epoch",
         report_to=[],
-        no_cuda=True,
+        no_cuda=not has_cuda,
         use_mps_device=False,
+        fp16=has_cuda,
     )
     trainer = Trainer(
         model=model,
@@ -96,7 +104,7 @@ def run_sft(config: TrainingConfig | None = None) -> Path:
         train_dataset=tokenized_dataset,
         data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False),
     )
-    trainer.train()
+    train_result = trainer.train()
 
     output_dir = Path(config.sft_output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -104,8 +112,25 @@ def run_sft(config: TrainingConfig | None = None) -> Path:
     tokenizer.save_pretrained(str(output_dir))
 
     meta_path = output_dir / "sft_metadata.json"
+    final_loss = None
+    try:
+        if train_result is not None and train_result.metrics:
+            final_loss = train_result.metrics.get("train_loss")
+    except Exception:
+        final_loss = None
+
     with open(meta_path, "w") as f:
-        json.dump({"dataset": str(dataset_path), "model_name": config.model_name}, f, indent=2)
+        json.dump(
+            {
+                "dataset": str(dataset_path),
+                "dataset_size": len(dataset),
+                "model_name": config.model_name,
+                "final_loss": final_loss,
+                "used_cuda": has_cuda,
+            },
+            f,
+            indent=2,
+        )
 
     return output_dir
 

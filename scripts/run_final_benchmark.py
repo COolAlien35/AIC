@@ -21,11 +21,12 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import numpy as np
 import pandas as pd
+from scipy import stats
 
 from aic.evals.benchmark_suite import (
-    run_full_benchmark, get_summary_table,
-    HighestConfidencePolicy, MajorityVotePolicy, NoTrustOrchestratorPolicy,
-    _run_baseline_episode, _run_aic_episode, BenchmarkResult,
+    NoTrustOrchestratorPolicy,
+    _run_baseline_episode,
+    _run_aic_episode,
     SCENARIO_REGISTRY,
 )
 
@@ -118,40 +119,50 @@ class TrainedGRPOPolicy:
         }
 
 
-def run_extended_benchmark(
+def run_single_episode(policy_name: str, scenario_id: int, episode_seed: int) -> dict:
+    """Run one benchmark episode for a named policy."""
+    if policy_name == "baseline_frozen":
+        result = _run_baseline_episode(NoTrustOrchestratorPolicy(), scenario_id, episode_seed)
+    elif policy_name == "baseline_adaptive":
+        result = _run_aic_episode(scenario_id, mode="untrained", episode_seed=episode_seed)
+    elif policy_name == "trained_grpo":
+        result = _run_aic_episode(scenario_id, mode="trained", episode_seed=episode_seed)
+    else:
+        raise ValueError(f"Unknown policy {policy_name}")
+
+    return {
+        "policy": policy_name,
+        "scenario": result.scenario_name,
+        "reward": float(result.total_reward),
+        "success": bool(result.sla_met),
+        "mttr": int(result.mttr_steps),
+        "adversary_suppression": float(result.adversary_suppression_rate),
+        "unsafe_rate": float(result.unsafe_action_rate),
+    }
+
+
+def run_benchmark(
     num_episodes_per_scenario: int = 5,
     output_dir: str = "results",
     seed: int = 42,
 ):
-    """
-    Extended benchmark with statistical testing.
-
-    num_episodes_per_scenario=5 → 5×6=30 episodes per policy.
-    """
+    """Run 3-policy benchmark with significance testing."""
     Path(output_dir).mkdir(parents=True, exist_ok=True)
+    policies = ("baseline_frozen", "baseline_adaptive", "trained_grpo")
+    scenario_ids = sorted(SCENARIO_REGISTRY.keys())
 
-    all_results = []
-
-    # Run existing benchmark suite (baselines + AIC heuristic)
-    print("\n🔄 Running standard benchmark suite...")
-    standard_results = run_full_benchmark(
-        output_path=f"{output_dir}/benchmark_raw.csv",
-        episode_seed=seed,
-    )
-    all_results.extend(standard_results)
-
-    # Map standard results to common format
     records = []
-    for r in all_results:
-        records.append({
-            "policy": r.policy_name,
-            "scenario": r.scenario_name,
-            "reward": r.total_reward,
-            "success": r.sla_met,
-            "mttr": r.mttr_steps,
-            "adversary_suppression": r.adversary_suppression_rate,
-            "unsafe_rate": r.unsafe_action_rate,
-        })
+    for policy_name in policies:
+        print(f"\n🔄 Benchmarking: {policy_name}")
+        for scenario_id in scenario_ids:
+            for ep_idx in range(num_episodes_per_scenario):
+                ep_seed = seed + (scenario_id * 100) + ep_idx
+                result = run_single_episode(policy_name, scenario_id, ep_seed)
+                records.append(result)
+                print(
+                    f"  {result['scenario']} ep{ep_idx}: "
+                    f"reward={result['reward']:.2f}, success={result['success']}"
+                )
 
     df = pd.DataFrame(records)
 
@@ -172,60 +183,30 @@ def run_extended_benchmark(
     ).reset_index()
     scenario_summary.to_csv(f"{output_dir}/benchmark_by_scenario.csv", index=False)
 
-    # Statistical test: AIC (Trained) vs best baseline
-    trained_rewards = df[df["policy"] == "AIC (Trained)"]["reward"].values
-    baseline_policies = [p for p in df["policy"].unique() if "Trained" not in p]
+    baseline_rewards = df[df["policy"] == "baseline_frozen"]["reward"].values
+    trained_rewards = df[df["policy"] == "trained_grpo"]["reward"].values
 
-    if len(baseline_policies) > 0 and len(trained_rewards) > 0:
-        # Use the strongest baseline for comparison
-        baseline_name = baseline_policies[0]
-        best_baseline_mean = -float("inf")
-        for bp in baseline_policies:
-            bp_mean = df[df["policy"] == bp]["reward"].mean()
-            if bp_mean > best_baseline_mean:
-                best_baseline_mean = bp_mean
-                baseline_name = bp
+    t_stat, p_value = stats.ttest_ind(baseline_rewards, trained_rewards)
+    pooled_std = np.sqrt((np.std(baseline_rewards) ** 2 + np.std(trained_rewards) ** 2) / 2)
+    cohens_d = (np.mean(trained_rewards) - np.mean(baseline_rewards)) / (pooled_std + 1e-9)
 
-        baseline_rewards = df[df["policy"] == baseline_name]["reward"].values
-
-        if len(baseline_rewards) > 1 and len(trained_rewards) > 1:
-            from scipy import stats as scipy_stats
-
-            t_stat, p_value = scipy_stats.ttest_ind(baseline_rewards, trained_rewards)
-
-            # Cohen's d effect size
-            pooled_std = np.sqrt(
-                (np.std(baseline_rewards)**2 + np.std(trained_rewards)**2) / 2
-            )
-            cohens_d = (np.mean(trained_rewards) - np.mean(baseline_rewards)) / (pooled_std + 1e-9)
-        else:
-            t_stat, p_value = 0.0, 1.0
-            cohens_d = 0.0
-
-        stats_output = {
-            "baseline_policy": baseline_name,
-            "t_statistic": float(t_stat),
-            "p_value": float(p_value),
-            "significant": bool(p_value < 0.05),
-            "cohens_d": float(cohens_d),
-            "effect_size_label": (
-                "large" if abs(cohens_d) > 0.8 else
-                "medium" if abs(cohens_d) > 0.5 else
-                "small"
-            ),
-            "baseline_mean": float(np.mean(baseline_rewards)),
-            "trained_mean": float(np.mean(trained_rewards)),
-            "improvement": float(np.mean(trained_rewards) - np.mean(baseline_rewards)),
-            "improvement_pct": float(
-                (np.mean(trained_rewards) - np.mean(baseline_rewards)) /
-                abs(np.mean(baseline_rewards) + 1e-9) * 100
-            ),
-        }
-    else:
-        stats_output = {
-            "note": "Insufficient data for statistical test",
-            "policies_found": list(df["policy"].unique()),
-        }
+    stats_output = {
+        "t_statistic": float(t_stat),
+        "p_value": float(p_value),
+        "significant": bool(p_value < 0.05),
+        "cohens_d": float(cohens_d),
+        "effect_size_label": (
+            "large" if abs(cohens_d) > 0.8 else
+            "medium" if abs(cohens_d) > 0.5 else "small"
+        ),
+        "baseline_mean": float(np.mean(baseline_rewards)),
+        "trained_mean": float(np.mean(trained_rewards)),
+        "improvement": float(np.mean(trained_rewards) - np.mean(baseline_rewards)),
+        "improvement_pct": float(
+            (np.mean(trained_rewards) - np.mean(baseline_rewards))
+            / (abs(np.mean(baseline_rewards)) + 1e-9) * 100
+        ),
+    }
 
     with open(f"{output_dir}/statistical_test.json", "w") as f:
         json.dump(stats_output, f, indent=2)
@@ -234,14 +215,13 @@ def run_extended_benchmark(
     print(f"\n📊 BENCHMARK COMPLETE")
     print(f"\n{summary.to_string(index=False)}")
 
-    if "baseline_mean" in stats_output:
-        print(f"\n📈 STATISTICAL TEST:")
-        print(f"   Baseline ({stats_output.get('baseline_policy', '?')}) avg reward: {stats_output['baseline_mean']:.2f}")
-        print(f"   Trained avg reward:  {stats_output['trained_mean']:.2f}")
-        print(f"   Improvement:         {stats_output['improvement']:+.2f} ({stats_output['improvement_pct']:+.1f}%)")
-        sig = '✅ SIGNIFICANT' if stats_output['significant'] else '⚠️ not significant'
-        print(f"   p-value:             {stats_output['p_value']:.4f} ({sig})")
-        print(f"   Cohen's d:           {stats_output['cohens_d']:.3f} ({stats_output['effect_size_label']} effect)")
+    print(f"\n📈 STATISTICAL TEST:")
+    print(f"   Baseline avg reward: {stats_output['baseline_mean']:.2f}")
+    print(f"   Trained avg reward:  {stats_output['trained_mean']:.2f}")
+    print(f"   Improvement:         {stats_output['improvement']:+.2f} ({stats_output['improvement_pct']:+.1f}%)")
+    sig = '✅ SIGNIFICANT' if stats_output['significant'] else '⚠️ not significant'
+    print(f"   p-value:             {stats_output['p_value']:.4f} ({sig})")
+    print(f"   Cohen's d:           {stats_output['cohens_d']:.3f} ({stats_output['effect_size_label']} effect)")
 
     return df, stats_output
 
@@ -275,7 +255,7 @@ def main():
     except ImportError:
         print("\n═══ AIC Extended Benchmark Suite ═══\n")
 
-    df, stats = run_extended_benchmark(
+    df, stats = run_benchmark(
         num_episodes_per_scenario=args.episodes,
         output_dir=args.output,
         seed=args.seed,

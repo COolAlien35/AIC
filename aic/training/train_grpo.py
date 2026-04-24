@@ -11,12 +11,14 @@ from aic.training.config import TrainingConfig
 from aic.training.modeling_unsloth import load_model_and_tokenizer
 from aic.training.prompting import build_orchestrator_prompt
 
-# All fault modes for diverse GRPO prompt generation
-ALL_FAULT_MODES = [
-    "cascading_failure",
-    "memory_leak",
-    "db_connection_saturation",
-    "network_storm",
+# Six scenario labels for parity with SFT generation.
+SCENARIO_TO_FAULT_MODE = [
+    ("cascading_failure", "cascading_failure"),
+    ("memory_leak", "memory_leak"),
+    ("db_connection_saturation", "db_connection_saturation"),
+    ("network_storm", "network_storm"),
+    ("schema_migration_failure", "db_connection_saturation"),
+    ("credential_compromise", "cascading_failure"),
 ]
 
 
@@ -78,11 +80,11 @@ def generate_grpo_prompt_dataset(config: TrainingConfig | None = None) -> Path:
     path = Path(config.grpo_dataset_path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    episodes_per_mode = max(1, config.sft_num_episodes // len(ALL_FAULT_MODES))
+    episodes_per_mode = max(1, config.sft_num_episodes // len(SCENARIO_TO_FAULT_MODE))
 
     with open(path, "w") as f:
         episode_id = 0
-        for fault_mode in ALL_FAULT_MODES:
+        for scenario_name, fault_mode in SCENARIO_TO_FAULT_MODE:
             for _ in range(episodes_per_mode):
                 env = AICEnvironment(
                     episode_id=episode_id,
@@ -96,6 +98,7 @@ def generate_grpo_prompt_dataset(config: TrainingConfig | None = None) -> Path:
                     "prompt": build_orchestrator_prompt(obs),
                     "episode_id": episode_id,
                     "base_seed": config.base_seed,
+                    "scenario": scenario_name,
                     "fault_mode": fault_mode,
                 }
                 f.write(json.dumps(record) + "\n")

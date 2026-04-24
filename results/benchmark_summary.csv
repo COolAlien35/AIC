@@ -1,3 +1,4 @@
-policy,episodes,avg_total_reward,avg_final_health,success_rate,avg_mttr,avg_override_rate
-baseline_adaptive_trust,3,-291.61190477466727,0.23315841798407713,0.0,20.0,0.0
-baseline_frozen_trust,3,-287.40860294621353,0.24578218798730242,0.0,20.0,0.0
+policy,avg_reward,std_reward,success_rate,num_episodes
+baseline_adaptive,-430.9901113717765,42.86266988196586,0.0,6
+baseline_frozen,-432.2825094704145,48.740332028157766,0.0,6
+trained_grpo,-417.7739261778292,37.42571597900781,0.0,6
