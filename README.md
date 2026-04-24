@@ -145,6 +145,25 @@ For closing GPU-only remaining gaps (GRPO uplift + export validation), use:
 - `COLAB_GPU_RUNBOOK.md`
 - `scripts/colab_gpu_proof.sh`
 
+## 📦 Generated artifact hosting (not source files)
+
+Large model artifacts are generated outputs and are intentionally not committed to Git history:
+
+- `checkpoints/grpo/`
+- `exports/`
+
+Hosted generated outputs:
+
+- GRPO checkpoint bundle: [Google Drive (grpo)](https://drive.google.com/drive/folders/1RJcu7AWuEDmLBhUYMbikPRtOGAu1sTHD?usp=share_link)
+- Export bundle: [Google Drive (exports)](https://drive.google.com/drive/folders/1PjW-gbnr-RtPg_qk5fFXu5Zz1N-uGfJo?usp=share_link)
+
+Regenerate locally:
+
+```bash
+./.venv/bin/python run_hackathon.py grpo
+./.venv/bin/python eval/test_export.py --source checkpoints/grpo
+```
+
 ## 🧪 The 6 Brutal Scenarios
 
 | # | Scenario | Root Cause | Telemetry Corruption |

@@ -40,6 +40,7 @@ Optional/GPU-only path remains separate from this CPU-safe proof:
 - GRPO/model-scale training is available in code paths but is not required for the Mac-safe reproducibility pass.
 - The CPU-safe SFT run is a smoke-proof of the end-to-end training wiring, not a claim of large-model convergence.
 - Export validation against a truly trained GRPO checkpoint remains deferred to a GPU-backed run.
+- Large generated artifacts are hosted externally (not source files in Git): [Google Drive (grpo)](https://drive.google.com/drive/folders/1RJcu7AWuEDmLBhUYMbikPRtOGAu1sTHD?usp=share_link), [Google Drive (exports)](https://drive.google.com/drive/folders/1PjW-gbnr-RtPg_qk5fFXu5Zz1N-uGfJo?usp=share_link).
 
 Remote deployment proof:
 

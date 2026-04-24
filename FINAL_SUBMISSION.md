@@ -77,6 +77,25 @@ The repository includes SFT/GRPO training paths for model-scale runs.
 For judge-safe reproducibility on Mac CPU, the final proof uses benchmark + plotting + demo + minimal SFT smoke training.  
 Future work is to run longer GPU-backed GRPO and report held-out uplift at larger scale.
 
+## 9) Artifact hosting note
+
+To keep the repository lightweight and reviewable, large generated artifacts are hosted externally and not committed as source files:
+
+- `checkpoints/grpo/` (generated training checkpoint)
+- `exports/` (generated export output)
+
+Hosted artifacts:
+
+- GRPO checkpoint bundle: [Google Drive (grpo)](https://drive.google.com/drive/folders/1RJcu7AWuEDmLBhUYMbikPRtOGAu1sTHD?usp=share_link)
+- Export bundle: [Google Drive (exports)](https://drive.google.com/drive/folders/1PjW-gbnr-RtPg_qk5fFXu5Zz1N-uGfJo?usp=share_link)
+
+Regeneration commands:
+
+```bash
+./.venv/bin/python run_hackathon.py grpo
+./.venv/bin/python eval/test_export.py --source checkpoints/grpo
+```
+
 Suggested deferred proof commands (GPU):
 
 ```bash
