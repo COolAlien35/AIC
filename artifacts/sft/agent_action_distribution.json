@@ -1,0 +1,20 @@
+{
+  "Cache Stampede": {
+    "override=False|drift=False": 400
+  },
+  "Canary Failure": {
+    "override=False|drift=False": 400
+  },
+  "Regional Outage": {
+    "override=False|drift=False": 399
+  },
+  "Schema Migration Disaster": {
+    "override=False|drift=False": 400
+  },
+  "Credential Compromise": {
+    "override=False|drift=False": 399
+  },
+  "Queue Cascade": {
+    "override=False|drift=False": 397
+  }
+}

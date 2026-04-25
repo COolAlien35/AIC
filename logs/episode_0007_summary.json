@@ -1,7 +1,16 @@
 {
   "episode_id": 7,
   "total_steps": 20,
-  "total_reward": -340.16429689987643,
+  "total_reward": -290.96251288376874,
   "success": false,
-  "timestamp": 1777037631.233207
+  "timestamp": 1777106524.802028,
+  "active_agents": [
+    "db_agent",
+    "infra_agent",
+    "app_agent",
+    "adversarial_agent",
+    "network_agent",
+    "security_agent",
+    "recovery_verifier"
+  ]
 }

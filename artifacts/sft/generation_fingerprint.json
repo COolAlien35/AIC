@@ -1,0 +1,13 @@
+{
+  "fingerprint": "69215179672b68ee495e6dedc54a0b42c3699c049c32dc1c01a5d228ec681f25",
+  "total_records": 3243,
+  "positive_records": 2400,
+  "negative_records": 843,
+  "scenarios_covered": 6,
+  "episodes": 120,
+  "config": {
+    "base_seed": 42,
+    "sft_num_episodes": 120,
+    "model_name": "Qwen/Qwen2.5-3B-Instruct"
+  }
+}

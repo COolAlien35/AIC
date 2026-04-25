@@ -1,0 +1,41 @@
+{
+  "fingerprint": "c91aff0c7d59999ea596bf3857c898f9541e57db15d66ebf385eb405f29502c9",
+  "total_records": 2395,
+  "unique_episodes": 120,
+  "scenario_counts": {
+    "Cache Stampede": 400,
+    "Canary Failure": 400,
+    "Regional Outage": 399,
+    "Schema Migration Disaster": 400,
+    "Credential Compromise": 399,
+    "Queue Cascade": 397
+  },
+  "drift_type_counts": {
+    "None": 597,
+    "field_rename": 600,
+    "unit_shift": 599,
+    "silent_null": 599
+  },
+  "adversarial_count": 2395,
+  "drift_active_count": 784,
+  "duplicate_prompt_count": 0,
+  "duplicate_prompt_rate": 0.0,
+  "action_entropy": 3.98,
+  "scenario_imbalance_ratio": 1.0076,
+  "difficulty_tiers": [
+    "medium"
+  ],
+  "recommendation_diversity": 0.03215,
+  "gate_results": {
+    "min_total_records": true,
+    "scenario_balance": true,
+    "max_duplicate_rate": true,
+    "min_scenarios": true,
+    "min_adversarial": true,
+    "min_drift": true,
+    "action_entropy": true,
+    "recommendation_diversity": true
+  },
+  "gate_failures": [],
+  "passed": true
+}
