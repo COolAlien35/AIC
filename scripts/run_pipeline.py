@@ -345,9 +345,14 @@ def _full_sft() -> dict[str, Any]:
     os.environ.pop("AIC_SFT_MAX_STEPS", None)
     os.environ["AIC_SFT_DISABLE_EVAL"] = "1"
 
+    # Data lever: more episodes => more diverse + more "difficult negatives".
+    # Default 240 keeps us inside the $22 budget on 4xL4 while materially
+    # improving SFT coverage vs the 120-episode baseline.
+    sft_eps = int(os.environ.get("AIC_FULL_SFT_EPISODES", "240"))
+
     cfg = TrainingConfig(
         model_name="Qwen/Qwen2.5-3B-Instruct",
-        sft_num_episodes=120,
+        sft_num_episodes=sft_eps,
         sft_epochs=1,
         sft_batch_size=1,
         sft_grad_accumulation=16,
@@ -387,10 +392,13 @@ def _full_grpo(sft_dir: str) -> dict[str, Any]:
     from aic.training.config import TrainingConfig
     from aic.training.train_grpo import run_grpo
 
+    # Keep GRPO prompt dataset aligned with the SFT coverage level.
+    sft_eps = int(os.environ.get("AIC_FULL_SFT_EPISODES", "240"))
+
     cfg = TrainingConfig(
         model_name="Qwen/Qwen2.5-3B-Instruct",
         sft_output_dir=sft_dir,
-        sft_num_episodes=120,
+        sft_num_episodes=sft_eps,
         grpo_per_device_train_batch_size=1,
         max_prompt_length=1024,
         load_in_4bit=True,
