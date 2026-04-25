@@ -18,6 +18,7 @@ from __future__ import annotations
 import json
 import os
 import random
+import re
 from pathlib import Path
 from typing import Any
 
@@ -146,8 +147,43 @@ def _make_tokenize_fn(tokenizer, config: TrainingConfig):
     return _tokenize
 
 
-def _smoke_parse_rate(model, tokenizer, dataset, sample_n: int = 8) -> float:
-    """Generate completions for ``sample_n`` random prompts and report parse rate."""
+def _orchestrator_json_candidates(completion: str) -> list[str]:
+    """Return JSON substrings to try for ``OrchestratorDecision`` validation."""
+    t = completion.strip()
+    if not t:
+        return []
+    seen: set[str] = set()
+    out: list[str] = []
+
+    def _add(s: str) -> None:
+        s = s.strip()
+        if s and s not in seen:
+            seen.add(s)
+            out.append(s)
+
+    _add(t)
+    for m in re.finditer(r"```(?:json)?\s*([\s\S]*?)\s*```", t, flags=re.IGNORECASE):
+        _add(m.group(1))
+    i0, i1 = t.find("{"), t.rfind("}")
+    if i0 >= 0 and i1 > i0:
+        _add(t[i0 : i1 + 1])
+    return out
+
+
+def _smoke_parse_rate(
+    model,
+    tokenizer,
+    dataset,
+    sample_n: int = 8,
+    *,
+    max_completion_hint: int = 96,
+) -> float:
+    """Generate completions for ``sample_n`` random prompts and report parse rate.
+
+    Uses **greedy** decoding: after a short SFT cap, sampling with temperature
+    often yields 0/8 valid JSON by chance even when training loss moved, which
+    falsely fails smoke gates.
+    """
     try:
         import torch
     except Exception:
@@ -159,6 +195,9 @@ def _smoke_parse_rate(model, tokenizer, dataset, sample_n: int = 8) -> float:
     model.eval()
     successes = 0
     device = next(model.parameters()).device
+    pad_id = tokenizer.pad_token_id or tokenizer.eos_token_id
+    eos_id = tokenizer.eos_token_id if tokenizer.eos_token_id is not None else pad_id
+    max_new = min(512, max(192, max_completion_hint * 3))
     for idx in indices:
         prompt_text = dataset[idx]["prompt"]
         rendered, _ = _build_chat_text(tokenizer, prompt_text, "")
@@ -168,22 +207,22 @@ def _smoke_parse_rate(model, tokenizer, dataset, sample_n: int = 8) -> float:
         with torch.no_grad():
             out = model.generate(
                 **inputs,
-                max_new_tokens=192,
-                temperature=0.7,
-                do_sample=True,
-                pad_token_id=tokenizer.pad_token_id or tokenizer.eos_token_id,
+                max_new_tokens=max_new,
+                do_sample=False,
+                num_beams=1,
+                pad_token_id=pad_id,
+                eos_token_id=eos_id,
             )
         completion = tokenizer.decode(
             out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True,
         )
-        try:
-            json_start = completion.find("{")
-            json_end = completion.rfind("}") + 1
-            if json_start >= 0 and json_end > json_start:
-                OrchestratorDecision.model_validate_json(completion[json_start:json_end])
+        for cand in _orchestrator_json_candidates(completion):
+            try:
+                OrchestratorDecision.model_validate_json(cand)
                 successes += 1
-        except Exception:
-            continue
+                break
+            except Exception:
+                continue
     model.train()
     return successes / max(1, n)
 
@@ -375,7 +414,11 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
     if is_main_process():
         try:
             parse_rate = _smoke_parse_rate(
-                model, tokenizer, raw_dataset, sample_n=8,
+                model,
+                tokenizer,
+                raw_dataset,
+                sample_n=8,
+                max_completion_hint=config.max_completion_length,
             )
         except Exception as exc:
             parse_error = str(exc)
