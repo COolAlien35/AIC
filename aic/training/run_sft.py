@@ -28,6 +28,29 @@ from aic.training.modeling_unsloth import (
 )
 
 
+def _write_prompt_completion_jsonl(dataset_path: Path) -> Path:
+    """Write a temporary JSONL containing only ``prompt`` and ``completion``.
+
+    The SFT generator emits rich metadata (scenario, drift, difficulty, optional
+    negative-sample fields). Mixing that into ``datasets.load_dataset("json",
+    ...)`` triggers schema-cast failures because positive and negative rows
+    expose different ``metadata`` substructures. Since SFT only uses the two
+    text fields, we strip everything else into a sibling file and load that.
+    """
+    cleaned_path = dataset_path.parent / "_prompt_completion_only.jsonl"
+    with dataset_path.open() as src, cleaned_path.open("w") as dst:
+        for line in src:
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            dst.write(json.dumps({
+                "prompt": str(row.get("prompt", "")),
+                "completion": str(row.get("completion", "")),
+            }) + "\n")
+    return cleaned_path
+
+
 def _require_sft_dependencies():
     try:
         from datasets import load_dataset
@@ -164,12 +187,22 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
             f"SFT dataset not found at {dataset_path}. Run generate_sft_data.py first."
         )
 
-    raw_dataset = load_dataset("json", data_files=str(dataset_path), split="train")
+    cleaned_dataset_path = _write_prompt_completion_jsonl(dataset_path)
+    raw_dataset = load_dataset(
+        "json",
+        data_files=str(cleaned_dataset_path),
+        split="train",
+    )
 
     val_path = dataset_path.parent / "val.jsonl"
     eval_dataset = None
     if val_path.exists():
-        eval_dataset = load_dataset("json", data_files=str(val_path), split="train")
+        cleaned_val_path = _write_prompt_completion_jsonl(val_path)
+        eval_dataset = load_dataset(
+            "json",
+            data_files=str(cleaned_val_path),
+            split="train",
+        )
 
     tokenizer = AutoTokenizer.from_pretrained(config.model_name, use_fast=True)
     if tokenizer.pad_token is None:
