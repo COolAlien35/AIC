@@ -22,6 +22,30 @@ import traceback
 from pathlib import Path
 from typing import Any
 
+
+def _smoke_single_gpu_env() -> None:
+    """Before any ``aic`` (or torch) imports: hide extra GPUs for ``smoke``.
+
+    HF ``Trainer`` enables ``nn.DataParallel`` when ``torch.cuda.device_count() > 1``
+    in a single process. That path breaks 4-bit PEFT and raises scatter errors
+    (``chunk expects at least a 1-dimensional tensor``). Setting
+    ``CUDA_VISIBLE_DEVICES`` only inside ``cmd_smoke`` is too late if CUDA was
+    already initialised earlier in the same interpreter.
+    """
+    if __name__ != "__main__" or len(sys.argv) < 2 or sys.argv[1] != "smoke":
+        return
+    try:
+        ws = int(os.environ.get("WORLD_SIZE", "1") or "1")
+    except ValueError:
+        ws = 1
+    if ws > 1:
+        return
+    dev = os.environ.get("AIC_SMOKE_CUDA_DEVICES", "0")
+    os.environ["CUDA_VISIBLE_DEVICES"] = dev
+
+
+_smoke_single_gpu_env()
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
@@ -281,78 +305,70 @@ def cmd_smoke(_args) -> int:
         )
         return 1
 
-    # On multi-GPU machines, a plain `python ... smoke` run is still a single
-    # process. HF Trainer may wrap the model in `nn.DataParallel`, which
-    # breaks badly with 4-bit PEFT + packed batches (scatter on 0-d tensors).
-    # Pin smoke to a single visible GPU unless the user overrides explicitly.
-    prev_cuda_vis = os.environ.get("CUDA_VISIBLE_DEVICES")
-    smoke_devices = os.environ.get("AIC_SMOKE_CUDA_DEVICES", "0")
-    os.environ["CUDA_VISIBLE_DEVICES"] = smoke_devices
-    print(f"[smoke] CUDA_VISIBLE_DEVICES={smoke_devices} (restore after smoke)")
+    print(
+        "[smoke] CUDA_VISIBLE_DEVICES="
+        f"{os.environ.get('CUDA_VISIBLE_DEVICES', '<unset>')} "
+        "(set at process start for single-process smoke; override with "
+        "AIC_SMOKE_CUDA_DEVICES)"
+    )
 
-    try:
-        if cmd_verify(_args) != 0:
-            _stage_log("smoke", {"stage": "smoke", "status": "verify_failed"})
-            return 1
+    if cmd_verify(_args) != 0:
+        _stage_log("smoke", {"stage": "smoke", "status": "verify_failed"})
+        return 1
 
-        sft_result = _smoke_sft()
-        print(f"[smoke] SFT: {sft_result}")
-        if not sft_result["ok"]:
-            _stage_log("smoke", {"stage": "smoke", "status": "sft_failed", **sft_result})
-            return 1
+    sft_result = _smoke_sft()
+    print(f"[smoke] SFT: {sft_result}")
+    if not sft_result["ok"]:
+        _stage_log("smoke", {"stage": "smoke", "status": "sft_failed", **sft_result})
+        return 1
 
-        grpo_result = _smoke_grpo(sft_result["sft_dir"])
-        print(
-            f"[smoke] GRPO: ok={grpo_result['ok']} "
-            f"max_std={grpo_result.get('max_reward_std')}"
+    grpo_result = _smoke_grpo(sft_result["sft_dir"])
+    print(
+        f"[smoke] GRPO: ok={grpo_result['ok']} "
+        f"max_std={grpo_result.get('max_reward_std')}"
+    )
+    if not grpo_result["ok"]:
+        _stage_log(
+            "smoke",
+            {
+                "stage": "smoke",
+                "status": "grpo_failed",
+                "sft": sft_result,
+                "grpo": grpo_result,
+            },
         )
-        if not grpo_result["ok"]:
-            _stage_log(
-                "smoke",
-                {
-                    "stage": "smoke",
-                    "status": "grpo_failed",
-                    "sft": sft_result,
-                    "grpo": grpo_result,
-                },
-            )
-            return 1
+        return 1
 
-        parse_rate = sft_result.get("parse_rate", 0.0)
-        max_std = grpo_result.get("max_reward_std", 0.0)
-        # Smoke is a wiring sanity-check, not a quality bar:
-        #   - parse_rate >= 0.30  (some structured outputs from cold-start SFT)
-        #   - max_reward_std > 0   (GRPO actually got diverse rewards across rollouts)
-        # The full run uses the strict 0.70 parse-rate gate inside run_sft.
-        parse_ok = parse_rate >= 0.30
-        std_ok = max_std > 0.0
+    parse_rate = sft_result.get("parse_rate", 0.0)
+    max_std = grpo_result.get("max_reward_std", 0.0)
+    # Smoke is a wiring sanity-check, not a quality bar:
+    #   - parse_rate >= 0.30  (some structured outputs from cold-start SFT)
+    #   - max_reward_std > 0   (GRPO actually got diverse rewards across rollouts)
+    # The full run uses the strict 0.70 parse-rate gate inside run_sft.
+    parse_ok = parse_rate >= 0.30
+    std_ok = max_std > 0.0
 
-        summary = {
-            "stage": "smoke",
-            "sft": sft_result,
-            "grpo": grpo_result,
-            "parse_rate_gate_passed": parse_ok,
-            "reward_std_gate_passed": std_ok,
-            "status": "ok" if (parse_ok and std_ok) else "gate_failed",
-        }
-        _stage_log("smoke", summary)
+    summary = {
+        "stage": "smoke",
+        "sft": sft_result,
+        "grpo": grpo_result,
+        "parse_rate_gate_passed": parse_ok,
+        "reward_std_gate_passed": std_ok,
+        "status": "ok" if (parse_ok and std_ok) else "gate_failed",
+    }
+    _stage_log("smoke", summary)
 
-        if not (parse_ok and std_ok):
-            print("\n[smoke] FAILED gates:")
-            if not parse_ok:
-                print(f"   parse_rate {parse_rate:.2f} < 0.30 (smoke gate)")
-            if not std_ok:
-                print(f"   max reward_std {max_std:.3f} == 0 (no GRPO learning signal)")
-            print("\nDo NOT run --full until smoke gates pass.")
-            return 2
+    if not (parse_ok and std_ok):
+        print("\n[smoke] FAILED gates:")
+        if not parse_ok:
+            print(f"   parse_rate {parse_rate:.2f} < 0.30 (smoke gate)")
+        if not std_ok:
+            print(f"   max reward_std {max_std:.3f} == 0 (no GRPO learning signal)")
+        print("\nDo NOT run --full until smoke gates pass.")
+        return 2
 
-        print("\n[smoke] All gates passed. Safe to run --full.")
-        return 0
-    finally:
-        if prev_cuda_vis is None:
-            os.environ.pop("CUDA_VISIBLE_DEVICES", None)
-        else:
-            os.environ["CUDA_VISIBLE_DEVICES"] = prev_cuda_vis
+    print("\n[smoke] All gates passed. Safe to run --full.")
+    return 0
 
 
 # ---------------------------------------------------------------------------
