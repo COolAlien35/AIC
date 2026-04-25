@@ -35,6 +35,7 @@ from aic.training.modeling_unsloth import (
 
 # region agent log
 _AGENT_DEBUG_LOG = Path("/Users/pulkitpandey/Desktop/AIC/.cursor/debug-b030f6.log")
+_AGENT_DEBUG_FALLBACK_LOG = Path(__file__).resolve().parents[2] / ".cursor" / "debug-b030f6.log"
 
 
 def _agent_debug_log(hypothesis_id: str, location: str, message: str, data: dict[str, Any]) -> None:
@@ -48,12 +49,14 @@ def _agent_debug_log(hypothesis_id: str, location: str, message: str, data: dict
         "data": data,
         "timestamp": int(time.time() * 1000),
     }
-    try:
-        _AGENT_DEBUG_LOG.parent.mkdir(parents=True, exist_ok=True)
-        with _AGENT_DEBUG_LOG.open("a") as f:
-            f.write(json.dumps(payload, default=str) + "\n")
-    except Exception:
-        pass
+    line = json.dumps(payload, default=str) + "\n"
+    for _path in (_AGENT_DEBUG_LOG, _AGENT_DEBUG_FALLBACK_LOG):
+        try:
+            _path.parent.mkdir(parents=True, exist_ok=True)
+            with _path.open("a") as f:
+                f.write(line)
+        except Exception:
+            pass
 # endregion
 
 
