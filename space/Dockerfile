@@ -36,7 +36,8 @@ RUN python -m pip install --user --no-cache-dir --upgrade pip \
 
 ENV PATH="/home/user/.local/bin:${PATH}"
 
-COPY --chown=user:user start.sh /workspace/start.sh
+# HF builds from repo root: paths are relative to repository root, not this folder.
+COPY --chown=user:user space/start.sh /workspace/start.sh
 RUN chmod +x /workspace/start.sh
 
 EXPOSE 7860
