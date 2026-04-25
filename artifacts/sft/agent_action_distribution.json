@@ -1,20 +1,38 @@
 {
   "Cache Stampede": {
-    "override=False|drift=False": 400
+    "override=True|drift=False": 232,
+    "override=True|drift=True": 108,
+    "override=False|drift=True": 38,
+    "override=False|drift=False": 168
   },
   "Canary Failure": {
-    "override=False|drift=False": 400
+    "override=True|drift=False": 253,
+    "override=True|drift=True": 87,
+    "override=False|drift=False": 156,
+    "override=False|drift=True": 39
   },
   "Regional Outage": {
-    "override=False|drift=False": 399
+    "override=True|drift=False": 249,
+    "override=False|drift=False": 160,
+    "override=False|drift=True": 39,
+    "override=True|drift=True": 90
   },
   "Schema Migration Disaster": {
-    "override=False|drift=False": 400
+    "override=True|drift=False": 234,
+    "override=False|drift=False": 171,
+    "override=False|drift=True": 29,
+    "override=True|drift=True": 106
   },
   "Credential Compromise": {
-    "override=False|drift=False": 399
+    "override=True|drift=False": 245,
+    "override=True|drift=True": 94,
+    "override=False|drift=True": 33,
+    "override=False|drift=False": 167
   },
   "Queue Cascade": {
-    "override=False|drift=False": 397
+    "override=True|drift=False": 253,
+    "override=False|drift=False": 165,
+    "override=False|drift=True": 37,
+    "override=True|drift=True": 84
   }
 }

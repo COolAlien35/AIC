@@ -39,7 +39,7 @@ class DataQualityGates:
     max_scenario_imbalance_ratio: float = 1.5
 
     # Maximum duplicate prompt rate (fraction)
-    max_duplicate_prompt_rate: float = 0.10
+    max_duplicate_prompt_rate: float = 0.30  # Higher to accommodate difficult negatives (same prompt, different completion)
 
     # Minimum number of distinct scenarios
     min_scenario_count: int = 6
@@ -201,6 +201,7 @@ def analyze_dataset(
         "min_drift": (report.drift_active_count / max(1, report.total_records)) >= gates.min_drift_fraction,
         "action_entropy": report.action_entropy >= gates.min_action_entropy,
         "recommendation_diversity": report.recommendation_diversity >= gates.min_recommendation_diversity,
+        "difficulty_tiers": len(report.difficulty_tiers - {"unknown"}) >= gates.min_difficulty_tiers,
     }
 
     report.gate_results = gate_checks
@@ -423,8 +424,13 @@ def run_integrity_pipeline(
 
     print(f"📥 Loaded {len(records)} records from {dataset_path}")
 
-    # 2. Dedup
-    deduped, num_removed = deduplicate_records(records, key="prompt")
+    # 2. Dedup — use composite key to preserve difficult negatives
+    #    (negatives share prompts with positives but have different completions)
+    for r in records:
+        r["_dedup_key"] = hashlib.sha256(
+            (r.get("prompt", "") + "||" + r.get("completion", "")).encode()
+        ).hexdigest()
+    deduped, num_removed = deduplicate_records(records, key="_dedup_key")
     print(f"🔍 Dedup: removed {num_removed} duplicate prompts → {len(deduped)} remaining")
 
     # 3. Analyze

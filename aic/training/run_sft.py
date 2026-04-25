@@ -54,6 +54,13 @@ def run_sft(config: TrainingConfig | None = None) -> Path:
         )
 
     dataset = load_dataset("json", data_files=str(dataset_path), split="train")
+
+    # Load validation set if available
+    val_path = Path(config.sft_dataset_path).parent / "val.jsonl"
+    eval_dataset = None
+    if val_path.exists():
+        eval_dataset = load_dataset("json", data_files=str(val_path), split="train")
+
     tokenizer = AutoTokenizer.from_pretrained(config.model_name)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -69,16 +76,46 @@ def run_sft(config: TrainingConfig | None = None) -> Path:
         model = get_peft_model(model, peft_config)
 
     def _tokenize(example):
-        text = example["prompt"] + "\n" + example["completion"]
-        tokenized = tokenizer(
-            text,
+        # Tokenize prompt and completion separately to compute mask boundary
+        prompt_ids = tokenizer(
+            example["prompt"],
             truncation=True,
-            max_length=config.max_prompt_length + config.max_completion_length,
-        )
-        tokenized["labels"] = tokenized["input_ids"].copy()
-        return tokenized
+            max_length=config.max_prompt_length,
+            add_special_tokens=True,
+        )["input_ids"]
+
+        completion_ids = tokenizer(
+            example["completion"],
+            truncation=True,
+            max_length=config.max_completion_length,
+            add_special_tokens=False,
+        )["input_ids"]
+
+        # Concatenate with newline separator token
+        sep_ids = tokenizer("\n", add_special_tokens=False)["input_ids"]
+        input_ids = prompt_ids + sep_ids + completion_ids
+
+        # Truncate to max total length
+        max_total = config.max_prompt_length + config.max_completion_length
+        input_ids = input_ids[:max_total]
+
+        # Mask prompt tokens in labels (set to -100 so loss ignores them)
+        prompt_len = len(prompt_ids) + len(sep_ids)
+        labels = [-100] * min(prompt_len, len(input_ids)) + input_ids[prompt_len:]
+
+        attention_mask = [1] * len(input_ids)
+
+        return {
+            "input_ids": input_ids,
+            "attention_mask": attention_mask,
+            "labels": labels,
+        }
 
     tokenized_dataset = dataset.map(_tokenize, remove_columns=dataset.column_names)
+    tokenized_eval = None
+    if eval_dataset is not None:
+        tokenized_eval = eval_dataset.map(_tokenize, remove_columns=eval_dataset.column_names)
+
     try:
         import torch
         has_cuda = torch.cuda.is_available()
@@ -93,6 +130,8 @@ def run_sft(config: TrainingConfig | None = None) -> Path:
         learning_rate=config.sft_learning_rate,
         logging_steps=1,
         save_strategy="epoch",
+        eval_strategy="steps" if tokenized_eval is not None else "no",
+        eval_steps=50 if tokenized_eval is not None else None,
         report_to=[],
         no_cuda=not has_cuda,
         use_mps_device=False,
@@ -102,6 +141,7 @@ def run_sft(config: TrainingConfig | None = None) -> Path:
         model=model,
         args=args,
         train_dataset=tokenized_dataset,
+        eval_dataset=tokenized_eval,
         data_collator=DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False),
     )
     train_result = trainer.train()

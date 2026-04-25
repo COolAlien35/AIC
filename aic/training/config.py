@@ -44,11 +44,11 @@ class TrainingConfig:
     do_sample: bool = True
 
     # Prompting / sequence lengths
-    max_prompt_length: int = 1024
+    max_prompt_length: int = 2048
     max_completion_length: int = 512
 
     # SFT warm start
-    sft_dataset_path: str = "artifacts/sft/orchestrator_sft.jsonl"
+    sft_dataset_path: str = "artifacts/sft/train.jsonl"
     sft_num_episodes: int = 120       # 20 per scenario × 6 scenarios = 120
     sft_epochs: int = 1
     sft_batch_size: int = 2

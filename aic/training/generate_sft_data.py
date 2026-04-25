@@ -147,7 +147,9 @@ def generate_sft_dataset(config: TrainingConfig | None = None) -> Path:
     if config is None:
         config = TrainingConfig()
 
-    output_path = Path(config.sft_dataset_path)
+    # Always write raw generated data to orchestrator_sft.jsonl.
+    # The integrity pipeline will split this into train.jsonl / val.jsonl.
+    output_path = Path(config.artifacts_dir) / "sft" / "orchestrator_sft.jsonl"
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
     db = DBAgent(use_llm=False)
@@ -220,11 +222,53 @@ def generate_sft_dataset(config: TrainingConfig | None = None) -> Path:
                         getattr(orch, "_followed_agent", None),
                         override_applied,
                     )
+
+                    # ── CRITICAL FIX: Inject correct override_adversary ──
+                    # When the adversary is present in candidates but the
+                    # orchestrator chose a different agent, mark override=True
+                    # so the model learns to actively distrust adversarial advice.
+                    candidates = obs.get("candidate_recommendations", [])
+                    adv_candidate = None
+                    for c in candidates:
+                        if c.get("agent_name") == "adversarial_agent":
+                            adv_candidate = c
+                            break
+                    if adv_candidate is not None:
+                        selected_id = structured_action.get("selected_recommendation_id")
+                        adv_id = adv_candidate.get("recommendation_id")
+                        if selected_id != adv_id:
+                            structured_action["override_adversary"] = True
+                            # Enrich reasoning with override explanation
+                            old_reasoning = structured_action.get("reasoning", "")
+                            structured_action["reasoning"] = (
+                                old_reasoning +
+                                f" Override: adversarial_agent (id={adv_id}, "
+                                f"conf={adv_candidate.get('confidence', 0):.2f}) "
+                                f"was present but intentionally not selected."
+                            )[:1200]  # respect max_length
+
+                    # ── CRITICAL FIX: Inject schema_drift_detected ──
+                    # When schema drift is active in the observation, teach
+                    # the model to detect and report it.
+                    schema_drift_active = obs.get("schema_drift_active", False)
+                    schema_drift_type = obs.get("schema_drift_type")
+                    if schema_drift_active and schema_drift_type:
+                        structured_action["schema_drift_detected"] = True
+                        # Infer the drifted field from the drift type context
+                        if schema_drift_type == "field_rename":
+                            structured_action["schema_drift_field"] = "db_latency_ms"
+                        elif schema_drift_type == "unit_shift":
+                            structured_action["schema_drift_field"] = "queue_depth"
+                        elif schema_drift_type == "silent_null":
+                            structured_action["schema_drift_field"] = "net_io_mbps"
+                        else:
+                            structured_action["schema_drift_field"] = None
+
                     has_adversarial_candidate = any(
                         rec.get("agent_name") == "adversarial_agent"
-                        for rec in obs.get("candidate_recommendations", [])
+                        for rec in candidates
                     )
-                    schema_drift_active = obs.get("schema_drift_active", False)
+                    override_applied = structured_action.get("override_adversary", False)
 
                     # Build rich metadata tags (Phase 2.2)
                     sample_metadata = tag_sample_metadata(

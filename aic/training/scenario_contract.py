@@ -56,14 +56,25 @@ ROOT_NODE_TO_FAULT_MODE: dict[str, str] = {
 
 
 def _classify_difficulty(scenario: ScenarioDefinition) -> str:
-    """Classify scenario difficulty based on fault pressure magnitude."""
+    """Classify scenario difficulty based on fault pressure magnitude.
+
+    Thresholds calibrated to produce 3 tiers across the 6 canonical scenarios:
+      - easy:   Cache Stampede (~207), Canary Failure (~157)
+      - medium: Queue Cascade (~233), Regional Outage (~253)
+      - hard:   Schema Migration (~353), Credential Compromise (~242 + P1 + corruption)
+    """
     total_pressure = sum(abs(v) for v in scenario.initial_fault_vector.values())
     drift_pressure = sum(abs(v) for v in scenario.per_step_drift.values())
     combined = total_pressure + drift_pressure * 10  # weight progressive drift
 
-    if combined < 200:
+    # Factor in severity and corruption for harder classification
+    severity_boost = 50.0 if scenario.severity == "P1" else 0.0
+    corruption_boost = 30.0 * len(scenario.telemetry_corruption_rules)
+    effective = combined + severity_boost + corruption_boost
+
+    if effective < 350:
         return "easy"
-    elif combined < 400:
+    elif effective < 420:
         return "medium"
     else:
         return "hard"

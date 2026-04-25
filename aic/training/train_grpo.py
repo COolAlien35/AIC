@@ -10,16 +10,10 @@ from aic.schemas.actions import OrchestratorDecision
 from aic.training.config import TrainingConfig
 from aic.training.modeling_unsloth import load_model_and_tokenizer
 from aic.training.prompting import build_orchestrator_prompt
-
-# Six scenario labels for parity with SFT generation.
-SCENARIO_TO_FAULT_MODE = [
-    ("cascading_failure", "cascading_failure"),
-    ("memory_leak", "memory_leak"),
-    ("db_connection_saturation", "db_connection_saturation"),
-    ("network_storm", "network_storm"),
-    ("schema_migration_failure", "db_connection_saturation"),
-    ("credential_compromise", "cascading_failure"),
-]
+from aic.training.scenario_contract import (
+    CANONICAL_SCENARIO_IDS,
+    SCENARIO_TRAINING_META,
+)
 
 
 class AICProgressCallback:
@@ -72,7 +66,7 @@ class AICProgressCallback:
 def generate_grpo_prompt_dataset(config: TrainingConfig | None = None) -> Path:
     """Generate prompt-only JSONL records for single-step GRPO training.
 
-    Covers all fault modes for diverse GRPO training.
+    Uses the canonical 6-scenario registry (same as SFT) for distribution parity.
     """
     if config is None:
         config = TrainingConfig()
@@ -80,16 +74,18 @@ def generate_grpo_prompt_dataset(config: TrainingConfig | None = None) -> Path:
     path = Path(config.grpo_dataset_path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    episodes_per_mode = max(1, config.sft_num_episodes // len(SCENARIO_TO_FAULT_MODE))
+    num_scenarios = len(CANONICAL_SCENARIO_IDS)
+    episodes_per_scenario = max(1, config.sft_num_episodes // num_scenarios)
 
     with open(path, "w") as f:
         episode_id = 0
-        for scenario_name, fault_mode in SCENARIO_TO_FAULT_MODE:
-            for _ in range(episodes_per_mode):
+        for scenario_id in CANONICAL_SCENARIO_IDS:
+            meta = SCENARIO_TRAINING_META[scenario_id]
+            for _ in range(episodes_per_scenario):
                 env = AICEnvironment(
                     episode_id=episode_id,
                     base_seed=config.base_seed,
-                    fault_mode=fault_mode,
+                    fault_mode=meta.fault_injector_mode,
                     use_llm_agents=False,
                     manage_trust_scores=False,
                 )
@@ -98,8 +94,9 @@ def generate_grpo_prompt_dataset(config: TrainingConfig | None = None) -> Path:
                     "prompt": build_orchestrator_prompt(obs),
                     "episode_id": episode_id,
                     "base_seed": config.base_seed,
-                    "scenario": scenario_name,
-                    "fault_mode": fault_mode,
+                    "scenario": meta.scenario_name,
+                    "scenario_id": scenario_id,
+                    "fault_mode": meta.fault_injector_mode,
                 }
                 f.write(json.dumps(record) + "\n")
                 episode_id += 1

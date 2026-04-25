@@ -1,9 +1,9 @@
 {
   "episode_id": 91,
   "total_steps": 20,
-  "total_reward": -311.19063567139915,
+  "total_reward": -197.83769040978322,
   "success": false,
-  "timestamp": 1777106526.082363,
+  "timestamp": 1777108467.063023,
   "active_agents": [
     "db_agent",
     "infra_agent",

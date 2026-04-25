@@ -1,31 +1,33 @@
 {
-  "fingerprint": "c91aff0c7d59999ea596bf3857c898f9541e57db15d66ebf385eb405f29502c9",
-  "total_records": 2395,
+  "fingerprint": "3366693f1d04a1df63247424c1ad27ea4a1c139911a6e3562758d00622c6a25a",
+  "total_records": 3237,
   "unique_episodes": 120,
   "scenario_counts": {
-    "Cache Stampede": 400,
-    "Canary Failure": 400,
-    "Regional Outage": 399,
-    "Schema Migration Disaster": 400,
-    "Credential Compromise": 399,
-    "Queue Cascade": 397
+    "Cache Stampede": 546,
+    "Canary Failure": 535,
+    "Regional Outage": 538,
+    "Schema Migration Disaster": 540,
+    "Credential Compromise": 539,
+    "Queue Cascade": 539
   },
   "drift_type_counts": {
-    "None": 597,
-    "field_rename": 600,
-    "unit_shift": 599,
-    "silent_null": 599
+    "None": 806,
+    "field_rename": 810,
+    "unit_shift": 811,
+    "silent_null": 810
   },
-  "adversarial_count": 2395,
-  "drift_active_count": 784,
-  "duplicate_prompt_count": 0,
-  "duplicate_prompt_rate": 0.0,
-  "action_entropy": 3.98,
-  "scenario_imbalance_ratio": 1.0076,
+  "adversarial_count": 3237,
+  "drift_active_count": 1088,
+  "duplicate_prompt_count": 842,
+  "duplicate_prompt_rate": 0.260117,
+  "action_entropy": 4.7629,
+  "scenario_imbalance_ratio": 1.0206,
   "difficulty_tiers": [
+    "easy",
+    "hard",
     "medium"
   ],
-  "recommendation_diversity": 0.03215,
+  "recommendation_diversity": 0.119864,
   "gate_results": {
     "min_total_records": true,
     "scenario_balance": true,
@@ -34,7 +36,8 @@
     "min_adversarial": true,
     "min_drift": true,
     "action_entropy": true,
-    "recommendation_diversity": true
+    "recommendation_diversity": true,
+    "difficulty_tiers": true
   },
   "gate_failures": [],
   "passed": true
