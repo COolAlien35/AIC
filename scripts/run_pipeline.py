@@ -125,6 +125,16 @@ def _smoke_sft() -> dict[str, Any]:
         lora_alpha=16,
     )
 
+    # Hard caps for smoke (full run reads these from config, not env):
+    #   - cap SFT to 40 steps so smoke wraps in minutes, not hours
+    #   - disable eval split so we don't OOM on T4 mid-train
+    os.environ.setdefault("AIC_SFT_MAX_STEPS", "40")
+    os.environ.setdefault("AIC_SFT_DISABLE_EVAL", "1")
+    print(
+        f"[smoke] AIC_SFT_MAX_STEPS={os.environ['AIC_SFT_MAX_STEPS']} "
+        f"AIC_SFT_DISABLE_EVAL={os.environ['AIC_SFT_DISABLE_EVAL']}"
+    )
+
     print("[smoke] Generating SFT dataset (24 episodes)...")
     try:
         dataset_path = generate_sft_dataset(cfg)

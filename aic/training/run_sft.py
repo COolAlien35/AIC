@@ -16,6 +16,7 @@ Critical fixes vs the previous revision:
 from __future__ import annotations
 
 import json
+import os
 import random
 from pathlib import Path
 from typing import Any
@@ -196,13 +197,18 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
 
     val_path = dataset_path.parent / "val.jsonl"
     eval_dataset = None
-    if val_path.exists():
+    disable_eval = os.environ.get("AIC_SFT_DISABLE_EVAL", "").lower() in (
+        "1", "true", "yes",
+    )
+    if val_path.exists() and not disable_eval:
         cleaned_val_path = _write_prompt_completion_jsonl(val_path)
         eval_dataset = load_dataset(
             "json",
             data_files=str(cleaned_val_path),
             split="train",
         )
+    elif val_path.exists() and disable_eval:
+        print("[SFT] AIC_SFT_DISABLE_EVAL set - skipping eval split")
 
     tokenizer = AutoTokenizer.from_pretrained(config.model_name, use_fast=True)
     if tokenizer.pad_token is None:
@@ -254,9 +260,17 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
             tokenize_fn, remove_columns=eval_dataset.column_names,
         )
 
-    args = TrainingArguments(
+    max_steps_env = os.environ.get("AIC_SFT_MAX_STEPS", "").strip()
+    max_steps_override: int | None = None
+    if max_steps_env:
+        try:
+            max_steps_override = int(max_steps_env)
+            print(f"[SFT] AIC_SFT_MAX_STEPS={max_steps_override} - capping training")
+        except ValueError:
+            print(f"[SFT] WARNING: AIC_SFT_MAX_STEPS={max_steps_env!r} is not int - ignored")
+
+    ta_kwargs: dict[str, Any] = dict(
         output_dir=config.sft_output_dir,
-        num_train_epochs=config.sft_epochs,
         per_device_train_batch_size=config.sft_batch_size,
         gradient_accumulation_steps=config.sft_grad_accumulation,
         learning_rate=config.sft_learning_rate,
@@ -275,6 +289,12 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
         remove_unused_columns=False,
         optim="adamw_8bit" if has_cuda else "adamw_torch",
     )
+    if max_steps_override is not None:
+        ta_kwargs["max_steps"] = max_steps_override
+    else:
+        ta_kwargs["num_train_epochs"] = config.sft_epochs
+
+    args = TrainingArguments(**ta_kwargs)
 
     trainer = Trainer(
         model=model,
