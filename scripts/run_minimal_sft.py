@@ -9,7 +9,7 @@ from transformers import (AutoModelForCausalLM, AutoTokenizer,
 from datasets import load_dataset
 from peft import LoraConfig, get_peft_model
 
-MODEL = "Qwen/Qwen2-0.5B-Instruct"
+MODEL = "Qwen/Qwen2.5-3B-Instruct"
 OUT = "checkpoints/sft"
 DATA = "artifacts/sft/orchestrator_sft.jsonl"
 

@@ -53,7 +53,7 @@ def step2_run_sft():
         sft_epochs=1,
         sft_batch_size=1,
         sft_learning_rate=2e-5,
-        model_name="sshleifer/tiny-gpt2",
+        model_name="Qwen/Qwen2.5-3B-Instruct",
         use_peft_for_sft=False,
         max_prompt_length=128,
         max_completion_length=64,
@@ -97,7 +97,7 @@ def step4_run_grpo():
 
     config = TrainingConfig(
         sft_num_episodes=2,
-        model_name="Qwen/Qwen2-0.5B-Instruct",
+        model_name="Qwen/Qwen2.5-3B-Instruct",
         grpo_max_steps=10,
         grpo_per_device_train_batch_size=1,
         grpo_gradient_accumulation_steps=1,

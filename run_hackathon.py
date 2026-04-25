@@ -236,7 +236,7 @@ def task_sft():
     from aic.training.run_sft import run_sft
 
     config = TrainingConfig(
-        model_name="sshleifer/tiny-gpt2",
+        model_name="Qwen/Qwen2.5-3B-Instruct",
         sft_num_episodes=2,
         sft_epochs=1,
         sft_batch_size=1,
@@ -268,7 +268,7 @@ def task_grpo():
         from aic.training.train_grpo import generate_grpo_prompt_dataset, run_grpo
         config = TrainingConfig(
             sft_num_episodes=2,
-            model_name="Qwen/Qwen2-0.5B-Instruct",
+            model_name="Qwen/Qwen2.5-3B-Instruct",
             grpo_max_steps=3,
             grpo_per_device_train_batch_size=2,
             grpo_gradient_accumulation_steps=1,
@@ -292,7 +292,7 @@ def task_grpo():
             json.dump({
                 "status": "requires_gpu",
                 "note": "GRPO training requires GPU. Run: python3 run_hackathon.py grpo on a GPU machine.",
-                "config": {"model": "Qwen/Qwen2-0.5B-Instruct", "steps": 3},
+                "config": {"model": "Qwen/Qwen2.5-3B-Instruct", "steps": 3},
             }, f, indent=2)
         print("  ✅ GRPO metadata saved (needs GPU for full run)")
 
