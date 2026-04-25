@@ -330,6 +330,24 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
 
     args = TrainingArguments(**ta_kwargs)
 
+    # transformers 4.46.x: ``Trainer._wrap_model`` enables ``nn.DataParallel`` when
+    # ``args.n_gpu > 1`` unless ``model.is_loaded_in_8bit``. 4-bit QLoRA is not excluded,
+    # so multi-GPU Spaces wrap PEFT+4bit in DataParallel and crash (scatter on kwargs).
+    # ``TrainingArguments.__post_init__`` already ran ``_setup_devices`` and set
+    # ``_n_gpu = torch.cuda.device_count()``; forcing ``_n_gpu = 1`` for non-DDP 4-bit
+    # keeps training on a single visible device without DataParallel.
+    _ws_raw = os.environ.get("WORLD_SIZE", "1") or "1"
+    try:
+        _ws_sft = int(_ws_raw)
+    except ValueError:
+        _ws_sft = 1
+    if has_cuda and config.load_in_4bit and _ws_sft <= 1 and getattr(args, "_n_gpu", 1) > 1:
+        print(
+            f"[SFT] Forcing TrainingArguments._n_gpu=1 (was {args._n_gpu}) for 4-bit "
+            "single-process training — transformers<=4.46 would otherwise use DataParallel."
+        )
+        args._n_gpu = 1
+
     trainer = Trainer(
         model=model,
         args=args,
