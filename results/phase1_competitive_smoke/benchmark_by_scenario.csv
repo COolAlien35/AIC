@@ -1,0 +1,3 @@
+policy,scenario,avg_reward,success_rate
+baseline_frozen,Cache Stampede,-446.982047730319,0.0
+trained_grpo,Cache Stampede,-192.06082770528639,0.0

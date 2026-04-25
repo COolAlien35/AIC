@@ -26,9 +26,9 @@ from aic.agents.orchestrator_agent import OrchestratorAgent
 class TestConfig:
     def test_defaults(self):
         config = TrainingConfig()
-        assert config.model_name == "Qwen/Qwen2-0.5B-Instruct"
-        assert config.lora_r == 8
-        assert config.lora_alpha == 32
+        assert config.model_name == "Qwen/Qwen2.5-3B-Instruct"
+        assert config.lora_r == 16
+        assert config.lora_alpha == 16
         assert config.num_episodes == 100
         assert config.checkpoint_interval == 25
         assert config.use_llm_agents is False

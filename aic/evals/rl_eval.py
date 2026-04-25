@@ -36,6 +36,8 @@ def evaluate_policy_fn(
             base_seed=config.base_seed,
             fault_mode=config.fault_mode,
             use_llm_agents=False,
+            include_network=True,
+            include_security=True,
             manage_trust_scores=False,
         )
         obs = env.reset()

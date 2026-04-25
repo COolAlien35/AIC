@@ -121,6 +121,18 @@ class SubAgentRecommendation(BaseModel):
         default_factory=dict,
         description="Predicted metric changes from this action",
     )
+    bid: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Competitive bid strength for limited intervention budget (0..1).",
+    )
+    action_cost: float = Field(
+        default=0.3,
+        ge=0.0,
+        le=2.0,
+        description="Intervention cost units for this action (higher = consumes more budget).",
+    )
     risk_score: float = Field(
         default=0.0, ge=0.0, le=1.0,
         description="Risk score of this action (0.0=safe, 1.0=dangerous)",

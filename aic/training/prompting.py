@@ -30,8 +30,12 @@ def build_orchestrator_prompt(observation: dict[str, Any] | OrchestratorObservat
         "# Incident Context",
         f"Step: {obs.step}",
         f"SLA Remaining Steps: {obs.sla_remaining_steps}",
+        f"Episode Budget Remaining: {obs.episode_budget_remaining:.2f}",
         f"Schema Drift Active: {obs.schema_drift_active}",
         f"Schema Drift Type: {obs.schema_drift_type}",
+        "",
+        "# Shared Noisy Signal",
+        json.dumps(getattr(obs, 'shared_noisy_signal', {}), sort_keys=True),
         "",
         "# Alert Summary",
         obs.alert_summary_text,
@@ -42,13 +46,16 @@ def build_orchestrator_prompt(observation: dict[str, Any] | OrchestratorObservat
         "# Trust Scores",
         json.dumps(obs.current_trust_scores, sort_keys=True),
         "",
+        "# Observation Masks (private info asymmetry)",
+        json.dumps(getattr(obs, 'observation_masks', {}), sort_keys=True),
+        "",
         "# Candidate Recommendations",
     ]
 
     for candidate in obs.candidate_recommendations:
         lines.extend(
             [
-                f"- id={candidate.recommendation_id} agent={candidate.agent_name} confidence={candidate.confidence:.2f}",
+                f"- id={candidate.recommendation_id} agent={candidate.agent_name} confidence={candidate.confidence:.2f} bid={getattr(candidate,'bid',0.0):.2f} cost={getattr(candidate,'action_cost',0.0):.2f}",
                 f"  action={candidate.action}",
                 f"  reasoning={candidate.reasoning}",
                 f"  risk={candidate.risk_score:.2f} blast_radius={candidate.blast_radius}",

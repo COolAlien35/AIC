@@ -16,6 +16,8 @@ class CandidateRecommendation(BaseModel):
     confidence: float = Field(ge=0.0, le=1.0)
     target_metrics: list[str] = Field(default_factory=list)
     expected_impact: dict[str, float] = Field(default_factory=dict)
+    bid: float = Field(default=0.0, ge=0.0, le=1.0)
+    action_cost: float = Field(default=0.3, ge=0.0, le=2.0)
     risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
     blast_radius: str = Field(default="low")
     rollback_plan: str = Field(default="", max_length=500)

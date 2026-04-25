@@ -48,6 +48,11 @@ from aic.utils.constants import (
     INITIAL_TRUST,
     SLA_STEPS,
     TRACE_HISTORY_WINDOW,
+    OBS_DB,
+    OBS_INFRA,
+    OBS_APP,
+    OBS_NET,
+    OBS_SEC,
 )
 from aic.utils.logging_utils import EpisodeLogger, StepRecord
 from aic.utils.seeding import get_adversary_cycle, get_t_drift, make_episode_rng
@@ -136,6 +141,10 @@ class AICEnvironment(OpenEnvBase):
         self.logger = EpisodeLogger(log_dir=log_dir, episode_id=episode_id)
         self._verifier = RecoveryVerifierAgent()
 
+        # Competitive scarcity: limited intervention credits per episode.
+        self.episode_budget_max: float = 10.0
+        self.episode_budget_remaining: float = self.episode_budget_max
+
         self.step_count = 0
         self.done = False
         self.trace_history: deque[dict[str, Any]] = deque(maxlen=TRACE_HISTORY_WINDOW)
@@ -150,6 +159,24 @@ class AICEnvironment(OpenEnvBase):
         self._schema_drift = SchemaDriftInjector(get_t_drift(self._episode_rng), self._drift_type)
         self._adversary_cycle = get_adversary_cycle(make_episode_rng(self.episode_id, self.base_seed))
         self.adv_agent = AdversarialAgent(self._adversary_cycle, self.db_agent)
+        self._active_agents = self._compute_active_agents()
+
+    def _compute_active_agents(self) -> list[str]:
+        agents = [
+            self.db_agent.agent_name,
+            self.infra_agent.agent_name,
+            self.app_agent.agent_name,
+            self.adv_agent.agent_name,
+        ]
+        if self.include_network and self.net_agent is not None:
+            agents.append(self.net_agent.agent_name)
+        if self.include_security and self.sec_agent is not None:
+            agents.append(self.sec_agent.agent_name)
+        agents.append(AGENT_VERIFIER)
+        return agents
+
+    def get_active_agents(self) -> list[str]:
+        return list(self._active_agents)
 
     def reset(
         self,
@@ -172,6 +199,7 @@ class AICEnvironment(OpenEnvBase):
         )
         self._adversary_cycle = get_adversary_cycle(make_episode_rng(self.episode_id, effective_seed))
         self.adv_agent = AdversarialAgent(self._adversary_cycle, self.db_agent)
+        self._active_agents = self._compute_active_agents()
 
         self.world_state.reset(self._episode_rng)
         self.fault_injector = FaultInjector(options.get("fault_mode", self.fault_mode))
@@ -182,6 +210,7 @@ class AICEnvironment(OpenEnvBase):
 
         self.step_count = 0
         self.done = False
+        self.episode_budget_remaining = self.episode_budget_max
         self.trace_history = deque(maxlen=TRACE_HISTORY_WINDOW)
         self.trust_scores = {agent: INITIAL_TRUST for agent in ALL_AGENTS}
         self._action_history = []
@@ -208,6 +237,28 @@ class AICEnvironment(OpenEnvBase):
 
         verifier_report = self._verifier.verify(selected_rec, prev_metrics)
         executed_rec = selected_rec if verifier_report.approved else self._verifier.get_safe_minimal_action()
+
+        # Budget gate: even an approved action may be unaffordable.
+        budget_blocked = False
+        selected_cost = float(getattr(executed_rec, "action_cost", 0.3) or 0.3)
+        if selected_cost > self.episode_budget_remaining:
+            budget_blocked = True
+            executed_rec = self._verifier.get_safe_minimal_action()
+            selected_cost = float(getattr(executed_rec, "action_cost", 0.1) or 0.1)
+        self.episode_budget_remaining = max(0.0, self.episode_budget_remaining - selected_cost)
+
+        coordination = self._compute_coordination_diagnostics(
+            selected_rec=selected_rec,
+            executed_rec=executed_rec,
+            verifier_approved=verifier_report.approved,
+        )
+        coordination.update(
+            {
+                "episode_budget_remaining": float(round(self.episode_budget_remaining, 4)),
+                "selected_action_cost": float(round(selected_cost, 4)),
+                "budget_blocked": bool(budget_blocked),
+            }
+        )
 
         action_deltas = build_action_deltas(executed_rec)
         action_is_noop = len(action_deltas) == 0
@@ -286,6 +337,8 @@ class AICEnvironment(OpenEnvBase):
             deadlock_detected=lock_penalty < 0,
             extra={
                 "selected_candidate_id": selected_candidate_id,
+                "active_agents": self.get_active_agents(),
+                **coordination,
                 "selection_valid": selection_valid,
                 "format_valid": parsed.format_valid,
                 "parse_error": parsed.parse_error,
@@ -305,6 +358,8 @@ class AICEnvironment(OpenEnvBase):
             "reward_record": reward_record,
             "r2_bonus": r2_bonus,
             "selected_candidate_id": selected_candidate_id,
+            "active_agents": self.get_active_agents(),
+            **coordination,
             "selection_valid": selection_valid,
             "format_valid": parsed.format_valid,
             "parse_error": parsed.parse_error,
@@ -331,6 +386,42 @@ class AICEnvironment(OpenEnvBase):
             )
 
         return self._get_orchestrator_obs(), returned_reward, done, info
+
+    def _compute_coordination_diagnostics(
+        self,
+        selected_rec: SubAgentRecommendation,
+        executed_rec: SubAgentRecommendation,
+        verifier_approved: bool,
+    ) -> dict[str, Any]:
+        """
+        Lightweight coordination diagnostics for judge-facing evidence.
+
+        These are deliberately simple and stable so they remain meaningful across
+        different policy implementations.
+        """
+        recs = list(self._current_recommendations)
+        non_verifier = [r for r in recs if r.agent_name != AGENT_VERIFIER]
+        agent_names = [r.agent_name for r in non_verifier]
+        target_sets = [tuple(sorted(r.target_metrics)) for r in non_verifier]
+        unique_targets = len(set(target_sets)) if target_sets else 0
+        conflict_rate = (unique_targets - 1) / max(1, len(target_sets) - 1) if target_sets else 0.0
+
+        adversary_present = any(r.agent_name == AGENT_ADV for r in non_verifier)
+        adversary_selected = selected_rec.agent_name == AGENT_ADV
+        adversary_overridden = adversary_present and (executed_rec.agent_name != selected_rec.agent_name)
+
+        return {
+            "num_candidate_agents": len(non_verifier),
+            "candidate_agent_names": agent_names,
+            "unique_target_sets": unique_targets,
+            "conflict_rate": float(round(conflict_rate, 4)),
+            "verifier_approved": bool(verifier_approved),
+            "selected_agent_name": selected_rec.agent_name,
+            "executed_agent_name": executed_rec.agent_name,
+            "adversary_present": bool(adversary_present),
+            "adversary_selected": bool(adversary_selected),
+            "adversary_overridden": bool(adversary_overridden),
+        }
 
     def _refresh_candidates(self) -> None:
         """Build the recommendation slate for the current state."""
@@ -372,6 +463,8 @@ class AICEnvironment(OpenEnvBase):
                 confidence=rec.confidence,
                 target_metrics=rec.target_metrics,
                 expected_impact=rec.expected_impact,
+                bid=getattr(rec, "bid", 0.0),
+                action_cost=getattr(rec, "action_cost", 0.3),
                 risk_score=rec.risk_score,
                 blast_radius=rec.blast_radius,
                 rollback_plan=rec.rollback_plan,
@@ -539,12 +632,27 @@ class AICEnvironment(OpenEnvBase):
 
     def _get_orchestrator_obs(self) -> dict:
         metrics = self.world_state.snapshot()
+        noisy_health = float(self.world_state.get_health_score() + float(self._episode_rng.normal(0.0, 0.03)))
+        shared_noisy_signal = {
+            "noisy_health_estimate": round(max(0.0, min(1.0, noisy_health)), 4),
+            "rumor": "Network congestion suspected" if metrics.get("net_io_mbps", 0) > 200 else "DB saturation suspected",
+        }
+        observation_masks = {
+            "db_agent": list(OBS_DB),
+            "infra_agent": list(OBS_INFRA),
+            "app_agent": list(OBS_APP),
+            "network_agent": list(OBS_NET),
+            "security_agent": list(OBS_SEC),
+        }
         visible_recommendations = [
             rec for rec in self._current_recommendations if rec.agent_name != AGENT_VERIFIER
         ]
         obs = OrchestratorObservation(
             alert_summary_text=self._build_alert_summary(metrics),
             sla_remaining_steps=max(0, SLA_STEPS - self.step_count),
+            episode_budget_remaining=float(round(self.episode_budget_remaining, 4)),
+            shared_noisy_signal=shared_noisy_signal,
+            observation_masks=observation_masks,
             current_metrics=metrics,
             candidate_recommendations=self._candidate_recommendations,
             sub_agent_recommendations=[rec.model_dump() for rec in visible_recommendations],

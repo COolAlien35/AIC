@@ -1,0 +1,39 @@
+manifest_version: "1.0"
+name: "adaptive-incident-choreographer"
+version: "0.1.0"
+description: "Multi-agent incident response environment with adversarial recommendations and verifier-gated actions."
+
+environment:
+  python_class: "aic.env.aic_environment.AICEnvironment"
+  openenv_base_class: "openenv.env.Env"
+  episode_max_length: 20
+  reset_method: "reset"
+  step_method: "step"
+  render_method: "render"
+
+api:
+  framework: "fastapi"
+  app: "aic.server.env_api:app"
+  host: "0.0.0.0"
+  port: 8000
+  health_endpoint: "/health"
+  endpoints:
+    reset: "/reset"
+    step: "/step"
+    render: "/render/{env_id}"
+    delete: "/env/{env_id}"
+
+interfaces:
+  state_space_ref: "aic/env/aic_environment.py"
+  action_space_ref: "aic/env/aic_environment.py"
+  schemas:
+    actions: "aic/schemas/actions.py"
+    observations: "aic/schemas/observations.py"
+    traces: "aic/schemas/traces.py"
+
+runtime:
+  python: ">=3.11"
+  install:
+    - "pip install -r requirements.txt"
+  run:
+    - "uvicorn aic.server.env_api:app --host 0.0.0.0 --port 8000"

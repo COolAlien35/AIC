@@ -47,12 +47,20 @@ class EpisodeLogger:
 
     def finalize(self, total_reward: float, success: bool) -> dict:
         """Write episode summary JSON and return the summary dict."""
+        active_agents: list[str] = []
+        for step in self.steps:
+            agents = step.extra.get("active_agents") if isinstance(step.extra, dict) else None
+            if isinstance(agents, list):
+                for a in agents:
+                    if isinstance(a, str) and a not in active_agents:
+                        active_agents.append(a)
         summary = {
             "episode_id": self.episode_id,
             "total_steps": len(self.steps),
             "total_reward": total_reward,
             "success": success,
             "timestamp": time.time(),
+            "active_agents": active_agents,
         }
         summary_path = self.log_dir / f"episode_{self.episode_id:04d}_summary.json"
         with open(summary_path, "w") as f:

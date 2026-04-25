@@ -1,0 +1,14 @@
+{
+  "seed": 42,
+  "episodes_per_scenario": 1,
+  "policies": [
+    "baseline_frozen",
+    "trained_grpo"
+  ],
+  "scenarios": [
+    0
+  ],
+  "trained_checkpoint_path": "/tmp/does-not-exist",
+  "trained_policy_source": "fallback",
+  "trained_policy_load_error": "missing checkpoint at /tmp/does-not-exist"
+}

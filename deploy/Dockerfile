@@ -18,12 +18,12 @@ COPY . .
 # Install the project
 RUN pip install -e .
 
-# Expose Gradio port
+# Demo image: exposes Gradio UI (not the FastAPI env service).
 EXPOSE 7860
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
     CMD python -c "import requests; requests.get('http://localhost:7860')" || exit 1
 
-# Launch the Gradio app
+# Launch the Gradio demo app
 CMD ["python", "app.py"]

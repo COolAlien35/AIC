@@ -31,15 +31,33 @@ is already configured as a Gradio application.
 If using LLM-backed agents, set in Space settings:
 - `ANTHROPIC_API_KEY` — for Claude-backed sub-agents
 
-## Option 2: Docker SDK
+## Option 2: Docker API Service (Model -> Docker -> FastAPI)
 
-Use the `deploy/Dockerfile` for a custom Docker-based Space:
+Use the repo-root `Dockerfile` to run the FastAPI environment service:
 
-1. Create a Space with SDK: **Docker**
-2. Ensure `Dockerfile` is at the repo root (or copy from `deploy/`)
-3. Push to the Space remote
+```bash
+# Build API image
+docker build -t aic-env-api .
 
-## Option 3: FastAPI Server
+# Run API container
+docker run --rm -p 8000:8000 aic-env-api
+```
+
+Verify:
+
+```bash
+curl http://localhost:8000/health
+```
+
+Expected response:
+
+```json
+{"status":"ok","active_envs":0}
+```
+
+For Docker Spaces, keep `Dockerfile` at the repository root.
+
+## Option 3: Local FastAPI Server (without Docker)
 
 For programmatic access, use the FastAPI environment server:
 
@@ -54,7 +72,16 @@ GET  /render/{env_id}  — Render current state
 GET  /health  — Health check
 ```
 
-## OpenEnv Registration
+## Option 4: Gradio Demo Container
+
+The Gradio demo container definition is in `deploy/Dockerfile` and is demo-only.
+
+```bash
+docker build -f deploy/Dockerfile -t aic-gradio-demo .
+docker run --rm -p 7860:7860 aic-gradio-demo
+```
+
+## OpenEnv Registration and Manifest
 
 AICEnvironment is OpenEnv-compliant. To register with an OpenEnv registry:
 
@@ -70,6 +97,8 @@ assert issubclass(AICEnvironment, Env)
 # - action_space: dict describing action schema  
 # - episode_max_length: int (20 steps)
 ```
+
+Manifest for submission: `openenv.yaml`
 
 ## Trained Model Deployment
 

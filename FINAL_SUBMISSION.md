@@ -29,14 +29,15 @@ A deterministic Recovery Verifier gates unsafe actions before they are applied:
 
 ## 4) Baseline vs adaptive results (real run artifacts)
 
-From the regenerated benchmark evidence:
+From the current checked-in benchmark evidence (`results/benchmark_summary.csv` and `results/statistical_test.json`):
 
-- `baseline_frozen_trust`: avg total reward `-287.4086`, avg final health `0.2458`
-- `baseline_adaptive_trust`: avg total reward `-291.6119`, avg final health `0.2332`
-- Episodes evaluated: `3` per policy (`10000..10002`)
-- Success rate: `0.0` in this short proof benchmark
+- `baseline_frozen`: avg reward `-432.2825` (6 episodes)
+- `baseline_adaptive`: avg reward `-430.9901` (6 episodes)
+- `trained_grpo`: avg reward `-417.7739` (6 episodes)
+- Success rate: `0.0` across these short benchmark runs
+- Statistical test: `p_value=0.5758`, `significant=false`, effect size `small`
 
-Interpretation: this run demonstrates reproducible policy differences and full evidence plumbing; it is not claimed as large-scale convergence.
+Interpretation: current artifacts show reproducible pipeline execution and a directional reward uplift, but not statistically significant convergence yet.
 
 ## 5) Safeguards against reward hacking
 
@@ -71,13 +72,22 @@ Live Space URL:
 
 - [https://huggingface.co/spaces/KINGKK007/aic-incident-command-center](https://huggingface.co/spaces/KINGKK007/aic-incident-command-center)
 
-## 8) Optional future GPU/GRPO path
+## 8) Submission API deployment path
+
+Authoritative serving path for review:
+
+1. Build Docker image from repo-root `Dockerfile`
+2. Start FastAPI service `aic.server.env_api:app` on port `8000`
+3. Verify `GET /health`, then run `/reset` and `/step`
+4. Reference environment manifest in `openenv.yaml`
+
+## 9) Optional future GPU/GRPO path
 
 The repository includes SFT/GRPO training paths for model-scale runs.  
 For judge-safe reproducibility on Mac CPU, the final proof uses benchmark + plotting + demo + minimal SFT smoke training.  
 Future work is to run longer GPU-backed GRPO and report held-out uplift at larger scale.
 
-## 9) Artifact hosting note
+## 10) Artifact hosting note
 
 To keep the repository lightweight and reviewable, large generated artifacts are hosted externally and not committed as source files:
 

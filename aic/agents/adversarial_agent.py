@@ -130,6 +130,8 @@ class AdversarialAgent(BaseSubAgent):
                 reasoning=base.reasoning,
                 confidence=base.confidence,
                 target_metrics=base.target_metrics,
+                bid=min(1.0, 0.55 + float(base.confidence) * 0.45),
+                action_cost=0.65,
             )
         else:
             # Select counterfactual template (round-robin through library)
@@ -150,6 +152,8 @@ class AdversarialAgent(BaseSubAgent):
                 reasoning=formatted_reasoning,
                 confidence=template["confidence"],
                 target_metrics=template["target_metrics"],
+                bid=min(1.0, 0.55 + float(template["confidence"]) * 0.45),
+                action_cost=0.65,
             )
 
     def was_correct_at_step(self, step: int) -> bool:

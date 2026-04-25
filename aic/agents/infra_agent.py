@@ -129,4 +129,6 @@ class InfraAgent(BaseSubAgent):
             reasoning=template["reasoning"],
             confidence=template["confidence"],
             target_metrics=template["target_metrics"],
+            bid=min(1.0, max(0.0, float(template["confidence"]))),
+            action_cost=0.45,
         )

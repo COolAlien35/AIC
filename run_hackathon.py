@@ -340,8 +340,9 @@ def task_evidence_index(args: set[str]):
         "results/reward_curve.png",
         "results/verifier_pass_rate.png",
         "results/before_after_demo.md",
-        "logs/eval/policy_benchmark.jsonl",
         "results/benchmark_summary.csv",
+        "results/benchmark_run_config.json",
+        "results/statistical_test.json",
         "checkpoints/sft/sft_metadata.json",
         "checkpoints/grpo/grpo_metadata.json",
     ]

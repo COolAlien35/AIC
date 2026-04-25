@@ -145,6 +145,8 @@ class NetworkAgent(BaseSubAgent):
             confidence=template["confidence"],
             target_metrics=template["target_metrics"],
             expected_impact=template["expected_impact"],
+            bid=min(1.0, 0.2 + float(template["confidence"]) * 0.8),
+            action_cost=0.75,
             risk_score=template["risk_score"],
             blast_radius=template["blast_radius"],
             rollback_plan=template["rollback_plan"],

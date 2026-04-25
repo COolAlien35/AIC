@@ -41,6 +41,15 @@ class OrchestratorObservation(BaseModel):
     """What the orchestrator sees each step — full situational awareness."""
     alert_summary_text: str
     sla_remaining_steps: int
+    episode_budget_remaining: float = Field(default=0.0, description="Remaining intervention budget for this episode.")
+    shared_noisy_signal: dict = Field(
+        default_factory=dict,
+        description="Shared noisy signal available to all agents (partial observability pressure).",
+    )
+    observation_masks: dict[str, list[str]] = Field(
+        default_factory=dict,
+        description="Which metric keys each specialist can observe (private info asymmetry).",
+    )
     current_metrics: dict[str, float] = Field(default_factory=dict)
     candidate_recommendations: list[CandidateRecommendation] = Field(default_factory=list)
     sub_agent_recommendations: list[dict] = Field(default_factory=list)

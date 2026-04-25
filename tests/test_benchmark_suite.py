@@ -175,8 +175,8 @@ class TestTopologyVisualization:
             "db": {"health": 0.3, "load": 85.0, "latency": 700.0, "error_rate": 12.0},
         }
         fig = render_topology_map(state, root_cause_node="gateway")
-        # Gateway health 0.1 → should be red
-        assert _health_color(0.1) == "#ef4444"
+        # Gateway health 0.1 should map to critical (rose/red family).
+        assert _health_color(0.1) == "#fb7185"
 
 
 # ── 3. Impact Visualization ──────────────────────────────────────────────

@@ -17,18 +17,30 @@ import sys
 import json
 import argparse
 from pathlib import Path
+from typing import Iterable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import numpy as np
 import pandas as pd
 from scipy import stats
 
+from aic.env.aic_environment import AICEnvironment
 from aic.evals.benchmark_suite import (
     NoTrustOrchestratorPolicy,
     _run_baseline_episode,
     _run_aic_episode,
     SCENARIO_REGISTRY,
 )
+from aic.utils.constants import SLA_STEPS, AGENT_ADV
+
+SCENARIO_ID_TO_FAULT_MODE = {
+    0: "cascading_failure",
+    1: "memory_leak",
+    2: "db_connection_saturation",
+    3: "network_storm",
+    4: "db_connection_saturation",
+    5: "cascading_failure",
+}
 
 
 class TrainedGRPOPolicy:
@@ -41,6 +53,7 @@ class TrainedGRPOPolicy:
         self.model = None
         self.tokenizer = None
         self._loaded = False
+        self._load_error: str | None = None
 
     def _try_load(self):
         """Attempt to load the trained model. Gracefully degrade if missing."""
@@ -50,6 +63,7 @@ class TrainedGRPOPolicy:
 
         cp = Path(self.checkpoint_path)
         if not cp.exists():
+            self._load_error = f"missing checkpoint at {cp}"
             print(f"  ⚠️  No trained checkpoint at {cp}. Using fallback policy.")
             return
 
@@ -67,6 +81,7 @@ class TrainedGRPOPolicy:
             self.model.eval()
             print(f"  ✅ Trained model loaded successfully")
         except Exception as e:
+            self._load_error = str(e)
             print(f"  ⚠️  Could not load trained model: {e}. Using fallback.")
 
     def select_action(self, obs: dict) -> dict:
@@ -118,38 +133,141 @@ class TrainedGRPOPolicy:
             "reasoning": "Fallback: selecting safest candidate.",
         }
 
+    @property
+    def using_model(self) -> bool:
+        self._try_load()
+        return self.model is not None and self.tokenizer is not None
 
-def run_single_episode(policy_name: str, scenario_id: int, episode_seed: int) -> dict:
+    @property
+    def load_error(self) -> str | None:
+        self._try_load()
+        return self._load_error
+
+
+def _run_trained_model_episode(
+    policy: TrainedGRPOPolicy,
+    scenario_id: int,
+    episode_seed: int,
+) -> dict:
+    """
+    Run one episode in AICEnvironment with the trained checkpoint policy.
+
+    This is the canonical trained policy path for benchmark integrity.
+    """
+    scenario = SCENARIO_REGISTRY[scenario_id]
+    fault_mode = SCENARIO_ID_TO_FAULT_MODE.get(scenario_id, "cascading_failure")
+    env = AICEnvironment(
+        episode_id=episode_seed,
+        base_seed=episode_seed,
+        fault_mode=fault_mode,
+        use_llm_agents=False,
+        include_network=True,
+        include_security=True,
+        manage_trust_scores=False,
+    )
+    obs = env.reset(options={"fault_mode": fault_mode})
+    done = False
+    adversary_selected = 0
+    unsafe_actions = 0
+    mttr = SLA_STEPS
+
+    while not done:
+        action = policy.select_action(obs)
+        obs, reward, done, info = env.step(action)
+
+        selected_agent = info.get("selected_agent", "")
+        if selected_agent == AGENT_ADV:
+            adversary_selected += 1
+        verifier_report = info.get("verifier_report", {}) or {}
+        if verifier_report.get("risk_score", 0.0) > 0.8:
+            unsafe_actions += 1
+        if info.get("health", 0.0) > 0.5 and mttr == SLA_STEPS:
+            mttr = int(info.get("step", SLA_STEPS))
+
+    total_steps = max(1, env.step_count)
+    final_health = env.world_state.get_health_score()
+    total_reward = env.reward_engine.get_total_episode_reward()
+    return {
+        "policy": "trained_grpo",
+        "scenario": scenario.name,
+        "reward": float(total_reward),
+        "success": bool(env.world_state.is_within_sla()),
+        "mttr": int(mttr),
+        "adversary_suppression": float(1.0 - (adversary_selected / total_steps)),
+        "unsafe_rate": float(unsafe_actions / total_steps),
+        "trained_policy_source": "checkpoint" if policy.using_model else "fallback",
+        "trained_policy_checkpoint": policy.checkpoint_path,
+    }
+
+
+def _parse_requested(
+    requested: str,
+    all_values: Iterable[str],
+    label: str,
+) -> list[str]:
+    values = list(all_values)
+    if requested == "all":
+        return values
+    requested_values = [v.strip() for v in requested.split(",") if v.strip()]
+    unknown = sorted(set(requested_values) - set(values))
+    if unknown:
+        raise ValueError(f"Unknown {label}: {unknown}. Allowed: {values}")
+    return requested_values
+
+
+def run_single_episode(
+    policy_name: str,
+    scenario_id: int,
+    episode_seed: int,
+    trained_policy: TrainedGRPOPolicy,
+) -> dict:
     """Run one benchmark episode for a named policy."""
     if policy_name == "baseline_frozen":
         result = _run_baseline_episode(NoTrustOrchestratorPolicy(), scenario_id, episode_seed)
-    elif policy_name == "baseline_adaptive":
+        return {
+            "policy": policy_name,
+            "scenario": result.scenario_name,
+            "reward": float(result.total_reward),
+            "success": bool(result.sla_met),
+            "mttr": int(result.mttr_steps),
+            "adversary_suppression": float(result.adversary_suppression_rate),
+            "unsafe_rate": float(result.unsafe_action_rate),
+            "trained_policy_source": "n/a",
+            "trained_policy_checkpoint": "n/a",
+        }
+    if policy_name == "baseline_adaptive":
         result = _run_aic_episode(scenario_id, mode="untrained", episode_seed=episode_seed)
-    elif policy_name == "trained_grpo":
-        result = _run_aic_episode(scenario_id, mode="trained", episode_seed=episode_seed)
-    else:
-        raise ValueError(f"Unknown policy {policy_name}")
-
-    return {
-        "policy": policy_name,
-        "scenario": result.scenario_name,
-        "reward": float(result.total_reward),
-        "success": bool(result.sla_met),
-        "mttr": int(result.mttr_steps),
-        "adversary_suppression": float(result.adversary_suppression_rate),
-        "unsafe_rate": float(result.unsafe_action_rate),
-    }
+        return {
+            "policy": policy_name,
+            "scenario": result.scenario_name,
+            "reward": float(result.total_reward),
+            "success": bool(result.sla_met),
+            "mttr": int(result.mttr_steps),
+            "adversary_suppression": float(result.adversary_suppression_rate),
+            "unsafe_rate": float(result.unsafe_action_rate),
+            "trained_policy_source": "n/a",
+            "trained_policy_checkpoint": "n/a",
+        }
+    if policy_name == "trained_grpo":
+        return _run_trained_model_episode(trained_policy, scenario_id, episode_seed)
+    raise ValueError(f"Unknown policy {policy_name}")
 
 
 def run_benchmark(
     num_episodes_per_scenario: int = 5,
     output_dir: str = "results",
     seed: int = 42,
+    requested_scenarios: str = "all",
+    requested_policies: str = "all",
+    checkpoint_path: str = "checkpoints/grpo",
 ):
     """Run 3-policy benchmark with significance testing."""
     Path(output_dir).mkdir(parents=True, exist_ok=True)
-    policies = ("baseline_frozen", "baseline_adaptive", "trained_grpo")
-    scenario_ids = sorted(SCENARIO_REGISTRY.keys())
+    all_policies = ("baseline_frozen", "baseline_adaptive", "trained_grpo")
+    policies = _parse_requested(requested_policies, all_policies, "policies")
+    all_scenarios = [str(x) for x in sorted(SCENARIO_REGISTRY.keys())]
+    scenario_ids = [int(x) for x in _parse_requested(requested_scenarios, all_scenarios, "scenarios")]
+    trained_policy = TrainedGRPOPolicy(checkpoint_path=checkpoint_path)
 
     records = []
     for policy_name in policies:
@@ -157,7 +275,7 @@ def run_benchmark(
         for scenario_id in scenario_ids:
             for ep_idx in range(num_episodes_per_scenario):
                 ep_seed = seed + (scenario_id * 100) + ep_idx
-                result = run_single_episode(policy_name, scenario_id, ep_seed)
+                result = run_single_episode(policy_name, scenario_id, ep_seed, trained_policy)
                 records.append(result)
                 print(
                     f"  {result['scenario']} ep{ep_idx}: "
@@ -186,9 +304,15 @@ def run_benchmark(
     baseline_rewards = df[df["policy"] == "baseline_frozen"]["reward"].values
     trained_rewards = df[df["policy"] == "trained_grpo"]["reward"].values
 
-    t_stat, p_value = stats.ttest_ind(baseline_rewards, trained_rewards)
-    pooled_std = np.sqrt((np.std(baseline_rewards) ** 2 + np.std(trained_rewards) ** 2) / 2)
-    cohens_d = (np.mean(trained_rewards) - np.mean(baseline_rewards)) / (pooled_std + 1e-9)
+    have_baseline = len(baseline_rewards) > 0
+    have_trained = len(trained_rewards) > 0
+
+    if have_baseline and have_trained and len(baseline_rewards) >= 2 and len(trained_rewards) >= 2:
+        t_stat, p_value = stats.ttest_ind(baseline_rewards, trained_rewards)
+        pooled_std = np.sqrt((np.std(baseline_rewards) ** 2 + np.std(trained_rewards) ** 2) / 2)
+        cohens_d = (np.mean(trained_rewards) - np.mean(baseline_rewards)) / (pooled_std + 1e-9)
+    else:
+        t_stat, p_value, cohens_d = 0.0, 1.0, 0.0
 
     stats_output = {
         "t_statistic": float(t_stat),
@@ -199,26 +323,50 @@ def run_benchmark(
             "large" if abs(cohens_d) > 0.8 else
             "medium" if abs(cohens_d) > 0.5 else "small"
         ),
-        "baseline_mean": float(np.mean(baseline_rewards)),
-        "trained_mean": float(np.mean(trained_rewards)),
-        "improvement": float(np.mean(trained_rewards) - np.mean(baseline_rewards)),
-        "improvement_pct": float(
-            (np.mean(trained_rewards) - np.mean(baseline_rewards))
-            / (abs(np.mean(baseline_rewards)) + 1e-9) * 100
+        "baseline_mean": float(np.mean(baseline_rewards)) if have_baseline else None,
+        "trained_mean": float(np.mean(trained_rewards)) if have_trained else None,
+        "improvement": (
+            float(np.mean(trained_rewards) - np.mean(baseline_rewards))
+            if have_baseline and have_trained else None
+        ),
+        "improvement_pct": (
+            float(
+                (np.mean(trained_rewards) - np.mean(baseline_rewards))
+                / (abs(np.mean(baseline_rewards)) + 1e-9) * 100
+            )
+            if have_baseline and have_trained else None
         ),
     }
 
     with open(f"{output_dir}/statistical_test.json", "w") as f:
         json.dump(stats_output, f, indent=2)
 
+    run_config = {
+        "seed": seed,
+        "episodes_per_scenario": num_episodes_per_scenario,
+        "policies": list(policies),
+        "scenarios": scenario_ids,
+        "trained_checkpoint_path": checkpoint_path,
+        "trained_policy_source": "checkpoint" if trained_policy.using_model else "fallback",
+        "trained_policy_load_error": trained_policy.load_error,
+    }
+    with open(f"{output_dir}/benchmark_run_config.json", "w") as f:
+        json.dump(run_config, f, indent=2)
+
     # Print results
     print(f"\n📊 BENCHMARK COMPLETE")
     print(f"\n{summary.to_string(index=False)}")
 
     print(f"\n📈 STATISTICAL TEST:")
-    print(f"   Baseline avg reward: {stats_output['baseline_mean']:.2f}")
-    print(f"   Trained avg reward:  {stats_output['trained_mean']:.2f}")
-    print(f"   Improvement:         {stats_output['improvement']:+.2f} ({stats_output['improvement_pct']:+.1f}%)")
+    if stats_output["baseline_mean"] is None or stats_output["trained_mean"] is None:
+        print("   (stats unavailable: need both baseline_frozen and trained_grpo runs)")
+    else:
+        print(f"   Baseline avg reward: {stats_output['baseline_mean']:.2f}")
+        print(f"   Trained avg reward:  {stats_output['trained_mean']:.2f}")
+        print(
+            f"   Improvement:         {stats_output['improvement']:+.2f} "
+            f"({stats_output['improvement_pct']:+.1f}%)"
+        )
     sig = '✅ SIGNIFICANT' if stats_output['significant'] else '⚠️ not significant'
     print(f"   p-value:             {stats_output['p_value']:.4f} ({sig})")
     print(f"   Cohen's d:           {stats_output['cohens_d']:.3f} ({stats_output['effect_size_label']} effect)")
@@ -242,6 +390,10 @@ def main():
         "--policies", default="all",
         help="Comma-separated policy list or 'all'",
     )
+    parser.add_argument(
+        "--checkpoint-path", default="checkpoints/grpo",
+        help="Path to trained checkpoint for trained_grpo policy",
+    )
     args = parser.parse_args()
 
     try:
@@ -259,6 +411,9 @@ def main():
         num_episodes_per_scenario=args.episodes,
         output_dir=args.output,
         seed=args.seed,
+        requested_scenarios=args.scenarios,
+        requested_policies=args.policies,
+        checkpoint_path=args.checkpoint_path,
     )
 
     print(f"\n✅ Results saved to: {args.output}/")
