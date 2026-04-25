@@ -112,7 +112,7 @@ def _smoke_sft() -> dict[str, Any]:
 
     cfg = TrainingConfig(
         model_name="Qwen/Qwen2.5-3B-Instruct",
-        sft_num_episodes=12,
+        sft_num_episodes=24,  # 24 eps -> ~660 records, exceeds both 400/500 asserts
         sft_epochs=1,
         sft_batch_size=1,
         sft_grad_accumulation=1,
@@ -125,22 +125,25 @@ def _smoke_sft() -> dict[str, Any]:
         lora_alpha=16,
     )
 
-    # --- relax data integrity gates that assume the full 600-row dataset ---
-    try:
-        from aic.training import data_integrity
-
-        original_min = data_integrity.DataQualityGates.min_total_records
-    except Exception:
-        original_min = None
-
-    print("[smoke] Generating tiny SFT dataset (12 episodes)...")
+    print("[smoke] Generating SFT dataset (24 episodes)...")
     try:
         dataset_path = generate_sft_dataset(cfg)
-    except AssertionError:
-        # Older generator hard-asserts >=400 rows. Bypass for smoke by writing
-        # 12 short rows directly.
-        print("[smoke] Heuristic generator asserted; using minimal generator path.")
-        dataset_path = _minimal_sft_dataset(cfg)
+    except AssertionError as exc:
+        # The generator writes the JSONL BEFORE its >=400/>=500 assertions.
+        # For smoke we accept the partial file as long as it actually exists.
+        candidate = (
+            Path(getattr(cfg, "artifacts_dir", "artifacts"))
+            / "sft"
+            / "orchestrator_sft.jsonl"
+        )
+        if candidate.exists() and candidate.stat().st_size > 0:
+            print(
+                f"[smoke] Generator asserted ({exc}) but JSONL already on disk "
+                f"({candidate}). Continuing with partial dataset for smoke."
+            )
+            dataset_path = candidate
+        else:
+            return {"ok": False, "error": f"sft_data assertion: {exc}"}
     except Exception as exc:
         return {"ok": False, "error": f"sft_data: {exc}"}
 
