@@ -15,6 +15,7 @@ Critical fixes vs the previous revision:
 """
 from __future__ import annotations
 
+from dataclasses import replace
 import json
 import os
 import random
@@ -173,6 +174,17 @@ def _make_tokenize_fn(tokenizer, config: TrainingConfig):
         }
 
     return _tokenize
+
+
+def _sft_completion_length(config: TrainingConfig) -> int:
+    """SFT target JSONs are longer than GRPO rollout caps; keep them separate."""
+    raw = os.environ.get("AIC_SFT_MAX_COMPLETION_LENGTH", "").strip()
+    if raw:
+        try:
+            return max(1, int(raw))
+        except ValueError:
+            print(f"[SFT] WARNING: AIC_SFT_MAX_COMPLETION_LENGTH={raw!r} is not int - ignored")
+    return max(192, int(config.max_completion_length))
 
 
 def _orchestrator_json_candidates(completion: str) -> list[str]:
@@ -403,7 +415,18 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
     )
     model = get_peft_model(model, peft_config)
 
-    tokenize_fn = _make_tokenize_fn(tokenizer, config)
+    sft_max_completion_length = _sft_completion_length(config)
+    sft_tokenize_config = replace(
+        config,
+        max_completion_length=sft_max_completion_length,
+    )
+    if sft_max_completion_length != config.max_completion_length:
+        print(
+            f"[SFT] Using max_completion_length={sft_max_completion_length} "
+            f"for SFT labels (base config={config.max_completion_length})."
+        )
+
+    tokenize_fn = _make_tokenize_fn(tokenizer, sft_tokenize_config)
     tokenized_train = raw_dataset.map(
         tokenize_fn, remove_columns=raw_dataset.column_names,
     )
@@ -424,7 +447,7 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
                 add_special_tokens=False,
             )["input_ids"]
             completion_lengths.append(len(comp_ids))
-            if len(comp_ids) > config.max_completion_length:
+            if len(comp_ids) > sft_tokenize_config.max_completion_length:
                 completion_truncated += 1
             labels = tokenized_train[_i]["labels"]
             non_masked_labels.append(sum(1 for x in labels if int(x) != -100))
@@ -434,7 +457,7 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
             "SFT tokenization and label stats before training",
             {
                 "sample_count": sample_count,
-                "max_completion_length": config.max_completion_length,
+                "max_completion_length": sft_tokenize_config.max_completion_length,
                 "completion_lengths_min": min(completion_lengths) if completion_lengths else None,
                 "completion_lengths_max": max(completion_lengths) if completion_lengths else None,
                 "completion_lengths_avg": (
@@ -549,7 +572,7 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
                 tokenizer,
                 raw_dataset,
                 sample_n=8,
-                max_completion_hint=config.max_completion_length,
+                max_completion_hint=sft_tokenize_config.max_completion_length,
             )
         except Exception as exc:
             parse_error = str(exc)
@@ -584,7 +607,8 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
         "lora_alpha": config.lora_alpha,
         "lora_target_modules": QWEN_TARGET_MODULES,
         "max_prompt_length": config.max_prompt_length,
-        "max_completion_length": config.max_completion_length,
+        "max_completion_length": sft_tokenize_config.max_completion_length,
+        "base_config_max_completion_length": config.max_completion_length,
         "parse_rate": parse_rate,
         "parse_smoke_n": 8,
         "parse_smoke_error": parse_error,
