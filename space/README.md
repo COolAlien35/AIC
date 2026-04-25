@@ -2,7 +2,7 @@
 title: AIC Training (Private)
 emoji: 🛰️
 colorFrom: indigo
-colorTo: cyan
+colorTo: blue
 sdk: docker
 app_port: 7860
 hardware: t4-medium
