@@ -1,10 +1,10 @@
 # --- Core training stack (Qwen2.5-3B-Instruct + GRPO + LoRA + 4-bit on T4) ---
 torch==2.4.1
 transformers==4.46.3
-trl==0.13.0
+trl==0.14.0
 peft==0.13.2
 accelerate==1.1.1
-bitsandbytes==0.44.1
+bitsandbytes==0.46.1
 datasets==3.1.0
 sentencepiece==0.2.0
 safetensors==0.4.5

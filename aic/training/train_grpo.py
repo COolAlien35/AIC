@@ -25,6 +25,7 @@ from typing import Any
 
 from aic.env.aic_environment import AICEnvironment
 from aic.training.config import TrainingConfig
+from aic.training.ddp_utils import is_main_process, local_rank, wait_for_everyone
 from aic.training.modeling_unsloth import load_model_and_tokenizer
 from aic.training.prompting import (
     build_chat_messages_compact,
@@ -49,6 +50,8 @@ class AICProgressCallback:
     def on_log(self, args, state, control, logs=None, **kwargs):
         if not logs:
             return
+        if state is not None and not getattr(state, "is_world_process_zero", True):
+            return
         entry = {
             "step": state.global_step,
             "reward": logs.get("reward", logs.get("train/reward", 0)),
@@ -70,6 +73,8 @@ class AICProgressCallback:
 
     def on_train_end(self, args, state, control, **kwargs):
         if not self.step_log:
+            return
+        if state is not None and not getattr(state, "is_world_process_zero", True):
             return
         summary = {
             "total_steps": len(self.step_log),
@@ -200,9 +205,11 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
         ) from exc
 
     try:
-        progress_log = Path("logs/grpo_progress.jsonl")
-        progress_log.parent.mkdir(parents=True, exist_ok=True)
-        progress_log.write_text("")
+        if is_main_process():
+            _pl = Path("logs/grpo_progress.jsonl")
+            _pl.parent.mkdir(parents=True, exist_ok=True)
+            _pl.write_text("")
+        wait_for_everyone()
     except Exception as exc:
         print(f"[GRPO] WARNING: could not truncate progress log: {exc}")
 
@@ -266,11 +273,13 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
             backend_info["sft_warm_start_error"] = str(exc)
 
     dataset_path = Path(config.grpo_dataset_path)
-    dataset_path = generate_grpo_prompt_dataset(config, tokenizer=tokenizer)
+    if is_main_process():
+        generate_grpo_prompt_dataset(config, tokenizer=tokenizer)
+    wait_for_everyone()
     dataset = load_dataset("json", data_files=str(dataset_path), split="train")
 
     grpo_audit = RewardAuditLoop(
-        log_dir=str(Path(config.grpo_output_dir) / "audit"),
+        log_dir=str(Path(config.grpo_output_dir) / "audit" / f"rank{local_rank()}"),
         max_wall_clock_seconds=3600.0,
         severity_clamp_threshold=0.95,
         reward_clamp_value=-1.0,
@@ -363,7 +372,8 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
         learning_rate=1e-5,
         beta=0.04,
         logging_steps=1,
-        save_steps=50,
+        save_steps=20,
+        save_total_limit=2,
         warmup_steps=10,
         bf16=_bf16,
         fp16=_fp16,
@@ -371,6 +381,9 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
         gradient_checkpointing=True,
         report_to=[],
         remove_unused_columns=False,
+        ddp_find_unused_parameters=False,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
+        dataloader_num_workers=2,
     )
 
     trainer = GRPOTrainer(
@@ -385,24 +398,26 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
 
     output_dir = Path(config.grpo_output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    trainer.save_model(str(output_dir))
-    tokenizer.save_pretrained(str(output_dir))
+    if is_main_process():
+        trainer.save_model(str(output_dir))
+        tokenizer.save_pretrained(str(output_dir))
 
-    audit_summary = grpo_audit.summary_stats()
-    with open(output_dir / "grpo_audit_summary.json", "w") as f:
-        json.dump(audit_summary, f, indent=2)
+        audit_summary = grpo_audit.summary_stats()
+        with open(output_dir / "grpo_audit_summary.json", "w") as f:
+            json.dump(audit_summary, f, indent=2)
 
-    with open(output_dir / "grpo_metadata.json", "w") as f:
-        json.dump({
-            "dataset": str(dataset_path),
-            "reward_audit_integrated": True,
-            "audit_severity_threshold": 0.95,
-            "audit_max_wall_clock_seconds": 3600.0,
-            "num_generations": config.grpo_num_generations,
-            "max_prompt_length": config.max_prompt_length,
-            "max_completion_length": config.max_completion_length,
-            **backend_info,
-        }, f, indent=2)
+        with open(output_dir / "grpo_metadata.json", "w") as f:
+            json.dump({
+                "dataset": str(dataset_path),
+                "reward_audit_integrated": True,
+                "audit_severity_threshold": 0.95,
+                "audit_max_wall_clock_seconds": 3600.0,
+                "num_generations": config.grpo_num_generations,
+                "max_prompt_length": config.max_prompt_length,
+                "max_completion_length": config.max_completion_length,
+                **backend_info,
+            }, f, indent=2)
+    wait_for_everyone()
     try:
         del trainer
         del model

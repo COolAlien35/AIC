@@ -25,6 +25,13 @@ from typing import Any
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
+from aic.training.ddp_utils import (  # noqa: E402
+    is_main_process,
+    local_rank,
+    wait_for_everyone,
+    world_size,
+)
+
 PIPELINE_LOG_DIR = REPO_ROOT / "logs" / "pipeline"
 PIPELINE_LOG_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -32,8 +39,9 @@ PIPELINE_LOG_DIR.mkdir(parents=True, exist_ok=True)
 def _stage_log(name: str, payload: dict[str, Any]) -> Path:
     out = PIPELINE_LOG_DIR / f"stage_{name}.json"
     payload["timestamp"] = time.time()
-    with open(out, "w") as f:
-        json.dump(payload, f, indent=2, default=str)
+    if is_main_process():
+        with open(out, "w") as f:
+            json.dump(payload, f, indent=2, default=str)
     return out
 
 
@@ -138,7 +146,7 @@ def _smoke_sft() -> dict[str, Any]:
         sft_grad_accumulation=1,
         sft_learning_rate=2e-4,
         max_prompt_length=1024,
-        max_completion_length=192,
+        max_completion_length=96,
         load_in_4bit=True,
         use_unsloth=False,
         lora_r=8,
@@ -267,6 +275,11 @@ def _smoke_grpo(sft_dir: str | None) -> dict[str, Any]:
 
 def cmd_smoke(_args) -> int:
     _print_header("STAGE: smoke")
+    if world_size() > 1:
+        print(
+            "[smoke] Refusing: run smoke single-GPU, not with accelerate launch."
+        )
+        return 1
     if cmd_verify(_args) != 0:
         _stage_log("smoke", {"stage": "smoke", "status": "verify_failed"})
         return 1
@@ -340,7 +353,7 @@ def _full_sft() -> dict[str, Any]:
         sft_grad_accumulation=16,
         sft_learning_rate=2e-4,
         max_prompt_length=1024,
-        max_completion_length=192,
+        max_completion_length=96,
         load_in_4bit=True,
         use_unsloth=False,
         lora_r=16,
@@ -348,8 +361,10 @@ def _full_sft() -> dict[str, Any]:
     )
 
     print("[full] Generating SFT dataset (120 episodes)...")
-    dataset_path = generate_sft_dataset(cfg)
-    print(f"[full] Dataset at {dataset_path}")
+    if is_main_process():
+        dataset_path = generate_sft_dataset(cfg)
+        print(f"[full] Dataset at {dataset_path}")
+    wait_for_everyone()
 
     out = run_sft(cfg, min_parse_rate=0.5)
     parse_rate = 0.0
@@ -376,12 +391,8 @@ def _full_grpo(sft_dir: str) -> dict[str, Any]:
         model_name="Qwen/Qwen2.5-3B-Instruct",
         sft_output_dir=sft_dir,
         sft_num_episodes=120,
-        grpo_max_steps=80,
         grpo_per_device_train_batch_size=1,
-        grpo_gradient_accumulation_steps=4,
-        grpo_num_generations=2,
         max_prompt_length=1024,
-        max_completion_length=128,
         load_in_4bit=True,
         use_unsloth=False,
         lora_r=16,
@@ -396,6 +407,27 @@ def _full_export(grpo_dir: str) -> dict[str, Any]:
 
     out = export_grpo_to_full(grpo_dir, "exports", base_model_name="Qwen/Qwen2.5-3B-Instruct")
     return {"exports_dir": str(out)}
+
+
+
+def _full_publish_to_hub(exports_dir: str) -> dict[str, Any]:
+    token = os.environ.get("HF_TOKEN")
+    repo_id = os.environ.get("AIC_HUB_REPO", "COolAlien35/aic-orchestrator-l4")
+    if not token:
+        print("[full] HF_TOKEN not set; skipping hub push")
+        return {"pushed": False, "reason": "no HF_TOKEN"}
+    from huggingface_hub import HfApi, create_repo
+
+    api = HfApi(token=token)
+    create_repo(repo_id, repo_type="model", private=True, exist_ok=True, token=token)
+    api.upload_folder(
+        folder_path=exports_dir,
+        repo_id=repo_id,
+        repo_type="model",
+        commit_message="AIC 4xL4 DDP run",
+    )
+    print(f"[full] Pushed {exports_dir} -> https://huggingface.co/{repo_id}")
+    return {"pushed": True, "repo_id": repo_id}
 
 
 def _full_benchmark() -> dict[str, Any]:
@@ -419,6 +451,10 @@ def _full_benchmark() -> dict[str, Any]:
 
 def cmd_full(_args) -> int:
     _print_header("STAGE: full")
+    print(
+        f"[full] DDP world_size={world_size()} local_rank={local_rank()} "
+        f"is_main={is_main_process()}"
+    )
 
     smoke_log = PIPELINE_LOG_DIR / "stage_smoke.json"
     if not smoke_log.exists():
@@ -441,56 +477,108 @@ def cmd_full(_args) -> int:
 
     try:
         sft_result = _full_sft()
-        _stage_log("sft", {"stage": "sft", "status": "ok", **sft_result})
-        _free_vram("post-sft")
+        if is_main_process():
+            _stage_log("sft", {"stage": "sft", "status": "ok", **sft_result})
+        wait_for_everyone()
+        if is_main_process():
+            _free_vram("post-sft")
     except Exception as exc:
-        _stage_log(
-            "sft",
-            {"stage": "sft", "status": "failed", "error": str(exc),
-             "trace": traceback.format_exc()},
-        )
+        if is_main_process():
+            _stage_log(
+                "sft",
+                {
+                    "stage": "sft",
+                    "status": "failed",
+                    "error": str(exc),
+                    "trace": traceback.format_exc(),
+                },
+            )
         print(f"[full] SFT failed: {exc}")
+        wait_for_everyone()
         return 2
 
     try:
         grpo_result = _full_grpo(sft_result["sft_dir"])
-        _stage_log("grpo", {"stage": "grpo", "status": "ok", **grpo_result})
-        _free_vram("post-grpo")
+        if is_main_process():
+            _stage_log("grpo", {"stage": "grpo", "status": "ok", **grpo_result})
+        wait_for_everyone()
+        if is_main_process():
+            _free_vram("post-grpo")
     except Exception as exc:
-        _stage_log(
-            "grpo",
-            {"stage": "grpo", "status": "failed", "error": str(exc),
-             "trace": traceback.format_exc()},
-        )
+        if is_main_process():
+            _stage_log(
+                "grpo",
+                {
+                    "stage": "grpo",
+                    "status": "failed",
+                    "error": str(exc),
+                    "trace": traceback.format_exc(),
+                },
+            )
         print(f"[full] GRPO failed: {exc}")
+        wait_for_everyone()
         return 3
 
-    try:
-        export_result = _full_export(grpo_result["grpo_dir"])
-        _stage_log("export", {"stage": "export", "status": "ok", **export_result})
-        _free_vram("post-export")
-    except Exception as exc:
-        _stage_log(
-            "export",
-            {"stage": "export", "status": "failed", "error": str(exc),
-             "trace": traceback.format_exc()},
-        )
-        print(f"[full] Export failed: {exc}")
-        return 4
+    wait_for_everyone()
+    exit_code = 0
+    export_result: dict[str, Any] = {}
+    if is_main_process():
+        try:
+            export_result = _full_export(grpo_result["grpo_dir"])
+            _stage_log("export", {"stage": "export", "status": "ok", **export_result})
+            _free_vram("post-export")
+        except Exception as exc:
+            _stage_log(
+                "export",
+                {
+                    "stage": "export",
+                    "status": "failed",
+                    "error": str(exc),
+                    "trace": traceback.format_exc(),
+                },
+            )
+            print(f"[full] Export failed: {exc}")
+            exit_code = 4
+        if exit_code == 0:
+            try:
+                bench_result = _full_benchmark()
+                _stage_log("benchmark", {"stage": "benchmark", "status": "ok", **bench_result})
+            except Exception as exc:
+                _stage_log(
+                    "benchmark",
+                    {
+                        "stage": "benchmark",
+                        "status": "failed",
+                        "error": str(exc),
+                        "trace": traceback.format_exc(),
+                    },
+                )
+                print(f"[full] Benchmark failed: {exc}")
+                exit_code = 5
+        if exit_code == 0 and export_result.get("exports_dir"):
+            try:
+                _full_publish_to_hub(str(export_result["exports_dir"]))
+            except Exception as exc:
+                print(f"[full] Hub push failed (non-fatal): {exc}")
+        (PIPELINE_LOG_DIR / "full_exit_code.txt").write_text(str(exit_code))
+    wait_for_everyone()
+    if not is_main_process():
+        try:
+            exit_code = int(
+                (PIPELINE_LOG_DIR / "full_exit_code.txt")
+                .read_text()
+                .strip()
+                or "0"
+            )
+        except Exception:
+            exit_code = 0
+    if exit_code:
+        return exit_code
 
-    try:
-        bench_result = _full_benchmark()
-        _stage_log("benchmark", {"stage": "benchmark", "status": "ok", **bench_result})
-    except Exception as exc:
-        _stage_log(
-            "benchmark",
-            {"stage": "benchmark", "status": "failed", "error": str(exc),
-             "trace": traceback.format_exc()},
+    if is_main_process():
+        print(
+            "\n[full] Pipeline complete. See results/ and logs/pipeline/ for evidence."
         )
-        print(f"[full] Benchmark failed: {exc}")
-        return 5
-
-    print("\n[full] Pipeline complete. See results/ and logs/pipeline/ for evidence.")
     return 0
 
 

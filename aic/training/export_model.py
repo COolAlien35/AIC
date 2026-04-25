@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from aic.training.config import TrainingConfig
+from aic.training.ddp_utils import local_rank as _ddp_local_rank
 
 
 def _resolve_base_model_name(adapter_dir: Path, fallback: str) -> str:
@@ -64,7 +65,7 @@ def export_grpo_to_full(
     base = AutoModelForCausalLM.from_pretrained(
         base_name,
         torch_dtype=compute_dtype,
-        device_map={"": 0} if has_cuda else None,
+        device_map={"": _ddp_local_rank()} if has_cuda else None,
         low_cpu_mem_usage=True,
     )
     model = PeftModel.from_pretrained(base, str(grpo_dir))

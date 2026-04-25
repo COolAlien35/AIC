@@ -45,7 +45,7 @@ class TrainingConfig:
 
     # Prompting / sequence lengths (sized for compact chat prompt + JSON completion)
     max_prompt_length: int = 1024
-    max_completion_length: int = 192
+    max_completion_length: int = 96
 
     # SFT warm start
     sft_dataset_path: str = "artifacts/sft/train.jsonl"
@@ -60,10 +60,10 @@ class TrainingConfig:
     # GRPO / RLVR
     grpo_dataset_path: str = "artifacts/grpo/prompts.jsonl"
     grpo_output_dir: str = "checkpoints/grpo"
-    grpo_num_generations: int = 4   # >=3 required for non-zero advantage
-    grpo_max_steps: int = 200       # Enough for measurable learning on T4
+    grpo_num_generations: int = 2   # DDP: global_batch %% num_generations == 0
+    grpo_max_steps: int = 50        # 4xL4 DDP budget
     grpo_per_device_train_batch_size: int = 1
-    grpo_gradient_accumulation_steps: int = 4   # Effective batch = 4 prompts
+    grpo_gradient_accumulation_steps: int = 1   # 4-GPU DDP replaces accum
 
     # Efficiency / export
     use_unsloth: bool = False  # Optional fast path; default off so plain pip stack works

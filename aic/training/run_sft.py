@@ -23,6 +23,7 @@ from typing import Any
 
 from aic.schemas.actions import OrchestratorDecision
 from aic.training.config import TrainingConfig
+from aic.training.ddp_utils import is_main_process, local_rank as _ddp_local_rank, wait_for_everyone
 from aic.training.modeling_unsloth import (
     QWEN_TARGET_MODULES,
     _build_bnb_config,
@@ -204,10 +205,13 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
             f"SFT dataset not found at {dataset_path}. Run generate_sft_data.py first."
         )
 
-    cleaned_dataset_path = _write_prompt_completion_jsonl(dataset_path)
+    if is_main_process():
+        _write_prompt_completion_jsonl(dataset_path)
+    wait_for_everyone()
+    cleaned_train_path = dataset_path.parent / "_prompt_completion_only.jsonl"
     raw_dataset = load_dataset(
         "json",
-        data_files=str(cleaned_dataset_path),
+        data_files=str(cleaned_train_path),
         split="train",
     )
 
@@ -217,7 +221,10 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
         "1", "true", "yes",
     )
     if val_path.exists() and not disable_eval:
-        cleaned_val_path = _write_prompt_completion_jsonl(val_path)
+        if is_main_process():
+            _write_prompt_completion_jsonl(val_path)
+        wait_for_everyone()
+        cleaned_val_path = val_path.parent / "_prompt_completion_only.jsonl"
         eval_dataset = load_dataset(
             "json",
             data_files=str(cleaned_val_path),
@@ -242,7 +249,7 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
     # 4-bit model across CPU/GPU which then breaks TRL's reference-model
     # preparation in the GRPO step that consumes this checkpoint.
     load_kwargs: dict[str, Any] = {
-        "device_map": {"": 0} if has_cuda else None,
+        "device_map": {"": _ddp_local_rank()} if has_cuda else None,
         "low_cpu_mem_usage": True,
     }
     bnb = _build_bnb_config(config.load_in_4bit and has_cuda)
@@ -311,6 +318,10 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
         save_total_limit=1,
         remove_unused_columns=False,
         optim="adamw_8bit" if has_cuda else "adamw_torch",
+        ddp_find_unused_parameters=False,
+        ddp_bucket_cap_mb=25,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
+        dataloader_num_workers=2,
     )
     if max_steps_override is not None:
         ta_kwargs["max_steps"] = max_steps_override
@@ -333,8 +344,6 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
 
     output_dir = Path(config.sft_output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    trainer.save_model(str(output_dir))
-    tokenizer.save_pretrained(str(output_dir))
 
     final_loss: float | None = None
     try:
@@ -345,10 +354,33 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
 
     parse_rate = 0.0
     parse_error: str | None = None
+    if is_main_process():
+        try:
+            parse_rate = _smoke_parse_rate(
+                model, tokenizer, raw_dataset, sample_n=8,
+            )
+        except Exception as exc:
+            parse_error = str(exc)
+        _pr_file = output_dir / "_sft_parse_rate_sync.json"
+        with open(_pr_file, "w") as _f:
+            json.dump({"parse_rate": parse_rate, "error": parse_error}, _f)
+    wait_for_everyone()
+    if not is_main_process():
+        _pr_file = output_dir / "_sft_parse_rate_sync.json"
+        try:
+            with open(_pr_file) as _f:
+                _sync = json.load(_f)
+            parse_rate = float(_sync.get("parse_rate", 0.0))
+            e = _sync.get("error")
+            parse_error = str(e) if e else None
+        except Exception:
+            pass
     try:
-        parse_rate = _smoke_parse_rate(model, tokenizer, raw_dataset, sample_n=8)
-    except Exception as exc:
-        parse_error = str(exc)
+        if is_main_process() and (output_dir / "_sft_parse_rate_sync.json").exists():
+            (output_dir / "_sft_parse_rate_sync.json").unlink()
+    except Exception:
+        pass
+    wait_for_everyone()
 
     metadata = {
         "dataset": str(dataset_path),
@@ -365,8 +397,12 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
         "parse_smoke_n": 8,
         "parse_smoke_error": parse_error,
     }
-    with open(output_dir / "sft_metadata.json", "w") as f:
-        json.dump(metadata, f, indent=2)
+    if is_main_process():
+        trainer.save_model(str(output_dir))
+        tokenizer.save_pretrained(str(output_dir))
+        with open(output_dir / "sft_metadata.json", "w") as f:
+            json.dump(metadata, f, indent=2)
+    wait_for_everyone()
 
     def _cleanup_after_train() -> None:
         try:

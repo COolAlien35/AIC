@@ -21,6 +21,7 @@ from __future__ import annotations
 from typing import Any
 
 from aic.training.config import TrainingConfig
+from aic.training.ddp_utils import local_rank as _ddp_local_rank
 
 QWEN_TARGET_MODULES = [
     "q_proj", "k_proj", "v_proj", "o_proj",
@@ -132,7 +133,7 @@ def load_model_and_tokenizer(
         torch = None  # type: ignore[assignment]
 
     load_kwargs: dict[str, Any] = {
-        "device_map": {"": 0} if has_cuda else None,
+        "device_map": {"": _ddp_local_rank()} if has_cuda else None,
         "low_cpu_mem_usage": True,
     }
     bnb = _build_bnb_config(config.load_in_4bit and has_cuda)

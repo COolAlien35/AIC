@@ -6,7 +6,14 @@ ENV DEBIAN_FRONTEND=noninteractive \
     HF_HOME=/workspace/.hf_home \
     TRANSFORMERS_CACHE=/workspace/.hf_home \
     HF_HUB_ENABLE_HF_TRANSFER=1 \
-    PIP_ROOT_USER_ACTION=ignore
+    PIP_ROOT_USER_ACTION=ignore \
+    PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+    NCCL_IB_DISABLE=1 \
+    NCCL_P2P_DISABLE=0 \
+    NCCL_DEBUG=WARN \
+    TORCH_NCCL_BLOCKING_WAIT=1 \
+    TOKENIZERS_PARALLELISM=false \
+    OMP_NUM_THREADS=4
 
 # System packages: Python 3.11, git, build tools for bitsandbytes/wheels
 RUN apt-get update && apt-get install -y --no-install-recommends \
