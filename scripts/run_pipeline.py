@@ -321,13 +321,6 @@ def cmd_smoke(_args) -> int:
     if not sft_result["ok"]:
         _stage_log("smoke", {"stage": "smoke", "status": "sft_failed", **sft_result})
         return 1
-    if os.environ.get("AIC_SMOKE_STOP_AFTER_SFT", "").lower() in ("1", "true", "yes"):
-        print("[smoke] AIC_SMOKE_STOP_AFTER_SFT set - stopping after SFT debug probe.")
-        _stage_log(
-            "smoke",
-            {"stage": "smoke", "status": "sft_debug_complete", "sft": sft_result},
-        )
-        return 2
 
     grpo_result = _smoke_grpo(sft_result["sft_dir"])
     print(
