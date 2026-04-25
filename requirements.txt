@@ -1,22 +1,37 @@
-openenv==0.1.13
-torch==2.2.2
-transformers==4.40.2
-trl==0.8.6
-gymnasium==0.29.1
-pydantic==2.7.1
-streamlit==1.35.0
-plotly==5.22.0
+# --- Core training stack (Qwen2.5-3B-Instruct + GRPO + LoRA + 4-bit on T4) ---
+torch==2.4.1
+transformers==4.46.3
+trl==0.13.0
+peft==0.13.2
+accelerate==1.1.1
+bitsandbytes==0.44.1
+datasets==3.1.0
+sentencepiece==0.2.0
+safetensors==0.4.5
+tokenizers>=0.20,<0.21
+huggingface_hub>=0.26,<1.0
+
+# --- Numerics / data ---
 numpy==1.26.4
-anthropic==0.28.0
+scipy==1.14.1
+pandas==2.2.3
+matplotlib==3.9.2
+
+# --- Schemas / serving ---
+pydantic>=2.7,<3
+gymnasium==0.29.1
+fastapi==0.115.4
+uvicorn==0.32.0
+openenv==0.1.13
+
+# --- UX / CLI ---
+rich==13.9.2
 python-dotenv==1.0.1
-pytest==8.2.0
-pytest-asyncio==0.23.7
-rich==13.7.1
-pandas==2.2.2
-gradio>=4.0.0
-fastapi>=0.110.0
-uvicorn>=0.25.0
-datasets>=2.18.0
-peft==0.10.0
-accelerate>=0.28.0
-matplotlib>=3.8.0
+
+# --- Tests ---
+pytest==8.3.3
+pytest-asyncio==0.24.0
+
+# --- HF Space JupyterLab ---
+jupyterlab==4.2.5
+ipywidgets==8.1.5

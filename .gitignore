@@ -38,3 +38,11 @@ nohup.out
 # Large generated artifacts
 exports/
 checkpoints/grpo/
+
+# local training/cache artifacts
+.hf_cache/
+.hf_home/
+checkpoints/
+exports/
+logs/
+artifacts/

@@ -1,4 +1,0 @@
-{
-  "dataset": "artifacts/sft/orchestrator_sft.jsonl",
-  "model_name": "sshleifer/tiny-gpt2"
-}

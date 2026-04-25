@@ -35,7 +35,8 @@ class OrchestratorDecision(BaseModel):
         description="Whether the policy is intentionally overriding the adversarial agent.",
     )
     reasoning: str = Field(
-        min_length=5,
+        default="",
+        min_length=0,
         max_length=1200,
         description="Short causal justification for the selected action.",
     )

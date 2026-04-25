@@ -43,9 +43,9 @@ class TrainingConfig:
     temperature: float = 0.3
     do_sample: bool = True
 
-    # Prompting / sequence lengths
-    max_prompt_length: int = 2048
-    max_completion_length: int = 512
+    # Prompting / sequence lengths (sized for compact chat prompt + JSON completion)
+    max_prompt_length: int = 1024
+    max_completion_length: int = 192
 
     # SFT warm start
     sft_dataset_path: str = "artifacts/sft/train.jsonl"
@@ -60,13 +60,13 @@ class TrainingConfig:
     # GRPO / RLVR
     grpo_dataset_path: str = "artifacts/grpo/prompts.jsonl"
     grpo_output_dir: str = "checkpoints/grpo"
-    grpo_num_generations: int = 4
-    grpo_max_steps: int = 150         # Enough for measurable learning
+    grpo_num_generations: int = 4   # >=3 required for non-zero advantage
+    grpo_max_steps: int = 200       # Enough for measurable learning on T4
     grpo_per_device_train_batch_size: int = 1
-    grpo_gradient_accumulation_steps: int = 8   # Effective batch = 8
+    grpo_gradient_accumulation_steps: int = 4   # Effective batch = 4 prompts
 
     # Efficiency / export
-    use_unsloth: bool = True
+    use_unsloth: bool = False  # Optional fast path; default off so plain pip stack works
     export_dir: str = "exports"
 
     # Serving

@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
-# scripts/run_final_benchmark.py
-"""
-Run the full AIC benchmark suite: AIC vs baselines across 6 scenarios.
+"""Run the full AIC benchmark suite: AIC vs baselines across 6 scenarios.
 
-Includes:
-- 3 baseline policies + trained GRPO policy
-- 5 episodes per scenario × 6 scenarios = 30 episodes per policy
-- Statistical significance testing (t-test + Cohen's d)
-- Per-scenario breakdown
+Critical fixes vs the previous revision:
 
-Usage:
-    python scripts/run_final_benchmark.py
-    python scripts/run_final_benchmark.py --episodes 5 --output results/benchmark_summary.csv
+  * Default ``--checkpoint-path`` is ``exports/`` (the merged model dir).
+  * If the directory has ``adapter_config.json`` only, the policy now loads
+    via ``PeftModel.from_pretrained(base, adapter_dir)`` instead of falling
+    back to a heuristic that pretends to be the trained model.
+  * ``--strict`` (default true) makes a failed checkpoint a hard error so
+    headline numbers are never silently from a heuristic.
+  * Inference uses ``render_chat_prompt`` so the prompt distribution
+    matches the SFT/GRPO prompt distribution.
+  * Inference ``max_length`` raised to 1024 to match training.
 """
 import sys
 import json
@@ -31,6 +31,7 @@ from aic.evals.benchmark_suite import (
     _run_aic_episode,
     SCENARIO_REGISTRY,
 )
+from aic.training.prompting import render_chat_prompt
 from aic.utils.constants import SLA_STEPS, AGENT_ADV
 
 SCENARIO_ID_TO_FAULT_MODE = {
@@ -44,43 +45,52 @@ SCENARIO_ID_TO_FAULT_MODE = {
 
 
 def checkpoint_preflight(checkpoint_path: str) -> dict:
-    """Validate checkpoint directory contains required artifacts.
-
-    Returns a dict with 'valid', 'errors', and 'files_found'.
-    """
+    """Validate checkpoint directory contains required artifacts."""
     cp = Path(checkpoint_path)
-    result = {"valid": False, "errors": [], "files_found": [], "path": str(cp)}
+    result: dict = {
+        "valid": False, "errors": [], "files_found": [],
+        "path": str(cp), "is_adapter_only": False,
+    }
     if not cp.exists():
         result["errors"].append(f"checkpoint directory does not exist: {cp}")
         return result
-    # Check for essential model files
-    required_patterns = ["config.json"]
-    optional_patterns = ["tokenizer.json", "tokenizer_config.json",
-                         "model.safetensors", "pytorch_model.bin",
-                         "adapter_config.json", "adapter_model.safetensors"]
     found = [f.name for f in cp.iterdir() if f.is_file()]
     result["files_found"] = found
-    for req in required_patterns:
-        if req not in found:
-            result["errors"].append(f"missing required file: {req}")
-    has_weights = any(p in found for p in ["model.safetensors", "pytorch_model.bin",
-                                            "adapter_model.safetensors", "adapter_model.bin"])
-    if not has_weights:
-        result["errors"].append("no model weight file found")
-    result["valid"] = len(result["errors"]) == 0
+
+    has_full_config = "config.json" in found
+    has_adapter = "adapter_config.json" in found
+
+    has_full_weights = any(
+        p in found for p in (
+            "model.safetensors", "pytorch_model.bin",
+            "model.safetensors.index.json", "pytorch_model.bin.index.json",
+        )
+    )
+    has_adapter_weights = any(
+        p in found for p in ("adapter_model.safetensors", "adapter_model.bin")
+    )
+
+    if has_full_config and has_full_weights:
+        result["valid"] = True
+        return result
+    if has_adapter and has_adapter_weights:
+        result["valid"] = True
+        result["is_adapter_only"] = True
+        return result
+
+    if not has_full_config and not has_adapter:
+        result["errors"].append("missing config.json AND adapter_config.json")
+    if not has_full_weights and not has_adapter_weights:
+        result["errors"].append("no model or adapter weights found")
     return result
 
 
 class TrainedGRPOPolicy:
-    """The policy we actually trained. This is the star of the show.
+    """Loads either a merged model dir OR a LoRA adapter dir."""
 
-    IMPORTANT: When checkpoint loading fails, the policy label is changed to
-    'trained_grpo_FALLBACK' so benchmark output never misrepresents a heuristic
-    as a trained checkpoint.
-    """
-
-    def __init__(self, checkpoint_path: str = "checkpoints/grpo"):
+    def __init__(self, checkpoint_path: str = "exports", strict: bool = True):
         self.checkpoint_path = checkpoint_path
+        self.strict = strict
         self.model = None
         self.tokenizer = None
         self._loaded = False
@@ -89,72 +99,98 @@ class TrainedGRPOPolicy:
 
     @property
     def name(self) -> str:
-        """Policy label — explicitly distinguishes checkpoint vs fallback."""
         if self.using_model:
             return "trained_grpo"
         return "trained_grpo_FALLBACK"
 
     def _try_load(self):
-        """Attempt to load the trained model. Gracefully degrade if missing."""
         if self._loaded:
             return
         self._loaded = True
 
-        # Preflight validation
         self._preflight = checkpoint_preflight(self.checkpoint_path)
         if not self._preflight["valid"]:
             self._load_error = f"preflight failed: {self._preflight['errors']}"
-            print(f"  ⚠️  Checkpoint preflight FAILED for {self.checkpoint_path}:")
+            print(f"  [!] Checkpoint preflight FAILED for {self.checkpoint_path}:")
             for err in self._preflight["errors"]:
                 print(f"      - {err}")
-            print(f"  ⚠️  Using fallback policy. Label will be 'trained_grpo_FALLBACK'.")
+            if self.strict:
+                raise RuntimeError(
+                    f"Checkpoint preflight failed for {self.checkpoint_path}: "
+                    f"{self._preflight['errors']}. Re-run with --no-strict to "
+                    "see fallback numbers (NOT representative of trained model)."
+                )
+            print("  [!] Falling back to heuristic policy (use --strict to fail).")
             return
 
         try:
             from transformers import AutoModelForCausalLM, AutoTokenizer
             import torch
 
-            print(f"  Loading trained model from {self.checkpoint_path}...")
-            self.tokenizer = AutoTokenizer.from_pretrained(self.checkpoint_path)
-            self.model = AutoModelForCausalLM.from_pretrained(
-                self.checkpoint_path,
-                device_map="auto",
-                torch_dtype=torch.float16,
-            )
+            ckpt = Path(self.checkpoint_path)
+            if self._preflight.get("is_adapter_only"):
+                from peft import PeftModel
+
+                with open(ckpt / "adapter_config.json") as f:
+                    adapter_cfg = json.load(f)
+                base_name = str(adapter_cfg.get("base_model_name_or_path", ""))
+                print(f"  Loading base {base_name} + adapter from {ckpt}...")
+                tok_dir = str(ckpt) if (ckpt / "tokenizer_config.json").exists() else base_name
+                self.tokenizer = AutoTokenizer.from_pretrained(tok_dir, use_fast=True)
+                if self.tokenizer.pad_token is None:
+                    self.tokenizer.pad_token = self.tokenizer.eos_token
+                self.tokenizer.padding_side = "left"
+                base = AutoModelForCausalLM.from_pretrained(
+                    base_name,
+                    device_map="auto" if torch.cuda.is_available() else None,
+                    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                )
+                self.model = PeftModel.from_pretrained(base, str(ckpt))
+            else:
+                print(f"  Loading merged model from {self.checkpoint_path}...")
+                self.tokenizer = AutoTokenizer.from_pretrained(
+                    self.checkpoint_path, use_fast=True,
+                )
+                if self.tokenizer.pad_token is None:
+                    self.tokenizer.pad_token = self.tokenizer.eos_token
+                self.tokenizer.padding_side = "left"
+                self.model = AutoModelForCausalLM.from_pretrained(
+                    self.checkpoint_path,
+                    device_map="auto" if torch.cuda.is_available() else None,
+                    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                )
             self.model.eval()
-            print(f"  ✅ Trained model loaded successfully")
+            print(f"  [ok] Trained model loaded successfully")
         except Exception as e:
             self._load_error = str(e)
-            print(f"  ⚠️  Could not load trained model: {e}.")
-            print(f"  ⚠️  Using fallback policy. Label will be 'trained_grpo_FALLBACK'.")
-
+            if self.strict:
+                raise
+            print(f"  [!] Could not load trained model: {e}.")
 
     def select_action(self, obs: dict) -> dict:
-        """Generate a decision from the trained model or fall back to heuristic."""
         self._try_load()
 
         if self.model is not None and self.tokenizer is not None:
-            from aic.training.prompting import build_orchestrator_prompt
             import torch
 
-            prompt = build_orchestrator_prompt(obs)
+            prompt = render_chat_prompt(self.tokenizer, obs)
             inputs = self.tokenizer(
                 prompt, return_tensors="pt",
-                truncation=True, max_length=1024
+                truncation=True, max_length=1024,
             ).to(self.model.device)
 
             with torch.no_grad():
                 outputs = self.model.generate(
                     **inputs,
-                    max_new_tokens=256,
-                    temperature=0.3,
+                    max_new_tokens=192,
+                    temperature=0.7,
                     do_sample=True,
-                    pad_token_id=self.tokenizer.eos_token_id,
+                    pad_token_id=self.tokenizer.pad_token_id or self.tokenizer.eos_token_id,
                 )
 
             completion = self.tokenizer.decode(
                 outputs[0][inputs["input_ids"].shape[1]:],
-                skip_special_tokens=True
+                skip_special_tokens=True,
             )
 
             try:
@@ -168,7 +204,6 @@ class TrainedGRPOPolicy:
             except Exception:
                 pass
 
-        # Graceful fallback — always return valid action
         candidates = obs.get("candidate_recommendations", [])
         safe = [c for c in candidates if c.get("agent_name") != "adversarial_agent"]
         chosen_id = safe[0].get("recommendation_id", 0) if safe else 0
@@ -199,11 +234,6 @@ def _run_trained_model_episode(
     scenario_id: int,
     episode_seed: int,
 ) -> dict:
-    """
-    Run one episode in AICEnvironment with the trained checkpoint policy.
-
-    This is the canonical trained policy path for benchmark integrity.
-    """
     scenario = SCENARIO_REGISTRY[scenario_id]
     fault_mode = SCENARIO_ID_TO_FAULT_MODE.get(scenario_id, "cascading_failure")
     env = AICEnvironment(
@@ -245,17 +275,14 @@ def _run_trained_model_episode(
         "mttr": int(mttr),
         "adversary_suppression": float(1.0 - (adversary_selected / total_steps)),
         "unsafe_rate": float(unsafe_actions / total_steps),
+        "final_health": float(final_health),
         "trained_policy_source": "checkpoint" if policy.using_model else "fallback",
         "trained_policy_checkpoint": policy.checkpoint_path,
         "checkpoint_preflight": policy.preflight_result,
     }
 
 
-def _parse_requested(
-    requested: str,
-    all_values: Iterable[str],
-    label: str,
-) -> list[str]:
+def _parse_requested(requested: str, all_values: Iterable[str], label: str) -> list[str]:
     values = list(all_values)
     if requested == "all":
         return values
@@ -272,7 +299,6 @@ def run_single_episode(
     episode_seed: int,
     trained_policy: TrainedGRPOPolicy,
 ) -> dict:
-    """Run one benchmark episode for a named policy."""
     if policy_name == "baseline_frozen":
         result = _run_baseline_episode(NoTrustOrchestratorPolicy(), scenario_id, episode_seed)
         return {
@@ -310,47 +336,52 @@ def run_benchmark(
     seed: int = 42,
     requested_scenarios: str = "all",
     requested_policies: str = "all",
-    checkpoint_path: str = "checkpoints/grpo",
+    checkpoint_path: str = "exports",
+    strict: bool = True,
 ):
-    """Run 3-policy benchmark with significance testing."""
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     all_policies = ("baseline_frozen", "baseline_adaptive", "trained_grpo")
     policies = _parse_requested(requested_policies, all_policies, "policies")
     all_scenarios = [str(x) for x in sorted(SCENARIO_REGISTRY.keys())]
     scenario_ids = [int(x) for x in _parse_requested(requested_scenarios, all_scenarios, "scenarios")]
-    trained_policy = TrainedGRPOPolicy(checkpoint_path=checkpoint_path)
+    trained_policy = TrainedGRPOPolicy(checkpoint_path=checkpoint_path, strict=strict)
 
-    records = []
+    records: list[dict] = []
+    invalid_records: list[dict] = []
     for policy_name in policies:
-        print(f"\n🔄 Benchmarking: {policy_name}")
+        print(f"\n[bench] Benchmarking: {policy_name}")
         for scenario_id in scenario_ids:
             for ep_idx in range(num_episodes_per_scenario):
                 ep_seed = seed + (scenario_id * 100) + ep_idx
                 result = run_single_episode(policy_name, scenario_id, ep_seed, trained_policy)
-                records.append(result)
+                if policy_name == "trained_grpo" and result["policy"].endswith("_FALLBACK"):
+                    invalid_records.append(result)
+                else:
+                    records.append(result)
                 print(
                     f"  {result['scenario']} ep{ep_idx}: "
                     f"reward={result['reward']:.2f}, success={result['success']}"
                 )
 
     df = pd.DataFrame(records)
+    invalid_df = pd.DataFrame(invalid_records)
 
-    # Create summary by policy
     summary = df.groupby("policy").agg(
         avg_reward=("reward", "mean"),
         std_reward=("reward", "std"),
         success_rate=("success", "mean"),
         num_episodes=("reward", "count"),
     ).reset_index()
-
     summary.to_csv(f"{output_dir}/benchmark_summary.csv", index=False)
 
-    # Per-scenario breakdown
     scenario_summary = df.groupby(["policy", "scenario"]).agg(
         avg_reward=("reward", "mean"),
         success_rate=("success", "mean"),
     ).reset_index()
     scenario_summary.to_csv(f"{output_dir}/benchmark_by_scenario.csv", index=False)
+
+    if not invalid_df.empty:
+        invalid_df.to_csv(f"{output_dir}/_invalid_runs.csv", index=False)
 
     baseline_rewards = df[df["policy"] == "baseline_frozen"]["reward"].values
     trained_rewards = df[df["policy"] == "trained_grpo"]["reward"].values
@@ -398,19 +429,20 @@ def run_benchmark(
         "policies": list(policies),
         "scenarios": scenario_ids,
         "trained_checkpoint_path": checkpoint_path,
+        "strict": strict,
         "trained_policy_source": "checkpoint" if trained_policy.using_model else "fallback",
         "trained_policy_label": trained_policy.name,
         "trained_policy_load_error": trained_policy.load_error,
         "trained_policy_preflight": trained_policy.preflight_result,
+        "invalid_run_count": len(invalid_records),
     }
     with open(f"{output_dir}/benchmark_run_config.json", "w") as f:
         json.dump(run_config, f, indent=2)
 
-    # Print results
-    print(f"\n📊 BENCHMARK COMPLETE")
+    print(f"\n[bench] BENCHMARK COMPLETE")
     print(f"\n{summary.to_string(index=False)}")
 
-    print(f"\n📈 STATISTICAL TEST:")
+    print(f"\n[bench] STATISTICAL TEST:")
     if stats_output["baseline_mean"] is None or stats_output["trained_mean"] is None:
         print("   (stats unavailable: need both baseline_frozen and trained_grpo runs)")
     else:
@@ -420,7 +452,7 @@ def run_benchmark(
             f"   Improvement:         {stats_output['improvement']:+.2f} "
             f"({stats_output['improvement_pct']:+.1f}%)"
         )
-    sig = '✅ SIGNIFICANT' if stats_output['significant'] else '⚠️ not significant'
+    sig = 'SIGNIFICANT' if stats_output['significant'] else 'not significant'
     print(f"   p-value:             {stats_output['p_value']:.4f} ({sig})")
     print(f"   Cohen's d:           {stats_output['cohens_d']:.3f} ({stats_output['effect_size_label']} effect)")
 
@@ -429,47 +461,33 @@ def run_benchmark(
 
 def main():
     parser = argparse.ArgumentParser(description="AIC Extended Benchmark Suite")
-    parser.add_argument(
-        "--output", default="results",
-        help="Output directory for results",
-    )
-    parser.add_argument("--episodes", type=int, default=5, help="Episodes per scenario")
-    parser.add_argument("--seed", type=int, default=42, help="RNG seed")
-    parser.add_argument(
-        "--scenarios", default="all",
-        help="Comma-separated scenario list or 'all'",
-    )
-    parser.add_argument(
-        "--policies", default="all",
-        help="Comma-separated policy list or 'all'",
-    )
-    parser.add_argument(
-        "--checkpoint-path", default="checkpoints/grpo",
-        help="Path to trained checkpoint for trained_grpo policy",
-    )
+    parser.add_argument("--output", default="results")
+    parser.add_argument("--episodes", type=int, default=5)
+    parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--scenarios", default="all")
+    parser.add_argument("--policies", default="all")
+    parser.add_argument("--checkpoint-path", default="exports",
+                        help="Trained checkpoint dir (merged model or adapter dir).")
+    parser.add_argument("--strict", action="store_true", default=True,
+                        help="Hard-fail when checkpoint preflight fails (default).")
+    parser.add_argument("--no-strict", action="store_false", dest="strict",
+                        help="Allow heuristic fallback for trained_grpo policy.")
     args = parser.parse_args()
 
-    try:
-        from rich.console import Console
-        from rich.table import Table
-        from rich import box
+    print("\n=== AIC Extended Benchmark Suite ===\n")
+    print("Running AIC vs baselines across 6 scenarios with statistical testing...\n")
 
-        console = Console()
-        console.print("\n[bold cyan]═══ AIC Extended Benchmark Suite ═══[/bold cyan]\n")
-        console.print("Running AIC vs baselines across 6 scenarios with statistical testing...\n")
-    except ImportError:
-        print("\n═══ AIC Extended Benchmark Suite ═══\n")
-
-    df, stats = run_benchmark(
+    df, stats_summary = run_benchmark(
         num_episodes_per_scenario=args.episodes,
         output_dir=args.output,
         seed=args.seed,
         requested_scenarios=args.scenarios,
         requested_policies=args.policies,
         checkpoint_path=args.checkpoint_path,
+        strict=args.strict,
     )
 
-    print(f"\n✅ Results saved to: {args.output}/")
+    print(f"\n[ok] Results saved to: {args.output}/")
 
 
 if __name__ == "__main__":
