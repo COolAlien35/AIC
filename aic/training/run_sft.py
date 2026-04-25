@@ -19,6 +19,7 @@ import json
 import os
 import random
 import re
+import time
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +31,30 @@ from aic.training.modeling_unsloth import (
     _build_bnb_config,
     _preferred_compute_dtype,
 )
+
+
+# region agent log
+_AGENT_DEBUG_LOG = Path("/Users/pulkitpandey/Desktop/AIC/.cursor/debug-b030f6.log")
+
+
+def _agent_debug_log(hypothesis_id: str, location: str, message: str, data: dict[str, Any]) -> None:
+    """Temporary Cursor debug instrumentation for session b030f6."""
+    payload = {
+        "sessionId": "b030f6",
+        "runId": os.environ.get("AIC_AGENT_DEBUG_RUN_ID", "pre-fix"),
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "message": message,
+        "data": data,
+        "timestamp": int(time.time() * 1000),
+    }
+    try:
+        _AGENT_DEBUG_LOG.parent.mkdir(parents=True, exist_ok=True)
+        with _AGENT_DEBUG_LOG.open("a") as f:
+            f.write(json.dumps(payload, default=str) + "\n")
+    except Exception:
+        pass
+# endregion
 
 
 def _write_prompt_completion_jsonl(dataset_path: Path) -> Path:
@@ -198,6 +223,31 @@ def _smoke_parse_rate(
     pad_id = tokenizer.pad_token_id or tokenizer.eos_token_id
     eos_id = tokenizer.eos_token_id if tokenizer.eos_token_id is not None else pad_id
     max_new = min(512, max(192, max_completion_hint * 3))
+    # region agent log
+    gen_cfg = getattr(model, "generation_config", None)
+    _agent_debug_log(
+        "A,D,E",
+        "aic/training/run_sft.py:_smoke_parse_rate:start",
+        "SFT parse probe starting",
+        {
+            "dataset_len": len(dataset),
+            "sample_n": n,
+            "indices": indices,
+            "device": str(device),
+            "model_class": type(model).__name__,
+            "active_adapters": getattr(model, "active_adapters", None),
+            "pad_id": pad_id,
+            "eos_id": eos_id,
+            "max_new_tokens": max_new,
+            "generation_config": {
+                "do_sample": getattr(gen_cfg, "do_sample", None),
+                "temperature": getattr(gen_cfg, "temperature", None),
+                "top_p": getattr(gen_cfg, "top_p", None),
+                "top_k": getattr(gen_cfg, "top_k", None),
+            },
+        },
+    )
+    # endregion
     for idx in indices:
         prompt_text = dataset[idx]["prompt"]
         rendered, _ = _build_chat_text(tokenizer, prompt_text, "")
@@ -216,14 +266,46 @@ def _smoke_parse_rate(
         completion = tokenizer.decode(
             out[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True,
         )
+        sample_ok = False
+        sample_error = None
+        candidate_count = 0
         for cand in _orchestrator_json_candidates(completion):
+            candidate_count += 1
             try:
                 OrchestratorDecision.model_validate_json(cand)
                 successes += 1
+                sample_ok = True
                 break
-            except Exception:
+            except Exception as exc:
+                sample_error = str(exc)[:500]
                 continue
+        # region agent log
+        _agent_debug_log(
+            "A,B",
+            "aic/training/run_sft.py:_smoke_parse_rate:sample",
+            "SFT parse probe sample result",
+            {
+                "idx": idx,
+                "input_tokens": int(inputs["input_ids"].shape[1]),
+                "output_tokens": int(out.shape[1] - inputs["input_ids"].shape[1]),
+                "completion_len": len(completion),
+                "completion_prefix": completion[:600],
+                "candidate_count": candidate_count,
+                "has_brace": "{" in completion and "}" in completion,
+                "valid": sample_ok,
+                "last_validation_error": sample_error,
+            },
+        )
+        # endregion
     model.train()
+    # region agent log
+    _agent_debug_log(
+        "A,B,D,E",
+        "aic/training/run_sft.py:_smoke_parse_rate:end",
+        "SFT parse probe finished",
+        {"successes": successes, "n": n, "parse_rate": successes / max(1, n)},
+    )
+    # endregion
     return successes / max(1, n)
 
 
@@ -327,6 +409,52 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
         tokenized_eval = eval_dataset.map(
             tokenize_fn, remove_columns=eval_dataset.column_names,
         )
+    # region agent log
+    try:
+        sample_count = min(32, len(raw_dataset))
+        completion_lengths: list[int] = []
+        completion_truncated = 0
+        non_masked_labels: list[int] = []
+        for _i in range(sample_count):
+            comp_ids = tokenizer(
+                str(raw_dataset[_i]["completion"]) + tokenizer.eos_token,
+                add_special_tokens=False,
+            )["input_ids"]
+            completion_lengths.append(len(comp_ids))
+            if len(comp_ids) > config.max_completion_length:
+                completion_truncated += 1
+            labels = tokenized_train[_i]["labels"]
+            non_masked_labels.append(sum(1 for x in labels if int(x) != -100))
+        _agent_debug_log(
+            "C",
+            "aic/training/run_sft.py:run_sft:tokenization_stats",
+            "SFT tokenization and label stats before training",
+            {
+                "sample_count": sample_count,
+                "max_completion_length": config.max_completion_length,
+                "completion_lengths_min": min(completion_lengths) if completion_lengths else None,
+                "completion_lengths_max": max(completion_lengths) if completion_lengths else None,
+                "completion_lengths_avg": (
+                    sum(completion_lengths) / len(completion_lengths)
+                    if completion_lengths else None
+                ),
+                "completion_truncated": completion_truncated,
+                "non_masked_labels_min": min(non_masked_labels) if non_masked_labels else None,
+                "non_masked_labels_max": max(non_masked_labels) if non_masked_labels else None,
+                "non_masked_labels_avg": (
+                    sum(non_masked_labels) / len(non_masked_labels)
+                    if non_masked_labels else None
+                ),
+            },
+        )
+    except Exception as exc:
+        _agent_debug_log(
+            "C",
+            "aic/training/run_sft.py:run_sft:tokenization_stats_error",
+            "Failed to collect SFT tokenization stats",
+            {"error": str(exc)[:500]},
+        )
+    # endregion
 
     max_steps_env = os.environ.get("AIC_SFT_MAX_STEPS", "").strip()
     max_steps_override: int | None = None
@@ -458,6 +586,21 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
         "parse_smoke_n": 8,
         "parse_smoke_error": parse_error,
     }
+    # region agent log
+    _agent_debug_log(
+        "A,B,C,D,E",
+        "aic/training/run_sft.py:run_sft:metadata",
+        "SFT metadata before save",
+        {
+            "final_loss": final_loss,
+            "parse_rate": parse_rate,
+            "parse_error": parse_error,
+            "used_cuda": has_cuda,
+            "load_in_4bit": config.load_in_4bit,
+            "output_dir": str(output_dir),
+        },
+    )
+    # endregion
     if is_main_process():
         trainer.save_model(str(output_dir))
         tokenizer.save_pretrained(str(output_dir))
