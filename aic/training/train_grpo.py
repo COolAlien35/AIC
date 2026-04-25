@@ -200,10 +200,23 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
     try:
         from transformers import TrainerCallback
 
-        class _AICCallback(TrainerCallback, AICProgressCallback):
+        # NOTE: Order (AICProgressCallback first) is critical so that MRO
+        # resolves on_log/on_train_end from our class instead of the no-op
+        # methods on TrainerCallback.
+        class _AICCallback(AICProgressCallback, TrainerCallback):
             def __init__(self, log_path: str = "logs/grpo_progress.jsonl"):
-                TrainerCallback.__init__(self)
                 AICProgressCallback.__init__(self, log_path)
+                TrainerCallback.__init__(self)
+
+            def on_log(self, args, state, control, logs=None, **kwargs):
+                return AICProgressCallback.on_log(
+                    self, args, state, control, logs=logs, **kwargs
+                )
+
+            def on_train_end(self, args, state, control, **kwargs):
+                return AICProgressCallback.on_train_end(
+                    self, args, state, control, **kwargs
+                )
     except ImportError:
         _AICCallback = AICProgressCallback  # type: ignore[misc]
 
