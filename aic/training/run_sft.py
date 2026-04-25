@@ -107,20 +107,35 @@ def _make_tokenize_fn(tokenizer, config: TrainingConfig):
         pad_id = tokenizer.eos_token_id
 
     def _tokenize(example: dict[str, Any]) -> dict[str, list[int]]:
-        full_text, prompt_len = _build_chat_text(
-            tokenizer, example["prompt"], example["completion"],
-        )
-        encoded = tokenizer(
-            full_text,
+        prompt_text, _ = _build_chat_text(tokenizer, example["prompt"], "")
+        completion_text = str(example["completion"]) + tokenizer.eos_token
+
+        # Tokenize prompt and completion separately so long prompts cannot
+        # consume the completion budget and silently zero out all labels.
+        prompt_ids = tokenizer(
+            prompt_text,
             truncation=True,
-            max_length=config.max_prompt_length + config.max_completion_length,
+            max_length=config.max_prompt_length,
             add_special_tokens=False,
-        )
-        input_ids = encoded["input_ids"]
-        attention_mask = encoded["attention_mask"]
-        labels = list(input_ids)
-        for i in range(min(prompt_len, len(labels))):
-            labels[i] = -100
+        )["input_ids"]
+        completion_ids = tokenizer(
+            completion_text,
+            truncation=True,
+            max_length=config.max_completion_length,
+            add_special_tokens=False,
+        )["input_ids"]
+
+        input_ids = prompt_ids + completion_ids
+        attention_mask = [1] * len(input_ids)
+        labels = ([-100] * len(prompt_ids)) + list(completion_ids)
+
+        # Safety: if completion got fully truncated, keep at least EOS as a
+        # supervised target to avoid all-masked batches and zero loss/grad.
+        if not completion_ids and tokenizer.eos_token_id is not None:
+            input_ids = prompt_ids + [tokenizer.eos_token_id]
+            attention_mask = [1] * len(input_ids)
+            labels = ([-100] * len(prompt_ids)) + [tokenizer.eos_token_id]
+
         return {
             "input_ids": input_ids,
             "attention_mask": attention_mask,
