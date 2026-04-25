@@ -177,11 +177,11 @@ def generate_sft_dataset(config: TrainingConfig | None = None) -> Path:
             drift_type = ALL_DRIFT_TYPES[ep_local % len(ALL_DRIFT_TYPES)]
 
             try:
-                # Use the mapped FaultInjector mode (not the topology node name)
+                # C1: Pass scenario_id so ScenarioEngine drives fault dynamics
                 env = AICEnvironment(
                     episode_id=episode_id,
                     base_seed=config.base_seed,
-                    fault_mode=meta.fault_injector_mode,  # Valid FaultInjector mode
+                    fault_mode=meta.fault_injector_mode,  # FaultInjector fallback
                     drift_type=drift_type,
                     log_dir=config.log_dir,
                     db_agent=db,
@@ -192,6 +192,7 @@ def generate_sft_dataset(config: TrainingConfig | None = None) -> Path:
                     include_network=True,
                     include_security=True,
                     manage_trust_scores=False,
+                    scenario_id=scenario_id,  # B1/C1: canonical scenario engine
                 )
                 obs = env.reset()
 
@@ -247,22 +248,14 @@ def generate_sft_dataset(config: TrainingConfig | None = None) -> Path:
                                 f"was present but intentionally not selected."
                             )[:1200]  # respect max_length
 
-                    # ── CRITICAL FIX: Inject schema_drift_detected ──
-                    # When schema drift is active in the observation, teach
-                    # the model to detect and report it.
+                    # ── C3 FIX: Derive schema_drift_field from env, not hardcoded ──
+                    # Use the env-provided drift field from the observation.
                     schema_drift_active = obs.get("schema_drift_active", False)
                     schema_drift_type = obs.get("schema_drift_type")
+                    schema_drift_field = obs.get("schema_drift_field")
                     if schema_drift_active and schema_drift_type:
                         structured_action["schema_drift_detected"] = True
-                        # Infer the drifted field from the drift type context
-                        if schema_drift_type == "field_rename":
-                            structured_action["schema_drift_field"] = "db_latency_ms"
-                        elif schema_drift_type == "unit_shift":
-                            structured_action["schema_drift_field"] = "queue_depth"
-                        elif schema_drift_type == "silent_null":
-                            structured_action["schema_drift_field"] = "net_io_mbps"
-                        else:
-                            structured_action["schema_drift_field"] = None
+                        structured_action["schema_drift_field"] = schema_drift_field
 
                     has_adversarial_candidate = any(
                         rec.get("agent_name") == "adversarial_agent"

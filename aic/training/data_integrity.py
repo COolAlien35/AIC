@@ -56,6 +56,11 @@ class DataQualityGates:
     # Maximum train/val episode overlap (must be 0 for clean split)
     max_episode_overlap: int = 0
 
+    # C4: Maximum prompt overlap between train/val (hard gate)
+    # A small number of shared prompts can occur when identical starting
+    # states produce the same prompt text, but excessive overlap is leakage.
+    max_prompt_overlap_rate: float = 0.005  # 0.5% of total records
+
     # Minimum number of difficulty tiers represented
     min_difficulty_tiers: int = 3
 
@@ -282,7 +287,13 @@ def verify_no_leakage(
         "episode_overlap_ids": sorted(episode_overlap),
         "prompt_overlap_count": len(prompt_overlap),
         "completion_overlap_count": len(completion_overlap),
-        "clean": len(episode_overlap) == 0,
+        # C4: 'clean' now requires BOTH zero episode overlap AND low prompt overlap
+        "clean": len(episode_overlap) == 0 and len(prompt_overlap) == 0,
+        "prompt_overlap_is_hard_failure": len(prompt_overlap) > 0,
+        "completion_overlap_note": (
+            "Completion overlap is expected for structured JSON outputs "
+            "with similar decisions. Not treated as leakage."
+        ) if len(completion_overlap) > 0 else None,
     }
 
 

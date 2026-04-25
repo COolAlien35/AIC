@@ -27,9 +27,11 @@ from aic.agents.db_agent import DBAgent
 from aic.agents.infra_agent import InfraAgent
 from aic.agents.network_agent import NetworkAgent
 from aic.agents.recovery_verifier_agent import RecoveryVerifierAgent
+from aic.env.counterfactual_simulator import simulate_action
 from aic.agents.security_agent import SecurityAgent
 from aic.env.fault_injector import FaultInjector
 from aic.env.lock_manager import ResourceLockManager
+from aic.env.scenario_registry import ScenarioEngine
 from aic.env.reward_engine import RewardEngine
 from aic.env.schema_drift import SchemaDriftInjector
 from aic.env.world_state import WorldState
@@ -42,6 +44,11 @@ from aic.schemas.observations import OrchestratorObservation
 from aic.schemas.traces import ExplanationTrace, SubAgentRecommendation
 from aic.utils.constants import (
     AGENT_ADV,
+    AGENT_APP,
+    AGENT_DB,
+    AGENT_INFRA,
+    AGENT_NET,
+    AGENT_SEC,
     AGENT_VERIFIER,
     ALL_AGENTS,
     DRIFT_TYPES,
@@ -83,6 +90,7 @@ class AICEnvironment(OpenEnvBase):
         include_network: Optional[bool] = None,
         include_security: Optional[bool] = None,
         manage_trust_scores: bool = True,
+        scenario_id: Optional[int] = None,
     ):
         state_space = {
             "alert_summary_text": "str (max 5000 chars)",
@@ -124,6 +132,7 @@ class AICEnvironment(OpenEnvBase):
         self.use_llm_agents = use_llm_agents
         self.manage_trust_scores = manage_trust_scores
         self._configured_drift_type = drift_type
+        self.scenario_id = scenario_id
 
         self.db_agent = db_agent or DBAgent(use_llm=use_llm_agents)
         self.infra_agent = infra_agent or InfraAgent(use_llm=use_llm_agents)
@@ -135,7 +144,15 @@ class AICEnvironment(OpenEnvBase):
 
         self._episode_rng = make_episode_rng(episode_id, base_seed)
         self.world_state = WorldState(self._episode_rng)
+
+        # B1: Use ScenarioEngine when scenario_id is provided, else FaultInjector
+        self._scenario_engine: Optional[ScenarioEngine] = None
+        if scenario_id is not None:
+            from aic.env.scenario_registry import SCENARIO_REGISTRY
+            if scenario_id in SCENARIO_REGISTRY:
+                self._scenario_engine = ScenarioEngine(scenario_id)
         self.fault_injector = FaultInjector(fault_mode)
+
         self.reward_engine = RewardEngine()
         self.locks = ResourceLockManager()
         self.logger = EpisodeLogger(log_dir=log_dir, episode_id=episode_id)
@@ -202,6 +219,13 @@ class AICEnvironment(OpenEnvBase):
         self._active_agents = self._compute_active_agents()
 
         self.world_state.reset(self._episode_rng)
+        # Re-init scenario engine on reset if scenario_id changed via options
+        reset_scenario_id = options.get("scenario_id", self.scenario_id)
+        if reset_scenario_id is not None:
+            from aic.env.scenario_registry import SCENARIO_REGISTRY
+            if reset_scenario_id in SCENARIO_REGISTRY:
+                self._scenario_engine = ScenarioEngine(reset_scenario_id)
+                self.scenario_id = reset_scenario_id
         self.fault_injector = FaultInjector(options.get("fault_mode", self.fault_mode))
         self.reward_engine.reset()
         self.locks.reset()
@@ -267,7 +291,11 @@ class AICEnvironment(OpenEnvBase):
             and self._action_history[-1] == executed_rec.action
         )
 
-        faults = self.fault_injector.get_contributions(current_step)
+        # B1: Use ScenarioEngine contributions when available, else FaultInjector
+        if self._scenario_engine is not None:
+            faults = self._scenario_engine.get_contributions(current_step)
+        else:
+            faults = self.fault_injector.get_contributions(current_step)
         self.world_state.step(action_deltas, faults)
         lock_penalty = self.locks.detect_and_resolve_deadlocks()
         current_metrics = self.world_state.snapshot()
@@ -647,9 +675,41 @@ class AICEnvironment(OpenEnvBase):
         visible_recommendations = [
             rec for rec in self._current_recommendations if rec.agent_name != AGENT_VERIFIER
         ]
+
+        # B1: Derive scenario metadata and telemetry corruption from ScenarioEngine
+        scenario_name = None
+        root_cause_node = None
+        telemetry_corruption_active = False
+        telemetry_corruption_types: list[str] = []
+        telemetry_corruption_fields: list[str] = []
+        if self._scenario_engine is not None:
+            scenario_name = self._scenario_engine.get_scenario_name()
+            root_cause_node = self._scenario_engine.get_root_cause_node()
+            mask = self._scenario_engine.get_telemetry_mask(self.step_count)
+            renames = self._scenario_engine.get_telemetry_renames(self.step_count)
+            shifts = self._scenario_engine.get_telemetry_unit_shifts(self.step_count)
+            if mask or renames or shifts:
+                telemetry_corruption_active = True
+                if mask:
+                    telemetry_corruption_types.append("nan_blackout")
+                    telemetry_corruption_fields.extend(mask)
+                if renames:
+                    telemetry_corruption_types.append("field_rename")
+                    telemetry_corruption_fields.extend(renames.keys())
+                if shifts:
+                    telemetry_corruption_types.append("unit_shift")
+                    telemetry_corruption_fields.extend(shifts.keys())
+
+        # C3: Derive schema_drift_field from actual drift spec, not hardcoded
+        drift_active = self._schema_drift.was_active_at(self.step_count)
+        drift_field = self._schema_drift.get_affected_field() if drift_active else None
+
         obs = OrchestratorObservation(
             alert_summary_text=self._build_alert_summary(metrics),
             sla_remaining_steps=max(0, SLA_STEPS - self.step_count),
+            scenario_id=self.scenario_id,
+            scenario_name=scenario_name,
+            root_cause_node=root_cause_node,
             episode_budget_remaining=float(round(self.episode_budget_remaining, 4)),
             shared_noisy_signal=shared_noisy_signal,
             observation_masks=observation_masks,
@@ -659,8 +719,12 @@ class AICEnvironment(OpenEnvBase):
             current_recommendation_ids=[c.recommendation_id for c in self._candidate_recommendations],
             trace_history=list(self.trace_history),
             current_trust_scores=self.trust_scores.copy(),
-            schema_drift_active=self._schema_drift.was_active_at(self.step_count),
-            schema_drift_type=self._drift_type if self._schema_drift.was_active_at(self.step_count) else None,
+            telemetry_corruption_active=telemetry_corruption_active,
+            telemetry_corruption_types=telemetry_corruption_types,
+            telemetry_corruption_fields=telemetry_corruption_fields,
+            schema_drift_active=drift_active,
+            schema_drift_type=self._drift_type if drift_active else None,
+            schema_drift_field=drift_field,
             step=self.step_count,
         )
         return obs.model_dump()

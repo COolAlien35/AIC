@@ -41,6 +41,9 @@ class OrchestratorObservation(BaseModel):
     """What the orchestrator sees each step — full situational awareness."""
     alert_summary_text: str
     sla_remaining_steps: int
+    scenario_id: int | None = None
+    scenario_name: str | None = None
+    root_cause_node: str | None = None
     episode_budget_remaining: float = Field(default=0.0, description="Remaining intervention budget for this episode.")
     shared_noisy_signal: dict = Field(
         default_factory=dict,
@@ -56,6 +59,10 @@ class OrchestratorObservation(BaseModel):
     current_recommendation_ids: list[int] = Field(default_factory=list)
     trace_history: list[dict] = Field(default_factory=list)
     current_trust_scores: dict[str, float]
+    telemetry_corruption_active: bool = False
+    telemetry_corruption_types: list[str] = Field(default_factory=list)
+    telemetry_corruption_fields: list[str] = Field(default_factory=list)
     schema_drift_active: bool = False
     schema_drift_type: str | None = None
+    schema_drift_field: str | None = None
     step: int

@@ -171,7 +171,8 @@ def tag_sample_metadata(
     return {
         "scenario_name": meta.scenario_name,
         "scenario_id": scenario_id,
-        "fault_mode": meta.root_cause_node,
+        "root_cause_node": meta.root_cause_node,
+        "executed_fault_mode": meta.fault_injector_mode,  # C2: unambiguous label
         "difficulty_tier": meta.difficulty_tier,
         "adversarial_intensity": meta.adversarial_intensity,
         "has_adversarial": bool(override_applied or has_adversarial_candidate),

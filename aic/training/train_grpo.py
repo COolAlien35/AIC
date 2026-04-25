@@ -10,6 +10,7 @@ from aic.schemas.actions import OrchestratorDecision
 from aic.training.config import TrainingConfig
 from aic.training.modeling_unsloth import load_model_and_tokenizer
 from aic.training.prompting import build_orchestrator_prompt
+from aic.training.reward_audit import RewardAuditLoop
 from aic.training.scenario_contract import (
     CANONICAL_SCENARIO_IDS,
     SCENARIO_TRAINING_META,
@@ -82,12 +83,14 @@ def generate_grpo_prompt_dataset(config: TrainingConfig | None = None) -> Path:
         for scenario_id in CANONICAL_SCENARIO_IDS:
             meta = SCENARIO_TRAINING_META[scenario_id]
             for _ in range(episodes_per_scenario):
+                # C1: Pass scenario_id for ScenarioEngine dynamics
                 env = AICEnvironment(
                     episode_id=episode_id,
                     base_seed=config.base_seed,
                     fault_mode=meta.fault_injector_mode,
                     use_llm_agents=False,
                     manage_trust_scores=False,
+                    scenario_id=scenario_id,
                 )
                 obs = env.reset()
                 record = {
@@ -134,28 +137,56 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
     dataset = load_dataset("json", data_files=str(dataset_path), split="train")
     model, tokenizer, backend_info = load_model_and_tokenizer(config)
 
+    # D1: Integrate reward audit into GRPO path
+    grpo_audit = RewardAuditLoop(
+        log_dir=str(Path(config.grpo_output_dir) / "audit"),
+        max_wall_clock_seconds=120.0,
+        severity_clamp_threshold=0.5,
+        reward_clamp_value=0.0,
+    )
+    _audit_episode_counter = [0]  # mutable counter for closure
+
     def reward_func(completions, **kwargs):
         rewards = []
-        for completion, episode_id, base_seed, fault_mode in zip(
+        for completion, episode_id, base_seed, fault_mode, scenario_id in zip(
             completions,
             kwargs.get("episode_id", []),
             kwargs.get("base_seed", []),
             kwargs.get("fault_mode", []),
+            kwargs.get("scenario_id", []),
         ):
+            # C1: Pass scenario_id for ScenarioEngine dynamics
             env = AICEnvironment(
                 episode_id=int(episode_id),
                 base_seed=int(base_seed),
                 fault_mode=fault_mode,
                 use_llm_agents=False,
                 manage_trust_scores=False,
+                scenario_id=int(scenario_id),
             )
             env.reset()
+
+            # D1: Begin audit for this episode
+            audit_ep_id = _audit_episode_counter[0]
+            _audit_episode_counter[0] += 1
+            grpo_audit.begin_episode(audit_ep_id)
+
             try:
                 decision = OrchestratorDecision.model_validate_json(completion)
                 _obs, reward, _done, _info = env.step(decision.model_dump())
             except Exception:
                 _obs, reward, _done, _info = env.step("invalid completion")
-            rewards.append(float(reward))
+
+            # D1: Record and audit the reward
+            metrics = env.world_state.snapshot() if hasattr(env, 'world_state') else {}
+            grpo_audit.record_step(
+                step=0, action=str(completion)[:200],
+                reward=float(reward), metrics=metrics,
+            )
+            audit_result = grpo_audit.end_episode(float(reward))
+            adjusted = audit_result.adjusted_reward
+
+            rewards.append(float(adjusted))
         return rewards
 
     progress_callback = _AICCallback()
@@ -184,8 +215,19 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     trainer.save_model(str(output_dir))
     tokenizer.save_pretrained(str(output_dir))
+
+    # D1: Persist GRPO audit summary
+    audit_summary = grpo_audit.summary_stats()
+    audit_summary_path = output_dir / "grpo_audit_summary.json"
+    with open(audit_summary_path, "w") as f:
+        json.dump(audit_summary, f, indent=2)
+
     with open(output_dir / "grpo_metadata.json", "w") as f:
-        json.dump({"dataset": str(dataset_path), **backend_info}, f, indent=2)
+        json.dump({
+            "dataset": str(dataset_path),
+            "reward_audit_integrated": True,
+            **backend_info,
+        }, f, indent=2)
     return output_dir
 
 

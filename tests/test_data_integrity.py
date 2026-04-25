@@ -304,7 +304,8 @@ class TestSampleMetadataTagging:
             drift_type="field_rename",
         )
         required_keys = {
-            "scenario_name", "scenario_id", "fault_mode", "difficulty_tier",
+            "scenario_name", "scenario_id", "root_cause_node",
+            "executed_fault_mode", "difficulty_tier",
             "adversarial_intensity", "has_adversarial", "schema_drift",
             "drift_type", "has_telemetry_corruption", "severity",
         }

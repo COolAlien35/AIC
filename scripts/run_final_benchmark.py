@@ -43,10 +43,41 @@ SCENARIO_ID_TO_FAULT_MODE = {
 }
 
 
-class TrainedGRPOPolicy:
-    """The policy we actually trained. This is the star of the show."""
+def checkpoint_preflight(checkpoint_path: str) -> dict:
+    """Validate checkpoint directory contains required artifacts.
 
-    name = "trained_grpo"
+    Returns a dict with 'valid', 'errors', and 'files_found'.
+    """
+    cp = Path(checkpoint_path)
+    result = {"valid": False, "errors": [], "files_found": [], "path": str(cp)}
+    if not cp.exists():
+        result["errors"].append(f"checkpoint directory does not exist: {cp}")
+        return result
+    # Check for essential model files
+    required_patterns = ["config.json"]
+    optional_patterns = ["tokenizer.json", "tokenizer_config.json",
+                         "model.safetensors", "pytorch_model.bin",
+                         "adapter_config.json", "adapter_model.safetensors"]
+    found = [f.name for f in cp.iterdir() if f.is_file()]
+    result["files_found"] = found
+    for req in required_patterns:
+        if req not in found:
+            result["errors"].append(f"missing required file: {req}")
+    has_weights = any(p in found for p in ["model.safetensors", "pytorch_model.bin",
+                                            "adapter_model.safetensors", "adapter_model.bin"])
+    if not has_weights:
+        result["errors"].append("no model weight file found")
+    result["valid"] = len(result["errors"]) == 0
+    return result
+
+
+class TrainedGRPOPolicy:
+    """The policy we actually trained. This is the star of the show.
+
+    IMPORTANT: When checkpoint loading fails, the policy label is changed to
+    'trained_grpo_FALLBACK' so benchmark output never misrepresents a heuristic
+    as a trained checkpoint.
+    """
 
     def __init__(self, checkpoint_path: str = "checkpoints/grpo"):
         self.checkpoint_path = checkpoint_path
@@ -54,6 +85,14 @@ class TrainedGRPOPolicy:
         self.tokenizer = None
         self._loaded = False
         self._load_error: str | None = None
+        self._preflight: dict | None = None
+
+    @property
+    def name(self) -> str:
+        """Policy label — explicitly distinguishes checkpoint vs fallback."""
+        if self.using_model:
+            return "trained_grpo"
+        return "trained_grpo_FALLBACK"
 
     def _try_load(self):
         """Attempt to load the trained model. Gracefully degrade if missing."""
@@ -61,10 +100,14 @@ class TrainedGRPOPolicy:
             return
         self._loaded = True
 
-        cp = Path(self.checkpoint_path)
-        if not cp.exists():
-            self._load_error = f"missing checkpoint at {cp}"
-            print(f"  ⚠️  No trained checkpoint at {cp}. Using fallback policy.")
+        # Preflight validation
+        self._preflight = checkpoint_preflight(self.checkpoint_path)
+        if not self._preflight["valid"]:
+            self._load_error = f"preflight failed: {self._preflight['errors']}"
+            print(f"  ⚠️  Checkpoint preflight FAILED for {self.checkpoint_path}:")
+            for err in self._preflight["errors"]:
+                print(f"      - {err}")
+            print(f"  ⚠️  Using fallback policy. Label will be 'trained_grpo_FALLBACK'.")
             return
 
         try:
@@ -82,7 +125,9 @@ class TrainedGRPOPolicy:
             print(f"  ✅ Trained model loaded successfully")
         except Exception as e:
             self._load_error = str(e)
-            print(f"  ⚠️  Could not load trained model: {e}. Using fallback.")
+            print(f"  ⚠️  Could not load trained model: {e}.")
+            print(f"  ⚠️  Using fallback policy. Label will be 'trained_grpo_FALLBACK'.")
+
 
     def select_action(self, obs: dict) -> dict:
         """Generate a decision from the trained model or fall back to heuristic."""
@@ -143,6 +188,11 @@ class TrainedGRPOPolicy:
         self._try_load()
         return self._load_error
 
+    @property
+    def preflight_result(self) -> dict | None:
+        self._try_load()
+        return self._preflight
+
 
 def _run_trained_model_episode(
     policy: TrainedGRPOPolicy,
@@ -188,7 +238,7 @@ def _run_trained_model_episode(
     final_health = env.world_state.get_health_score()
     total_reward = env.reward_engine.get_total_episode_reward()
     return {
-        "policy": "trained_grpo",
+        "policy": policy.name,
         "scenario": scenario.name,
         "reward": float(total_reward),
         "success": bool(env.world_state.is_within_sla()),
@@ -197,6 +247,7 @@ def _run_trained_model_episode(
         "unsafe_rate": float(unsafe_actions / total_steps),
         "trained_policy_source": "checkpoint" if policy.using_model else "fallback",
         "trained_policy_checkpoint": policy.checkpoint_path,
+        "checkpoint_preflight": policy.preflight_result,
     }
 
 
@@ -348,7 +399,9 @@ def run_benchmark(
         "scenarios": scenario_ids,
         "trained_checkpoint_path": checkpoint_path,
         "trained_policy_source": "checkpoint" if trained_policy.using_model else "fallback",
+        "trained_policy_label": trained_policy.name,
         "trained_policy_load_error": trained_policy.load_error,
+        "trained_policy_preflight": trained_policy.preflight_result,
     }
     with open(f"{output_dir}/benchmark_run_config.json", "w") as f:
         json.dump(run_config, f, indent=2)

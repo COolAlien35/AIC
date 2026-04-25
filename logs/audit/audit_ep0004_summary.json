@@ -2,7 +2,7 @@
   "episode_id": 4,
   "flags": [],
   "total_steps": 20,
-  "wall_clock_seconds": 0.016917943954467773,
+  "wall_clock_seconds": 0.01751232147216797,
   "reward_clamped": false,
   "original_reward": -187.6164158797534,
   "adjusted_reward": -187.6164158797534,
