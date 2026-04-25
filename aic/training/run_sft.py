@@ -26,6 +26,7 @@ from aic.training.config import TrainingConfig
 from aic.training.modeling_unsloth import (
     QWEN_TARGET_MODULES,
     _build_bnb_config,
+    _preferred_compute_dtype,
 )
 
 
@@ -222,12 +223,18 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
     except Exception:
         has_cuda = False
 
-    load_kwargs: dict[str, Any] = {"device_map": "auto" if has_cuda else None}
+    # device_map={"":0} pins all layers to a single GPU. "auto" can split a
+    # 4-bit model across CPU/GPU which then breaks TRL's reference-model
+    # preparation in the GRPO step that consumes this checkpoint.
+    load_kwargs: dict[str, Any] = {
+        "device_map": {"": 0} if has_cuda else None,
+        "low_cpu_mem_usage": True,
+    }
     bnb = _build_bnb_config(config.load_in_4bit and has_cuda)
     if bnb is not None:
         load_kwargs["quantization_config"] = bnb
     elif has_cuda:
-        load_kwargs["torch_dtype"] = torch.float16
+        load_kwargs["torch_dtype"] = _preferred_compute_dtype() or torch.float16
 
     model = AutoModelForCausalLM.from_pretrained(config.model_name, **load_kwargs)
     try:
@@ -281,7 +288,8 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
         report_to=[],
         no_cuda=not has_cuda,
         use_mps_device=False,
-        fp16=has_cuda,
+        bf16=has_cuda and torch.cuda.is_bf16_supported(),
+        fp16=has_cuda and not torch.cuda.is_bf16_supported(),
         gradient_checkpointing=has_cuda,
         warmup_ratio=0.05,
         lr_scheduler_type="cosine",

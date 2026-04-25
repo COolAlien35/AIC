@@ -268,7 +268,13 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
     )
     _audit_episode_counter = [0]
 
-    def reward_func(completions, **kwargs):
+    def reward_func(completions, prompts=None, **kwargs):
+        # TRL's GRPOTrainer documents the call shape
+        # ``fn(completions, prompts, **kwargs) -> list[float]``. We accept
+        # ``prompts`` explicitly to be immune to TRL passing it positionally
+        # in any future release; we score from env.step(text), not from the
+        # rendered prompt, so the value is intentionally unused here.
+        del prompts
         rewards: list[float] = []
         episode_ids = kwargs.get("episode_id", [])
         base_seeds = kwargs.get("base_seed", [])
@@ -315,6 +321,18 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
 
     progress_callback = _AICCallback()
 
+    # Prefer bf16 over fp16 when the device supports it (T4 supports bf16
+    # via emulation, which is more numerically stable than true fp16 for
+    # LoRA + GRPO and avoids the loss=0.0 collapse pattern).
+    try:
+        import torch as _torch
+
+        _bf16 = bool(_torch.cuda.is_available() and _torch.cuda.is_bf16_supported())
+        _fp16 = bool(_torch.cuda.is_available() and not _bf16)
+    except Exception:
+        _bf16 = False
+        _fp16 = False
+
     grpo_args = GRPOConfig(
         output_dir=config.grpo_output_dir,
         per_device_train_batch_size=config.grpo_per_device_train_batch_size,
@@ -329,7 +347,8 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
         logging_steps=1,
         save_steps=50,
         warmup_steps=10,
-        fp16=True,
+        bf16=_bf16,
+        fp16=_fp16,
         optim="adamw_8bit",
         gradient_checkpointing=True,
         report_to=[],

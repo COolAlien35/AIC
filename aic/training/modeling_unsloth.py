@@ -28,18 +28,39 @@ QWEN_TARGET_MODULES = [
 ]
 
 
+def _preferred_compute_dtype():
+    """Return torch.bfloat16 when supported on the active device, else float16.
+
+    T4 supports bf16 via emulation; bf16 is more numerically stable than fp16
+    for LoRA + GRPO and avoids the loss-spike / loss=0.0 collapse patterns
+    we have observed with fp16. Falls back to fp16 on hardware that has no
+    bf16 path at all (very old GPUs, or CPU-only smoke).
+    """
+    try:
+        import torch
+
+        if torch.cuda.is_available() and torch.cuda.is_bf16_supported():
+            return torch.bfloat16
+        return torch.float16
+    except Exception:
+        return None
+
+
 def _build_bnb_config(load_in_4bit: bool):
-    """Construct a BitsAndBytesConfig for fp16 compute (T4 has no bf16)."""
+    """Construct a BitsAndBytesConfig with bf16 compute when supported."""
     if not load_in_4bit:
         return None
     try:
-        import torch
         from transformers import BitsAndBytesConfig
     except Exception:
         return None
+    compute_dtype = _preferred_compute_dtype()
+    if compute_dtype is None:
+        return None
     return BitsAndBytesConfig(
         load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.float16,
+        bnb_4bit_compute_dtype=compute_dtype,
+        bnb_4bit_quant_storage=compute_dtype,
         bnb_4bit_use_double_quant=True,
         bnb_4bit_quant_type="nf4",
     )
@@ -99,18 +120,26 @@ def load_model_and_tokenizer(
         tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "left"
 
-    load_kwargs: dict[str, Any] = {"device_map": "auto"}
-    bnb = _build_bnb_config(config.load_in_4bit)
+    # device_map={"":0} pins ALL layers to cuda:0. "auto" can split a 4-bit
+    # model across CPU/GPU which then breaks TRL's reference-model preparation
+    # with: "You can't train a model loaded in 4-bit on a different device".
+    try:
+        import torch
+
+        has_cuda = torch.cuda.is_available()
+    except Exception:
+        has_cuda = False
+        torch = None  # type: ignore[assignment]
+
+    load_kwargs: dict[str, Any] = {
+        "device_map": {"": 0} if has_cuda else None,
+        "low_cpu_mem_usage": True,
+    }
+    bnb = _build_bnb_config(config.load_in_4bit and has_cuda)
     if bnb is not None:
         load_kwargs["quantization_config"] = bnb
-    else:
-        try:
-            import torch
-
-            if torch.cuda.is_available():
-                load_kwargs["torch_dtype"] = torch.float16
-        except Exception:
-            pass
+    elif has_cuda and torch is not None:
+        load_kwargs["torch_dtype"] = _preferred_compute_dtype() or torch.float16
 
     model = AutoModelForCausalLM.from_pretrained(model_name, **load_kwargs)
     try:
@@ -145,9 +174,15 @@ def load_model_and_tokenizer(
     except ImportError:
         pass
 
+    compute_dtype = _preferred_compute_dtype()
+    dtype_label = "bf16" if (
+        compute_dtype is not None and str(compute_dtype).endswith("bfloat16")
+    ) else "fp16"
     return model, tokenizer, {
         "model_name": model_name,
         "backend": backend,
         "max_seq_length": max_seq_length,
-        "quantization": "nf4-fp16-doublequant" if bnb is not None else "fp16",
+        "quantization": (
+            f"nf4-{dtype_label}-doublequant" if bnb is not None else dtype_label
+        ),
     }
