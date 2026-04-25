@@ -1,21 +1,45 @@
-FROM python:3.11-slim
+FROM nvidia/cuda:12.1.1-cudnn8-runtime-ubuntu22.04
 
-WORKDIR /app
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    HF_HOME=/workspace/.hf_home \
+    TRANSFORMERS_CACHE=/workspace/.hf_home \
+    HF_HUB_ENABLE_HF_TRANSFER=1 \
+    PIP_ROOT_USER_ACTION=ignore \
+    PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True \
+    NCCL_IB_DISABLE=1 \
+    NCCL_P2P_DISABLE=0 \
+    NCCL_DEBUG=WARN \
+    TORCH_NCCL_BLOCKING_WAIT=1 \
+    TOKENIZERS_PARALLELISM=false \
+    OMP_NUM_THREADS=4
 
-# Minimal build deps for Python wheels
+# System packages: Python 3.11, git, build tools for bitsandbytes/wheels
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    && rm -rf /var/lib/apt/lists/*
+        python3.11 python3.11-venv python3.11-dev \
+        python3-pip git curl ca-certificates build-essential \
+        libgomp1 unzip zip \
+    && rm -rf /var/lib/apt/lists/* \
+    && update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# HF Spaces requires UID 1000 named "user"
+RUN useradd -m -u 1000 user
+USER user
+WORKDIR /workspace
 
-COPY . .
-RUN pip install --no-cache-dir -e .
+# Install JupyterLab and core CLI tools as the user
+RUN python -m pip install --user --no-cache-dir --upgrade pip \
+    && python -m pip install --user --no-cache-dir \
+        jupyterlab==4.2.5 ipywidgets==8.1.5 hf_transfer
 
-EXPOSE 8000
+ENV PATH="/home/user/.local/bin:${PATH}"
 
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)" || exit 1
+# HF builds from repo root: paths are relative to repository root.
+COPY --chown=user:user space/start.sh /workspace/start.sh
+RUN chmod +x /workspace/start.sh
 
-CMD ["uvicorn", "aic.server.env_api:app", "--host", "0.0.0.0", "--port", "8000"]
+EXPOSE 7860
+
+CMD ["/workspace/start.sh"]

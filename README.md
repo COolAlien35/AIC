@@ -1,3 +1,17 @@
+---
+title: AIC Training (Private)
+emoji: 🛰️
+colorFrom: indigo
+colorTo: blue
+sdk: docker
+app_port: 7860
+suggested_hardware: l4x4
+startup_duration_timeout: 1h
+private: true
+pinned: true
+short_description: Adaptive Incident Choreographer training Space (4xL4 DDP)
+---
+
 <p align="center">
   <h1 align="center">🚨 Adaptive Incident Choreographer (AIC)</h1>
   <p align="center"><strong>The Autonomous Incident War Room</strong></p>
