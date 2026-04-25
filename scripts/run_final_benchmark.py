@@ -126,6 +126,12 @@ class TrainedGRPOPolicy:
         try:
             from transformers import AutoModelForCausalLM, AutoTokenizer
             import torch
+            dtype = (
+                torch.bfloat16
+                if torch.cuda.is_available() and torch.cuda.is_bf16_supported()
+                else (torch.float16 if torch.cuda.is_available() else torch.float32)
+            )
+            device_map = {"": 0} if torch.cuda.is_available() else None
 
             ckpt = Path(self.checkpoint_path)
             if self._preflight.get("is_adapter_only"):
@@ -142,8 +148,9 @@ class TrainedGRPOPolicy:
                 self.tokenizer.padding_side = "left"
                 base = AutoModelForCausalLM.from_pretrained(
                     base_name,
-                    device_map="auto" if torch.cuda.is_available() else None,
-                    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                    device_map=device_map,
+                    torch_dtype=dtype,
+                    low_cpu_mem_usage=True,
                 )
                 self.model = PeftModel.from_pretrained(base, str(ckpt))
             else:
@@ -156,8 +163,9 @@ class TrainedGRPOPolicy:
                 self.tokenizer.padding_side = "left"
                 self.model = AutoModelForCausalLM.from_pretrained(
                     self.checkpoint_path,
-                    device_map="auto" if torch.cuda.is_available() else None,
-                    torch_dtype=torch.float16 if torch.cuda.is_available() else torch.float32,
+                    device_map=device_map,
+                    torch_dtype=dtype,
+                    low_cpu_mem_usage=True,
                 )
             self.model.eval()
             print(f"  [ok] Trained model loaded successfully")

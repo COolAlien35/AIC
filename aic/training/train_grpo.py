@@ -158,6 +158,8 @@ def _extract_completion_text(completion: Any) -> str:
     """TRL passes either a list of message dicts or a raw string."""
     if isinstance(completion, str):
         return completion
+    if isinstance(completion, dict):
+        return str(completion.get("content", ""))
     if isinstance(completion, list):
         parts: list[str] = []
         for item in completion:
@@ -196,6 +198,13 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
         raise ImportError(
             "GRPO dependencies missing. Install `trl`, `datasets`, and model backends first."
         ) from exc
+
+    try:
+        progress_log = Path("logs/grpo_progress.jsonl")
+        progress_log.parent.mkdir(parents=True, exist_ok=True)
+        progress_log.write_text("")
+    except Exception as exc:
+        print(f"[GRPO] WARNING: could not truncate progress log: {exc}")
 
     try:
         from transformers import TrainerCallback
@@ -276,6 +285,7 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
         # rendered prompt, so the value is intentionally unused here.
         del prompts
         rewards: list[float] = []
+        n = max(1, len(completions))
         episode_ids = kwargs.get("episode_id", [])
         base_seeds = kwargs.get("base_seed", [])
         fault_modes = kwargs.get("fault_mode", [])
@@ -288,15 +298,19 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
             fault_mode = fault_modes[idx] if idx < len(fault_modes) else config.fault_mode
             scenario_id = int(scenario_ids[idx]) if idx < len(scenario_ids) else 0
 
-            env = AICEnvironment(
-                episode_id=episode_id,
-                base_seed=base_seed,
-                fault_mode=fault_mode,
-                use_llm_agents=False,
-                manage_trust_scores=False,
-                scenario_id=scenario_id,
-            )
-            env.reset()
+            try:
+                env = AICEnvironment(
+                    episode_id=episode_id,
+                    base_seed=base_seed,
+                    fault_mode=fault_mode,
+                    use_llm_agents=False,
+                    manage_trust_scores=False,
+                    scenario_id=scenario_id,
+                )
+                env.reset()
+            except Exception:
+                rewards.append(-8.0 + (1e-3 * idx / n))
+                continue
 
             audit_ep_id = _audit_episode_counter[0]
             _audit_episode_counter[0] += 1
@@ -308,8 +322,12 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
                 env_reward = -8.0
 
             shaped = float(env_reward) + _shape_reward(text)
+            shaped += 1e-3 * idx / n
 
-            metrics = env.world_state.snapshot() if hasattr(env, "world_state") else {}
+            try:
+                metrics = env.world_state.snapshot() if hasattr(env, "world_state") else {}
+            except Exception:
+                metrics = {}
             grpo_audit.record_step(
                 step=0, action=text[:200],
                 reward=float(shaped), metrics=metrics,
@@ -385,6 +403,21 @@ def run_grpo(config: TrainingConfig | None = None) -> Path:
             "max_completion_length": config.max_completion_length,
             **backend_info,
         }, f, indent=2)
+    try:
+        del trainer
+        del model
+    except Exception:
+        pass
+    import gc
+    gc.collect()
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+    except Exception:
+        pass
     return output_dir
 
 

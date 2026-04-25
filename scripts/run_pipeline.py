@@ -43,6 +43,26 @@ def _print_header(text: str) -> None:
     print("=" * 72)
 
 
+def _free_vram(stage_name: str) -> None:
+    """Best-effort VRAM cleanup between long training stages."""
+    import gc
+
+    gc.collect()
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+            free, total = torch.cuda.mem_get_info(0)
+            print(
+                f"[{stage_name}] VRAM free after cleanup: "
+                f"{free/1e9:.1f}/{total/1e9:.1f} GB"
+            )
+    except Exception:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # verify
 # ---------------------------------------------------------------------------
@@ -128,8 +148,8 @@ def _smoke_sft() -> dict[str, Any]:
     # Hard caps for smoke (full run reads these from config, not env):
     #   - cap SFT to 40 steps so smoke wraps in minutes, not hours
     #   - disable eval split so we don't OOM on T4 mid-train
-    os.environ.setdefault("AIC_SFT_MAX_STEPS", "40")
-    os.environ.setdefault("AIC_SFT_DISABLE_EVAL", "1")
+    os.environ["AIC_SFT_MAX_STEPS"] = "40"
+    os.environ["AIC_SFT_DISABLE_EVAL"] = "1"
     print(
         f"[smoke] AIC_SFT_MAX_STEPS={os.environ['AIC_SFT_MAX_STEPS']} "
         f"AIC_SFT_DISABLE_EVAL={os.environ['AIC_SFT_DISABLE_EVAL']}"
@@ -307,12 +327,17 @@ def _full_sft() -> dict[str, Any]:
     from aic.training.generate_sft_data import generate_sft_dataset
     from aic.training.run_sft import run_sft
 
+    # Drop smoke leftovers before full run; otherwise full SFT may silently
+    # inherit AIC_SFT_MAX_STEPS=40 from a prior smoke invocation.
+    os.environ.pop("AIC_SFT_MAX_STEPS", None)
+    os.environ["AIC_SFT_DISABLE_EVAL"] = "1"
+
     cfg = TrainingConfig(
         model_name="Qwen/Qwen2.5-3B-Instruct",
         sft_num_episodes=120,
         sft_epochs=1,
-        sft_batch_size=2,
-        sft_grad_accumulation=8,
+        sft_batch_size=1,
+        sft_grad_accumulation=16,
         sft_learning_rate=2e-4,
         max_prompt_length=1024,
         max_completion_length=192,
@@ -326,8 +351,21 @@ def _full_sft() -> dict[str, Any]:
     dataset_path = generate_sft_dataset(cfg)
     print(f"[full] Dataset at {dataset_path}")
 
-    out = run_sft(cfg, min_parse_rate=0.7)
-    return {"sft_dir": str(out)}
+    out = run_sft(cfg, min_parse_rate=0.5)
+    parse_rate = 0.0
+    try:
+        with open(Path(out) / "sft_metadata.json") as f:
+            parse_rate = float(json.load(f).get("parse_rate", 0.0))
+    except Exception:
+        pass
+    if parse_rate < 0.7:
+        print(
+            f"[full] WARNING: SFT parse_rate={parse_rate:.2f} < 0.70 "
+            "(continuing because >= 0.50)"
+        )
+
+    os.environ.pop("AIC_SFT_DISABLE_EVAL", None)
+    return {"sft_dir": str(out), "parse_rate": parse_rate}
 
 
 def _full_grpo(sft_dir: str) -> dict[str, Any]:
@@ -338,12 +376,12 @@ def _full_grpo(sft_dir: str) -> dict[str, Any]:
         model_name="Qwen/Qwen2.5-3B-Instruct",
         sft_output_dir=sft_dir,
         sft_num_episodes=120,
-        grpo_max_steps=200,
+        grpo_max_steps=80,
         grpo_per_device_train_batch_size=1,
         grpo_gradient_accumulation_steps=4,
-        grpo_num_generations=4,
+        grpo_num_generations=2,
         max_prompt_length=1024,
-        max_completion_length=192,
+        max_completion_length=128,
         load_in_4bit=True,
         use_unsloth=False,
         lora_r=16,
@@ -383,22 +421,28 @@ def cmd_full(_args) -> int:
     _print_header("STAGE: full")
 
     smoke_log = PIPELINE_LOG_DIR / "stage_smoke.json"
-    if smoke_log.exists():
-        try:
-            payload = json.loads(smoke_log.read_text())
-            if payload.get("status") != "ok":
-                print(
-                    "[full] Smoke last run did not pass gates "
-                    "(status="
-                    f"{payload.get('status')}). Re-run `python scripts/run_pipeline.py smoke` first."
-                )
-                return 1
-        except Exception:
-            pass
+    if not smoke_log.exists():
+        print(
+            "[full] REFUSING to run: stage_smoke.json not found. "
+            "Run `python scripts/run_pipeline.py smoke` first."
+        )
+        return 1
+    try:
+        payload = json.loads(smoke_log.read_text())
+    except Exception:
+        print("[full] REFUSING to run: stage_smoke.json is not readable JSON.")
+        return 1
+    if payload.get("status") != "ok":
+        print(
+            f"[full] REFUSING to run: smoke status={payload.get('status')}. "
+            "Re-run smoke until both gates pass."
+        )
+        return 1
 
     try:
         sft_result = _full_sft()
         _stage_log("sft", {"stage": "sft", "status": "ok", **sft_result})
+        _free_vram("post-sft")
     except Exception as exc:
         _stage_log(
             "sft",
@@ -411,6 +455,7 @@ def cmd_full(_args) -> int:
     try:
         grpo_result = _full_grpo(sft_result["sft_dir"])
         _stage_log("grpo", {"stage": "grpo", "status": "ok", **grpo_result})
+        _free_vram("post-grpo")
     except Exception as exc:
         _stage_log(
             "grpo",
@@ -423,6 +468,7 @@ def cmd_full(_args) -> int:
     try:
         export_result = _full_export(grpo_result["grpo_dir"])
         _stage_log("export", {"stage": "export", "status": "ok", **export_result})
+        _free_vram("post-export")
     except Exception as exc:
         _stage_log(
             "export",

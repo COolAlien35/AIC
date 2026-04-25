@@ -368,7 +368,26 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
     with open(output_dir / "sft_metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 
+    def _cleanup_after_train() -> None:
+        try:
+            del trainer
+            del model
+        except Exception:
+            pass
+        import gc
+
+        gc.collect()
+        try:
+            import torch
+
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+                torch.cuda.ipc_collect()
+        except Exception:
+            pass
+
     if parse_rate < min_parse_rate:
+        _cleanup_after_train()
         raise RuntimeError(
             f"SFT parse-rate gate failed: got {parse_rate:.2f} < required "
             f"{min_parse_rate:.2f}. Inspect {output_dir}/sft_metadata.json. "
@@ -376,6 +395,7 @@ def run_sft(config: TrainingConfig | None = None, min_parse_rate: float = 0.7) -
             "max_completion_length too low for the JSON schema."
         )
 
+    _cleanup_after_train()
     return output_dir
 
 

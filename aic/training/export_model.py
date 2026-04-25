@@ -56,15 +56,30 @@ def export_grpo_to_full(
     print(f"[export] Merging adapter from {grpo_dir} into base {base_name}")
 
     has_cuda = torch.cuda.is_available()
+    compute_dtype = (
+        torch.bfloat16
+        if has_cuda and torch.cuda.is_bf16_supported()
+        else (torch.float16 if has_cuda else torch.float32)
+    )
     base = AutoModelForCausalLM.from_pretrained(
         base_name,
-        torch_dtype=torch.float16 if has_cuda else torch.float32,
-        device_map="auto" if has_cuda else None,
+        torch_dtype=compute_dtype,
+        device_map={"": 0} if has_cuda else None,
+        low_cpu_mem_usage=True,
     )
     model = PeftModel.from_pretrained(base, str(grpo_dir))
     merged = model.merge_and_unload()
 
     merged.save_pretrained(str(output_dir), safe_serialization=True)
+    try:
+        import gc
+
+        gc.collect()
+        if has_cuda:
+            torch.cuda.empty_cache()
+            torch.cuda.ipc_collect()
+    except Exception:
+        pass
 
     tok_source = grpo_dir if (grpo_dir / "tokenizer_config.json").exists() else base_name
     tokenizer = AutoTokenizer.from_pretrained(str(tok_source), use_fast=True)
