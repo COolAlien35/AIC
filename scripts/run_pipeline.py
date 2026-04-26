@@ -434,11 +434,13 @@ def _full_grpo(sft_dir: str) -> dict[str, Any]:
 
     # Keep GRPO prompt dataset aligned with the SFT coverage level.
     sft_eps = int(os.environ.get("AIC_FULL_SFT_EPISODES", "240"))
+    grpo_steps = int(os.environ.get("AIC_FULL_GRPO_MAX_STEPS", "50"))
 
     cfg = TrainingConfig(
         model_name="Qwen/Qwen2.5-3B-Instruct",
         sft_output_dir=sft_dir,
         sft_num_episodes=sft_eps,
+        grpo_max_steps=grpo_steps,
         grpo_per_device_train_batch_size=1,
         max_prompt_length=1024,
         load_in_4bit=True,
@@ -446,6 +448,7 @@ def _full_grpo(sft_dir: str) -> dict[str, Any]:
         lora_r=16,
         lora_alpha=32,
     )
+    print(f"[full] GRPO max_steps={grpo_steps}")
     out = run_grpo(cfg)
     return {"grpo_dir": str(out)}
 
