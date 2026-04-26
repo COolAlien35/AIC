@@ -194,7 +194,7 @@ sequenceDiagram
   Env->>Obs: new observation (t += 1)
 ```
 
-### 3. Reward function (8 components, multi-objective)
+### 3. Reward function (9 components, multi-objective)
 
 The hackathon FAQ explicitly warns: *"if you only have a single reward signal, it is easier for the model to hack it. Multiple independent checks reduce that risk."* So we don't.
 
