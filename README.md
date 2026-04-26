@@ -30,6 +30,7 @@
 - **Space page:** https://huggingface.co/spaces/KINGKK007/aic-training
 - **Runtime URL:** https://kingkk007-aic-training.hf.space
 - **Results dashboard (public):** https://huggingface.co/spaces/KINGKK007/aic-results-dashboard
+- **Trained LoRA adapter (public):** https://huggingface.co/COolAlien35/aic-grpo-adapter-14
 
 <br/>
 
