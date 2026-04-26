@@ -28,6 +28,14 @@ Judges should pull this URL to evaluate the environment.
 > [`DESIGN.md`](https://github.com/COolAlien35/AIC/blob/main/DESIGN.md) ·
 > [`openenv.yaml`](https://github.com/COolAlien35/AIC/blob/main/openenv.yaml).
 
+## TL;DR (what judges should do)
+
+1. Confirm liveness: `GET /health`
+2. Start an episode: `POST /reset` → get `env_id`
+3. Inspect full state: `GET /state/{env_id}`
+
+This Space is **environment-only** (FastAPI). Training happens in Colab; results are linked below.
+
 ## What this is
 
 AIC is a multi-agent, adversarial incident-response environment. **Six specialist
@@ -39,8 +47,14 @@ gates execution by risk score and blast radius. The world state evolves through 
 
 The action space is a structured `OrchestratorDecision` JSON; the observation includes
 candidate recommendations, current metrics, trust scores, scenario metadata, and
-schema-drift state. The reward is an **8-component verifiable reward function (R1–R8)**
+schema-drift state. The reward is a **9-component verifiable reward function (R1–R9)**
 plus an over-confidence penalty (R9) and a terminal SLA-met bonus (R2).
+
+**Why this is hard (and why “standard AI” fails):**
+- incidents are **multi-step** (20-step SLA budget)
+- telemetry can be **corrupted** (NaNs / field renames / unit shifts)
+- actions must be **safe** (verifier-gated)
+- one agent is **adversarial** (plausible but destructive advice)
 
 ## API
 
@@ -59,7 +73,7 @@ The class is `aic.env.aic_environment.AICEnvironment`, which subclasses `openenv
 ## Quick smoke test
 
 ```bash
-HOST="https://kingkk007-aic-openenv-env.hf.space"
+HOST="https://kingkk007-aic-training.hf.space"
 
 # liveness
 curl -s "$HOST/health"
@@ -72,6 +86,17 @@ ENV_ID=$(curl -sX POST "$HOST/reset" \
 curl -s "$HOST/state/$ENV_ID" | \
   jq '.state | {step, scenario_name, health_score, is_within_sla, sla_remaining_steps}'
 ```
+
+## Evidence of real training (GRPO)
+
+These artifacts are committed in the GitHub repo and generated from the raw training log:
+
+- Reward curve: `results/grpo_reward_curve.png`
+- Loss curve: `results/grpo_loss_curve.png`
+- KL curve: `results/grpo_kl_curve.png`
+- Raw per-step log: `logs/grpo_progress.jsonl`
+
+The headline story is simple: **reward improves from −15.10 → −10.24 in 80 GRPO steps** on a Colab T4.
 
 ## Tasks (3, with deterministic 0.0–1.0 graders)
 
@@ -97,11 +122,13 @@ Every grader is a pure function `EpisodeTrace → float ∈ [0, 1]`.
 ## Project links
 
 - **Source code (canonical):** https://github.com/COolAlien35/AIC
-- **Live Gradio demo (separate Space):** https://huggingface.co/spaces/KINGKK007/aic-incident-command-center
 - **2-minute video walkthrough:** linked from the source-repo README
-- **Real GRPO training run (loss + reward plots):** [`results/`](https://github.com/COolAlien35/AIC/tree/main/results)
-- **Colab training notebook:** [`train_colab.ipynb`](https://github.com/COolAlien35/AIC/blob/main/train_colab.ipynb)
+- **Results dashboard (hosted):** https://huggingface.co/spaces/KINGKK007/aic-results-dashboard
+- **Judge quickstart notebook:** https://colab.research.google.com/github/COolAlien35/AIC/blob/main/judge_colab.ipynb
+- **All-in-one notebook:** https://colab.research.google.com/github/COolAlien35/AIC/blob/main/AIC_all_in_one.ipynb
+- **Training notebook:** https://colab.research.google.com/github/COolAlien35/AIC/blob/main/train_colab.ipynb
 - **OpenAI baseline script (judges run with their own key):** [`scripts/openai_baseline.py`](https://github.com/COolAlien35/AIC/blob/main/scripts/openai_baseline.py)
+- **Public trained LoRA adapter:** https://huggingface.co/COolAlien35/aic-grpo-adapter-14
 
 ## Real GRPO training run (snapshot)
 
