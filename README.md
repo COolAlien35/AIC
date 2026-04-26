@@ -34,7 +34,8 @@
 <br/>
 
 <sub>
-  <a href="train_colab.ipynb">📓 Colab notebook</a> &nbsp;·&nbsp;
+  <a href="judge_colab.ipynb">✅ Judge Colab</a> &nbsp;·&nbsp;
+  <a href="train_colab.ipynb">📓 Training Colab</a> &nbsp;·&nbsp;
   <a href="results/grpo_reward_curve.png">📈 Real GRPO curves</a> &nbsp;·&nbsp;
   <a href="dashboard/site/index.html">📊 Results dashboard</a> &nbsp;·&nbsp;
   <a href="https://huggingface.co/spaces/KINGKK007/aic-results-dashboard">🌐 Dashboard Space</a> &nbsp;·&nbsp;
@@ -546,6 +547,7 @@ For the live HF Space: `curl https://kingkk007-aic-training.hf.space/health` —
 | Meaningful reward function with partial-progress signal | 8-component reward in [`aic/env/reward_engine.py`](aic/env/reward_engine.py); per-component logging in [`aic/training/reward_audit.py`](aic/training/reward_audit.py) | ✅ |
 | OpenAI baseline reading `OPENAI_API_KEY` | [`scripts/openai_baseline.py`](scripts/openai_baseline.py) — judges run with their key | ✅ |
 | Working training script (TRL/Unsloth, ideally Colab) | [`aic/training/train_grpo.py`](aic/training/train_grpo.py) + [`train_colab.ipynb`](train_colab.ipynb) | ✅ |
+| Judge-friendly quickstart notebook | [`judge_colab.ipynb`](judge_colab.ipynb) — verifies `/health` `/reset` `/state` and runs a tiny local check | ✅ |
 | Real loss + reward plots from a real run | [`results/grpo_reward_curve.png`](results/grpo_reward_curve.png) · [`grpo_loss_curve.png`](results/grpo_loss_curve.png) · [`grpo_kl_curve.png`](results/grpo_kl_curve.png) — generated from real [`logs/grpo_progress.jsonl`](logs/grpo_progress.jsonl) | ✅ |
 | Working Dockerfile, clean `docker build && docker run` | [`Dockerfile`](Dockerfile) (root) and [`hf_env_space/Dockerfile`](hf_env_space/Dockerfile) (HF Space, port 7860) | ✅ |
 | Repo-root `inference.py` | [`inference.py`](inference.py) — loads adapter, runs each task | ✅ |
