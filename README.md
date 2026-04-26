@@ -36,6 +36,7 @@
   <a href="train_colab.ipynb">📓 Colab notebook</a> &nbsp;·&nbsp;
   <a href="results/grpo_reward_curve.png">📈 Real GRPO curves</a> &nbsp;·&nbsp;
   <a href="dashboard/site/index.html">📊 Results dashboard</a> &nbsp;·&nbsp;
+  <a href="https://huggingface.co/spaces/KINGKK007/aic-results-dashboard">🌐 Dashboard Space</a> &nbsp;·&nbsp;
   <a href="VIDEO_SCRIPT.md">🎬 Video script</a> &nbsp;·&nbsp;
   <a href="DESIGN.md">📐 Design doc</a> &nbsp;·&nbsp;
   <a href="openenv.yaml">📜 openenv.yaml</a> &nbsp;·&nbsp;
