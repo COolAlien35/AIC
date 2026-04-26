@@ -54,6 +54,15 @@ def step_env(request: StepRequest) -> dict:
     return {"observation": obs, "reward": reward, "done": done, "info": info}
 
 
+@app.get("/state/{env_id}")
+def state_env(env_id: str) -> dict:
+    """Return the structured environment state (OpenEnv ``state`` method)."""
+    env = _ENV_REGISTRY.get(env_id)
+    if env is None:
+        raise HTTPException(status_code=404, detail="Unknown env_id")
+    return {"env_id": env_id, "state": env.state()}
+
+
 @app.get("/render/{env_id}")
 def render_env(env_id: str) -> dict:
     env = _ENV_REGISTRY.get(env_id)

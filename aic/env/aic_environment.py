@@ -729,6 +729,60 @@ class AICEnvironment(OpenEnvBase):
         )
         return obs.model_dump()
 
+    def state(self) -> dict:
+        """OpenEnv ``state`` accessor.
+
+        Returns the full structured state of the environment as a JSON-serialisable
+        dictionary. This is required by the OpenEnv interface (``state_method`` in
+        ``openenv.yaml``) and is what the ``GET /state/{env_id}`` HTTP endpoint
+        exposes for remote evaluation.
+        """
+        try:
+            metrics = self.world_state.snapshot()
+        except Exception:  # pragma: no cover - defensive
+            metrics = {}
+
+        try:
+            health = float(self.world_state.get_health_score())
+        except Exception:  # pragma: no cover
+            health = 0.0
+
+        try:
+            within_sla = bool(self.world_state.is_within_sla())
+        except Exception:  # pragma: no cover
+            within_sla = False
+
+        return {
+            "episode_id": int(self.episode_id),
+            "step": int(self.step_count),
+            "sla_remaining_steps": max(0, SLA_STEPS - self.step_count),
+            "scenario_id": self.scenario_id,
+            "scenario_name": (
+                self._scenario_engine.get_scenario_name()
+                if self._scenario_engine is not None
+                else None
+            ),
+            "is_done": bool(self.done),
+            "is_within_sla": within_sla,
+            "health_score": round(health, 4),
+            "current_metrics": metrics,
+            "trust_scores": dict(self.trust_scores),
+            "active_agents": self.get_active_agents(),
+            "schema_drift_active": self._schema_drift.was_active_at(self.step_count),
+            "schema_drift_type": (
+                self._drift_type
+                if self._schema_drift.was_active_at(self.step_count)
+                else None
+            ),
+            "episode_budget_remaining": float(round(self.episode_budget_remaining, 4)),
+            "candidate_recommendation_ids": [
+                c.recommendation_id for c in self._candidate_recommendations
+            ],
+            "trace_history": list(self.trace_history),
+            "drift_type": self._drift_type,
+            "fault_mode": self.fault_mode,
+        }
+
     def render(self) -> Optional[str]:
         """Render the current environment state."""
         if self.render_mode == "ansi":

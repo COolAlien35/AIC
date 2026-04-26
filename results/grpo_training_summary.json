@@ -1,0 +1,13 @@
+{
+  "total_steps": 80,
+  "initial_reward": -15.099964141845703,
+  "final_reward": -10.2415372133255,
+  "reward_delta": 4.858426928520203,
+  "min_reward": -15.215996026992798,
+  "max_reward": -7.0652836561203,
+  "final_loss": 0.0026,
+  "max_reward_std": 4.070734148968768,
+  "training_time_minutes": 371.3350672443708,
+  "source_log": "logs/grpo_progress.jsonl",
+  "framework": "TRL GRPOTrainer + Unsloth"
+}

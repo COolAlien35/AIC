@@ -17,9 +17,15 @@ tags:
   - trust-calibration
 ---
 
-# 🚨 Adaptive Incident Choreographer (AIC)
+# 🚨 Adaptive Incident Choreographer (AIC) — Live Demo
 
 **Multi-Agent Trust Calibration Under Adversarial Conditions**
+
+> **Note for hackathon judges:** this Space is the **interactive Gradio demo**.
+> The canonical **OpenEnv environment server** that judges should pull/evaluate
+> lives at **[`KINGKK007/aic-openenv-env`](https://huggingface.co/spaces/KINGKK007/aic-openenv-env)**
+> (Docker SDK, FastAPI, exposes `/health`, `/reset`, `/step`, `/state/{env_id}`,
+> `/render/{env_id}`, `DELETE /env/{env_id}`).
 
 Step through a simulated cascading production incident. Observe how specialist
 AI agents propose remediations, an adversarial agent injects misleading advice,
@@ -43,6 +49,7 @@ and the orchestrator must decide who to trust — all under an SLA deadline.
 
 ## Links
 
+- **OpenEnv environment server (judges pull this):** https://huggingface.co/spaces/KINGKK007/aic-openenv-env
 - [GitHub Repository](https://github.com/COolAlien35/AIC)
 - [Colab Training Notebook](https://colab.research.google.com/github/COolAlien35/AIC/blob/main/train_colab.ipynb)
 - [Blog Post](https://huggingface.co/blog/COolAlien35/adaptive-incident-choreographer)

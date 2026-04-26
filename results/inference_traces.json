@@ -1,0 +1,23 @@
+{
+  "adversarial_misroute": [
+    {
+      "seed": 342,
+      "score": 0.35,
+      "steps": 20
+    }
+  ],
+  "canary_blackout": [
+    {
+      "seed": 142,
+      "score": 0.1,
+      "steps": 20
+    }
+  ],
+  "db_pool_recovery": [
+    {
+      "seed": 42,
+      "score": 0.05,
+      "steps": 20
+    }
+  ]
+}

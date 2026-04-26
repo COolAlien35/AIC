@@ -1,0 +1,16 @@
+# Slim runtime deps for the OpenEnv env service.
+# Does NOT include training stack (torch / transformers / peft / unsloth) -
+# this Space only exposes the environment so judges can call /reset, /step,
+# /state etc. Training happens in Colab.
+
+fastapi==0.115.4
+uvicorn==0.32.0
+pydantic>=2.7,<3
+numpy==1.26.4
+scipy==1.14.1
+gymnasium==0.29.1
+openenv==0.1.13
+openenv-core>=0.2.0
+rich==13.9.2
+python-dotenv==1.0.1
+huggingface_hub>=0.26,<2

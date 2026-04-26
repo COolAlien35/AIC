@@ -9,6 +9,7 @@ environment:
   episode_max_length: 20
   reset_method: "reset"
   step_method: "step"
+  state_method: "state"
   render_method: "render"
 
 api:
@@ -20,8 +21,19 @@ api:
   endpoints:
     reset: "/reset"
     step: "/step"
+    state: "/state/{env_id}"
     render: "/render/{env_id}"
     delete: "/env/{env_id}"
+
+tasks:
+  count: 3
+  registry: "aic/tasks/__init__.py"
+  difficulty_levels: ["easy", "medium", "hard"]
+  grader_range: [0.0, 1.0]
+  ids:
+    - "db_pool_recovery"
+    - "cache_stampede"
+    - "adversarial_misroute"
 
 interfaces:
   state_space_ref: "aic/env/aic_environment.py"

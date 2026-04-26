@@ -26,8 +26,12 @@ checkpoints/sft/checkpoint-*/
 *.bin
 !training_args.bin
 
-# Logs (local runs; not source)
+# Logs (local runs; not source) - except canonical GRPO progress log
 logs/
+!logs/grpo_progress.jsonl
+
+# Generated submission bundle (regenerable via scripts/build_submission_bundle.py)
+submission/
 
 # Temp
 /tmp/

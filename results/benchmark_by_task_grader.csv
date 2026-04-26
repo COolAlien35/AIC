@@ -1,0 +1,10 @@
+policy,task_id,difficulty,scenario_id,scenario_name,num_episodes,mean_score_0_1,std_score_0_1,success_rate,success_threshold
+baseline_frozen,adversarial_misroute,hard,3,Adversarial misrouting during DB schema migration,3,0.35,0.0,0.0,0.5
+baseline_frozen,canary_blackout,medium,1,Canary failure recovery during telemetry blackout,3,0.1,0.0,0.0,0.55
+baseline_frozen,db_pool_recovery,easy,0,DB pool recovery from cache stampede,3,0.05,0.0,0.0,0.6
+baseline_adaptive,adversarial_misroute,hard,3,Adversarial misrouting during DB schema migration,3,0.35,0.0,0.0,0.5
+baseline_adaptive,canary_blackout,medium,1,Canary failure recovery during telemetry blackout,3,0.1,0.0,0.0,0.55
+baseline_adaptive,db_pool_recovery,easy,0,DB pool recovery from cache stampede,3,0.05,0.0,0.0,0.6
+random_safe,adversarial_misroute,hard,3,Adversarial misrouting during DB schema migration,3,0.35,0.0,0.0,0.5
+random_safe,canary_blackout,medium,1,Canary failure recovery during telemetry blackout,3,0.1,0.0,0.0,0.55
+random_safe,db_pool_recovery,easy,0,DB pool recovery from cache stampede,3,0.05,0.0,0.0,0.6

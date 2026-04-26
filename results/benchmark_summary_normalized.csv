@@ -1,0 +1,4 @@
+policy,adversarial_misroute,canary_blackout,db_pool_recovery,mean
+baseline_adaptive,0.35,0.1,0.05,0.1667
+baseline_frozen,0.35,0.1,0.05,0.1667
+random_safe,0.35,0.1,0.05,0.1667

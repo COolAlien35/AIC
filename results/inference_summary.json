@@ -1,0 +1,41 @@
+{
+  "policy": "baseline_frozen",
+  "tasks": {
+    "adversarial_misroute": {
+      "difficulty": "hard",
+      "scenario_id": 3,
+      "mean_score": 0.35,
+      "episodes": [
+        {
+          "seed": 342,
+          "score": 0.35,
+          "steps": 20
+        }
+      ]
+    },
+    "canary_blackout": {
+      "difficulty": "medium",
+      "scenario_id": 1,
+      "mean_score": 0.1,
+      "episodes": [
+        {
+          "seed": 142,
+          "score": 0.1,
+          "steps": 20
+        }
+      ]
+    },
+    "db_pool_recovery": {
+      "difficulty": "easy",
+      "scenario_id": 0,
+      "mean_score": 0.05,
+      "episodes": [
+        {
+          "seed": 42,
+          "score": 0.05,
+          "steps": 20
+        }
+      ]
+    }
+  }
+}

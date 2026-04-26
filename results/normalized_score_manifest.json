@@ -1,0 +1,39 @@
+{
+  "policies": [
+    "baseline_frozen",
+    "baseline_adaptive",
+    "random_safe"
+  ],
+  "tasks": [
+    {
+      "task_id": "db_pool_recovery",
+      "difficulty": "easy",
+      "scenario_id": 0,
+      "title": "DB pool recovery from cache stampede",
+      "success_threshold": 0.6
+    },
+    {
+      "task_id": "canary_blackout",
+      "difficulty": "medium",
+      "scenario_id": 1,
+      "title": "Canary failure recovery during telemetry blackout",
+      "success_threshold": 0.55
+    },
+    {
+      "task_id": "adversarial_misroute",
+      "difficulty": "hard",
+      "scenario_id": 3,
+      "title": "Adversarial misrouting during DB schema migration",
+      "success_threshold": 0.5
+    }
+  ],
+  "episodes_per_pair": 3,
+  "seed": 42,
+  "source_files": {
+    "graders": [
+      "aic/tasks/task_db_pool_recovery.py",
+      "aic/tasks/task_canary_blackout.py",
+      "aic/tasks/task_adversarial_misroute.py"
+    ]
+  }
+}
