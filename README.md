@@ -200,7 +200,7 @@ sequenceDiagram
   Env->>Env: causal propagation through DAG
   Env->>Trust: which agent was followed?
   Trust-->>Env: updated trust scores
-  Env->>Rwd: 8-component reward
+  Env->>Rwd: 9-component reward (R1–R9)
   Rwd-->>Pol: scalar reward + breakdown
   Env->>Obs: new observation (t += 1)
 ```
@@ -208,6 +208,27 @@ sequenceDiagram
 ### 3. Reward function (9 components, multi-objective)
 
 The hackathon FAQ explicitly warns: *"if you only have a single reward signal, it is easier for the model to hack it. Multiple independent checks reduce that risk."* So we don't.
+
+#### Our logic for the reward system (why these components exist)
+
+We designed reward as a **contract** between the environment and the policy:
+
+- **Outcome first**: reward must primarily measure whether the *world is recovering* (KPIs + SLA), not whether the policy “sounds right”.
+- **Process only where necessary**: we add process constraints only to prevent known RL failure modes (format drift, overconfidence, blind trust, unsafe actions).
+- **Verifiable > subjective**: every component is either programmatically verifiable (schema checks, veto gate, KPI deltas, terminal SLA), or tied to a deterministic signal derived from the environment state.
+- **Short-horizon + long-horizon together**: dense step reward encourages progress; sparse terminal reward prevents “local wins” that fail the real objective.
+
+In practice, this is why AIC can’t be solved by a single prompt: it’s a 20‑step causal system with a safety gate, adversarial advice, and rewards that are **measured from state transitions**.
+
+#### How we prevent reward hacking (and why it’s hard to game)
+
+We hardened the environment and reward pipeline against the exact “specification gaming” failure modes the FAQ warns about:
+
+- **Deterministic Recovery Verifier gate**: unsafe actions are **rejected at runtime**, not merely penalized after the fact. This blocks the most common hack: “take a destructive action that spikes reward briefly.”
+- **Strict structured action schema**: invalid JSON / invalid selection is penalized (and can be vetoed), so the policy can’t farm reward by producing malformed outputs.
+- **Overconfidence penalty (R9)**: being confidently wrong is explicitly punished, which prevents “always predict huge improvement” style calibration hacks.
+- **Independent 0–1 task graders**: headline success is computed from the **terminal world state** (separate from shaping reward), so you can’t win by gaming intermediate shaping.
+- **Auditable traces + tests**: reward logic is unit-tested and the anti-gaming cases are exercised in `tests/test_reward_hacking.py` and `tests/test_reward_gaming.py`.
 
 ```mermaid
 flowchart TB
@@ -225,9 +246,10 @@ flowchart TB
   R6["R6 · Adversary Rejection<br/>+ for veto, − for follow"]:::pos
   R7["R7 · Reasoning Quality<br/>length + structure + grounding"]:::pos
   R8["R8 · Cost Penalty<br/>− per intervention budget unit"]:::neg
+  R9["R9 · Overconfidence Penalty<br/>− if confidently wrong"]:::neg
 
-  D --> R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8
-  R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 --> SUM["Σ weighted = step reward"]
+  D --> R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9
+  R1 & R2 & R3 & R4 & R5 & R6 & R7 & R8 & R9 --> SUM["Σ weighted = step reward"]
 ```
 
 Source: [`aic/env/reward_engine.py`](aic/env/reward_engine.py). Weights are dynamic per phase (early-episode favors detection, late-episode favors stability) and are unit-tested in [`tests/test_reward_engine.py`](tests/test_reward_engine.py) plus dedicated [`tests/test_reward_hacking.py`](tests/test_reward_hacking.py) and [`tests/test_reward_gaming.py`](tests/test_reward_gaming.py).
