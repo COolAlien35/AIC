@@ -7,7 +7,7 @@ sdk: docker
 app_port: 7860
 pinned: true
 license: mit
-short_description: Adversarial multi-agent incident-response OpenEnv (FastAPI / Docker)
+short_description: Judge env server (OpenEnv + FastAPI)
 tags:
   - openenv
   - rlve
