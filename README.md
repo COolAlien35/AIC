@@ -286,72 +286,49 @@ flowchart TB
 
 ### 6. File structure
 
+```mermaid
+flowchart TB
+  ROOT["AIC/ (repo root)"]
+
+  subgraph PKG["🟢 aic/ — core package"]
+    ENV["env/ — OpenEnv env + world model\n• aic_environment.py\n• world_state.py\n• service_topology.py\n• scenario_registry.py\n• reward_engine.py\n• schema_drift.py\n• counterfactual_simulator.py"] 
+    AG["agents/ — specialists + adversary + verifier\n• orchestrator_agent.py\n• db_agent.py · infra_agent.py · app_agent.py\n• network_agent.py · security_agent.py\n• adversarial_agent.py\n• recovery_verifier_agent.py"]
+    TASKS["tasks/ — 0–1 graders (rubric)\n• task_db_pool_recovery.py (easy)\n• task_canary_blackout.py (medium)\n• task_adversarial_misroute.py (hard)\n• registry.py"]
+    TRAIN["training/ — TRL GRPO + Unsloth\n• train_grpo.py\n• rollout_env.py\n• modeling_unsloth.py\n• reward_audit.py"]
+    SCHEMA["schemas/ — Pydantic contracts\n• actions.py\n• observations.py\n• traces.py"]
+    API["server/ — FastAPI OpenEnv surface\n• env_api.py (/health /reset /step /state)"]
+  end
+
+  subgraph EVID["🟨 Evidence + results"]
+    RES["results/ — plots + CSVs + logs\n• grpo_*_curve.png\n• benchmark_merged/plots/\n• statistical_test*.json\n• openenv_validate.log"]
+    LOG["logs/grpo_progress.jsonl — real GRPO JSONL (80 steps)"]
+    DASH["dashboard/site/ — static results dashboard\nHTML/CSS/JS + data.js"]
+  end
+
+  subgraph DEP["🟧 Deployment payloads (HF Spaces)"]
+    ENVSPACE["hf_env_space/ — canonical judge env Space\nDockerfile + runtime deps"]
+    DASHSPACE["hf_dashboard_space/ — dashboard Space (static)\nnginx on :7860"]
+  end
+
+  TOOLS["🟦 scripts/ — utilities\n• plot_grpo_progress.py\n• run_final_benchmark.py\n• score_tasks.py\n• deploy_hf_*_space.sh\n• build_submission_bundle.py"]
+  OTHER["📦 root files\n• openenv.yaml\n• train_colab.ipynb\n• inference.py\n• DESIGN.md / VIDEO_SCRIPT.md"]
+
+  ROOT --> PKG
+  ROOT --> EVID
+  ROOT --> DEP
+  ROOT --> TOOLS
+  ROOT --> OTHER
+```
+
+For copy/paste / grep-friendly navigation, here’s the compact tree:
+
 ```
 AIC/
-├── 🟢 aic/                              # Core OpenEnv environment package
-│   ├── env/                             # World model + reward + verifier (11 files)
-│   │   ├── aic_environment.py           # OpenEnv reset/step/state/render
-│   │   ├── world_state.py               # 12-KPI persistent state
-│   │   ├── service_topology.py          # Causal DAG with coupling coefficients
-│   │   ├── scenario_registry.py         # 6 brutal scenarios
-│   │   ├── reward_engine.py             # 8-component reward
-│   │   ├── counterfactual_simulator.py  # what-if rollouts for the policy
-│   │   ├── schema_drift.py              # field rename / NaN blackout / unit shift
-│   │   └── fault_injector.py            # adversarial telemetry corruption
-│   ├── agents/                          # 6 specialist agents (16 files)
-│   │   ├── orchestrator_agent.py        # the trainable policy interface
-│   │   ├── db_agent.py · infra_agent.py · app_agent.py · network_agent.py
-│   │   ├── security_agent.py · adversarial_agent.py
-│   │   ├── recovery_verifier_agent.py   # deterministic safety gate
-│   │   └── root_cause_analyst_agent.py  # Bayesian hypothesis ranking
-│   ├── tasks/                           # 3 OpenEnv tasks with 0–1 graders
-│   │   ├── registry.py                  # Task dataclass + grade_episode()
-│   │   ├── task_db_pool_recovery.py     # easy
-│   │   ├── task_canary_blackout.py      # medium
-│   │   └── task_adversarial_misroute.py # hard
-│   ├── training/                        # TRL GRPO + Unsloth integration (14 files)
-│   │   ├── train_grpo.py                # the actual training script
-│   │   ├── rollout_env.py               # OpenEnv ↔ TRL bridge
-│   │   ├── modeling_unsloth.py          # 4-bit + LoRA loader
-│   │   └── reward_audit.py              # per-component reward logging
-│   ├── schemas/                         # Pydantic v2 typed contracts
-│   │   ├── actions.py                   # OrchestratorDecision
-│   │   ├── observations.py              # OrchestratorObservation
-│   │   └── traces.py                    # ExplanationTrace, EpisodeTrace
-│   ├── server/                          # FastAPI app for OpenEnv
-│   │   └── env_api.py                   # /reset · /step · /state · /health
-│   └── evals/                           # Benchmark + arena harness
-│       └── benchmark_suite.py
-│
-├── 🟧 hf_env_space/                     # Standalone payload for HF Space deploy
-│   ├── Dockerfile                       # exposes :7860 (HF requirement)
-│   ├── README.md                        # YAML frontmatter with `tags: [openenv]`
-│   └── requirements-runtime.txt         # slim runtime-only deps
-│
-├── 🟦 scripts/
-│   ├── train_grpo.py · run_final_benchmark.py · score_tasks.py
-│   ├── plot_grpo_progress.py            # generates real reward/loss/KL plots
-│   ├── openai_baseline.py               # gpt-4o-mini policy (judges run with key)
-│   ├── deploy_hf_env_space.sh           # one-shot HF Space deploy
-│   ├── plot_benchmark_merged.py         # 12-figure benchmark suite
-│   └── build_submission_bundle.py       # writes submission/ with manifest
-│
-├── 🟨 results/                          # All committed evidence
-│   ├── grpo_reward_curve.png · grpo_loss_curve.png · grpo_kl_curve.png
-│   ├── benchmark_merged/plots/fig01..fig12 · appendix_bootstrap_mean_diff.png
-│   ├── benchmark_summary.csv · benchmark_by_scenario.csv
-│   ├── benchmark_by_task_grader.csv · benchmark_summary_normalized.csv
-│   ├── statistical_test.json · grpo_training_summary.json
-│   └── openenv_validate.log · hf_space_smoke.log
-│
-├── 🟥 logs/grpo_progress.jsonl          # Real per-step training log (80 steps)
-├── tests/                               # 166 passing tests across 23 files
-├── train_colab.ipynb                    # Re-runnable Colab notebook
-├── inference.py                         # Repo-root entrypoint
-├── openenv.yaml                         # OpenEnv manifest (state_method: state)
-├── Dockerfile · server/app.py · pyproject.toml · requirements.txt · uv.lock
-├── DESIGN.md · COLAB_GPU_RUNBOOK.md · VIDEO_SCRIPT.md
-└── README.md (this file)
+├── aic/ (env · agents · tasks · training · schemas · server)
+├── results/ · logs/ · dashboard/site/
+├── hf_env_space/ · hf_dashboard_space/
+├── scripts/
+└── openenv.yaml · train_colab.ipynb · inference.py · DESIGN.md · VIDEO_SCRIPT.md
 ```
 
 ---
