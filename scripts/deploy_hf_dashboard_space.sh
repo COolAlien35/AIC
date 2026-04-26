@@ -81,6 +81,11 @@ cp hf_dashboard_space/nginx.conf ./nginx.conf
 # Copy static files into repo root for nginx COPY line stability
 rm -rf ./dashboard/site/__pycache__ 2>/dev/null || true
 
+# HF Hub git rejects binary files unless stored via Xet/LFS.
+# The dashboard renders charts via JS and pulls PNG plots from GitHub raw
+# when running on *.hf.space, so we remove local PNGs from the Space payload.
+rm -rf ./dashboard/site/plots 2>/dev/null || true
+
 echo
 echo "[3/3] committing and pushing to Space repo ..."
 git config user.email "deploy-bot@aic.local"

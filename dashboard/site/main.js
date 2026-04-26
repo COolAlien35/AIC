@@ -8,6 +8,14 @@
   const D = window.AIC_DATA;
   if (!D) return;
 
+  // Hugging Face Spaces (Hub git) rejects large binary blobs unless stored via Xet/LFS.
+  // To keep the dashboard Space lightweight, we do NOT push PNG plots there.
+  // When running on *.hf.space we instead load plot images from GitHub raw.
+  const IS_HF_SPACE = /\.hf\.space$/i.test(window.location.hostname || "");
+  const PLOTS_BASE = IS_HF_SPACE
+    ? "https://raw.githubusercontent.com/COolAlien35/AIC/main/dashboard/site/plots/"
+    : "plots/";
+
   /* ──────────── Chart.js global tuning ──────────── */
   const C = window.Chart;
   C.defaults.color = "#aab2a7";
@@ -498,7 +506,7 @@
     const grid = document.getElementById("figure-grid");
     grid.innerHTML = FIGURE_ORDER.map(f => `
       <figure class="figure-card">
-        <img class="figure-img" loading="lazy" src="plots/${f.file}" alt="${f.caption}" />
+        <img class="figure-img" loading="lazy" src="${PLOTS_BASE}${f.file}" alt="${f.caption}" />
         <figcaption class="figure-cap"><span class="mono">${f.file}</span><br>${f.caption}</figcaption>
       </figure>
     `).join("");
