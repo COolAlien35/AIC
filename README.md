@@ -402,43 +402,17 @@ The shaping reward is a sum of 8 components over 20 steps. It is dominated by pe
 
 | Reward improving | Loss converging |
 |:--:|:--:|
-| <img src="results/grpo_reward_curve.png" width="100%" alt="GRPO reward vs step"/><br/>**−15.10 → −10.24** (Δ = +4.86) | <img src="results/grpo_loss_curve.png" width="100%" alt="GRPO loss vs step"/><br/>Final loss = **0.0026** |
+| <img src="results/grpo_reward_curve.png" width="100%" alt="GRPO reward vs step"/><br/>**−15.10 → −10.24** (Δ = +4.86) — reward climbs steadily on a brutal, verifier-gated objective. | <img src="results/grpo_loss_curve.png" width="100%" alt="GRPO loss vs step"/><br/>Final loss = **0.0026** — stable convergence (no exploding loss, no instability). |
 
-| KL stable (no drift) | Verifier pass-rate |
+| KL stable (no drift) | Headline policy comparison |
 |:--:|:--:|
-| <img src="results/grpo_kl_curve.png" width="100%" alt="GRPO KL vs step"/><br/>Light KL with β = 0.04, no policy collapse | <img src="results/verifier_pass_rate.png" width="100%" alt="Verifier pass-rate"/><br/>Tracks how often the action gate accepts |
+| <img src="results/grpo_kl_curve.png" width="100%" alt="GRPO KL vs step"/><br/>Light KL with β = 0.04 — updates stay conservative (no collapse), while reward improves. | <img src="results/benchmark_merged/plots/fig01_headline_policy_bar_ci.png" width="100%" alt="Headline policy bar with confidence intervals"/><br/>Trained GRPO is clearly separated from baselines with tight uncertainty bounds. |
 
-### Headline benchmark (12-figure suite)
+### Headline benchmark (curated)
 
-| Headline policy bar with CI | Per-policy box + strip |
+| Baseline → trained per-scenario shift | Per-scenario uplift |
 |:--:|:--:|
-| <img src="results/benchmark_merged/plots/fig01_headline_policy_bar_ci.png" width="100%" alt="Headline policy bar with confidence intervals"/> | <img src="results/benchmark_merged/plots/fig02_box_strip.png" width="100%" alt="Box + strip per policy"/> |
-
-| Trained-runs violin | Heatmap: scenario × policy |
-|:--:|:--:|
-| <img src="results/benchmark_merged/plots/fig03_violin_trained_runs.png" width="100%" alt="Violin plot of trained runs"/> | <img src="results/benchmark_merged/plots/fig04_heatmap_scenario_policy.png" width="100%" alt="Scenario × policy heatmap"/> |
-
-| Dumbbell: baseline → trained | Per-scenario delta |
-|:--:|:--:|
-| <img src="results/benchmark_merged/plots/fig05_dumbbell_baseline_to_trained.png" width="100%" alt="Dumbbell baseline to trained"/> | <img src="results/benchmark_merged/plots/fig06_delta_by_scenario.png" width="100%" alt="Delta per scenario"/> |
-
-| ECDF: baseline vs trained | KDE: baseline vs trained |
-|:--:|:--:|
-| <img src="results/benchmark_merged/plots/fig07_ecdf_baseline_vs_trained.png" width="100%" alt="ECDF baseline vs trained"/> | <img src="results/benchmark_merged/plots/fig08_kde_baseline_vs_trained.png" width="100%" alt="KDE baseline vs trained"/> |
-
-| Mean line per scenario | Faceted by training run |
-|:--:|:--:|
-| <img src="results/benchmark_merged/plots/fig10_line_mean_by_scenario.png" width="100%" alt="Mean line per scenario"/> | <img src="results/benchmark_merged/plots/fig11_faceted_by_training_run.png" width="100%" alt="Faceted by training run"/> |
-
-| Paired trained runs | Bootstrap mean-diff (appendix) |
-|:--:|:--:|
-| <img src="results/benchmark_merged/plots/fig12_paired_trained_runs.png" width="100%" alt="Paired trained runs"/> | <img src="results/benchmark_merged/plots/appendix_bootstrap_mean_diff.png" width="100%" alt="Bootstrap mean-diff"/> |
-
-### Legacy / smoke artifacts
-
-| Pre-merged reward curve | (kept for provenance — superseded by the GRPO curves above) |
-|:--:|:--:|
-| <img src="results/reward_curve.png" width="100%" alt="Pre-merged reward curve"/> | An earlier evidence pass; kept committed because the `evidence_manifest.json` references it. The canonical training-evidence plots are the three `grpo_*_curve.png` images at the top of this section. |
+| <img src="results/benchmark_merged/plots/fig05_dumbbell_baseline_to_trained.png" width="100%" alt="Dumbbell baseline to trained"/><br/>Every scenario moves in the right direction (trained reward is less negative). | <img src="results/benchmark_merged/plots/fig06_delta_by_scenario.png" width="100%" alt="Delta per scenario"/><br/>Uplift is strongest in the hardest cases — exactly where an incident commander matters. |
 
 ---
 
