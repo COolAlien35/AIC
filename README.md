@@ -26,6 +26,10 @@
 
 > ⚠️ **Video button will go live once recorded.** The Space link is already live and is the judge-facing environment.
 
+**Judge links (canonical):**
+- **Space page:** https://huggingface.co/spaces/KINGKK007/aic-training
+- **Runtime URL:** https://kingkk007-aic-training.hf.space
+
 <br/>
 
 <sub>
@@ -567,7 +571,7 @@ For the live HF Space: `curl https://kingkk007-aic-training.hf.space/health` —
 | Working Dockerfile, clean `docker build && docker run` | [`Dockerfile`](Dockerfile) (root) and [`hf_env_space/Dockerfile`](hf_env_space/Dockerfile) (HF Space, port 7860) | ✅ |
 | Repo-root `inference.py` | [`inference.py`](inference.py) — loads adapter, runs each task | ✅ |
 | README links HF Space + materials | This file | ✅ |
-| HF Space (env, discoverable, runnable, tagged `openenv`) | [`hf_env_space/`](hf_env_space) payload + [`scripts/deploy_hf_env_space.sh`](scripts/deploy_hf_env_space.sh) | 🟡 *deploy step* |
+| HF Space (env, discoverable, runnable, tagged `openenv`) | **Space:** https://huggingface.co/spaces/KINGKK007/aic-training · **Runtime:** https://kingkk007-aic-training.hf.space | ✅ |
 | <2 min YouTube video, linked from README | Storyboard committed in [`VIDEO_SCRIPT.md`](VIDEO_SCRIPT.md); URL placeholder in the buttons above | 🟡 *record + paste URL* |
 
 ---
