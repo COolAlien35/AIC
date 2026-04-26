@@ -35,6 +35,7 @@
 
 <sub>
   <a href="judge_colab.ipynb">✅ Judge Colab</a> &nbsp;·&nbsp;
+  <a href="AIC_all_in_one.ipynb">🧩 All-in-one notebook</a> &nbsp;·&nbsp;
   <a href="train_colab.ipynb">📓 Training Colab</a> &nbsp;·&nbsp;
   <a href="results/grpo_reward_curve.png">📈 Real GRPO curves</a> &nbsp;·&nbsp;
   <a href="dashboard/site/index.html">📊 Results dashboard</a> &nbsp;·&nbsp;
