@@ -30,6 +30,25 @@ class StepRequest(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 def root() -> str:
     """Human-friendly landing page for HF Spaces."""
+    endpoints_text = "\n".join(
+        [
+            "GET    /health",
+            "POST   /reset",
+            "POST   /step",
+            "GET    /state/{env_id}",
+            "GET    /render/{env_id}",
+            "DELETE /env/{env_id}",
+        ]
+    )
+    curl_text = "\n".join(
+        [
+            "HOST=\"https://kingkk007-aic-training.hf.space\"",
+            "curl -s \"$HOST/health\"",
+            "ENV_ID=$(curl -sX POST \"$HOST/reset\" -H 'Content-Type: application/json' \\",
+            "  -d '{\"episode_id\":0,\"base_seed\":42,\"fault_mode\":\"cascading_failure\"}' | jq -r .env_id)",
+            "curl -s \"$HOST/state/$ENV_ID\" | jq '.state | {step, health_score, is_within_sla}'",
+        ]
+    )
     html = f"""
 <!doctype html>
 <html lang="en">
@@ -82,24 +101,11 @@ def root() -> str:
     <div class="grid">
       <div class="card">
         <div class="k">Quick endpoints</div>
-        <div class="v">{textwrap.dedent('''\
-GET    /health
-POST   /reset
-POST   /step
-GET    /state/{env_id}
-GET    /render/{env_id}
-DELETE /env/{env_id}
-''').strip()}</div>
+        <div class="v">{endpoints_text}</div>
       </div>
       <div class="card">
         <div class="k">Curl smoke test</div>
-        <div class="v">{textwrap.dedent('''\
-HOST=\"'\"\"'\"\" + \"${HOST}\" + \"'\"\"'\"\"
-curl -s \"$HOST/health\"
-ENV_ID=$(curl -sX POST \"$HOST/reset\" -H 'Content-Type: application/json' \\
-  -d '{\"episode_id\":0,\"base_seed\":42,\"fault_mode\":\"cascading_failure\"}' | jq -r .env_id)
-curl -s \"$HOST/state/$ENV_ID\" | jq '.state | {step, health_score, is_within_sla}'
-''').strip()}</div>
+        <div class="v">{curl_text}</div>
       </div>
       <div class="card">
         <div class="k">Project links</div>
