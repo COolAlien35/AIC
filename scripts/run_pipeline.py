@@ -526,27 +526,44 @@ def cmd_full(_args) -> int:
         )
         return 1
 
-    try:
-        sft_result = _full_sft()
+    if os.environ.get("AIC_FULL_SKIP_SFT", "").lower() in ("1", "true", "yes"):
+        sft_dir = os.environ.get("AIC_FULL_SFT_DIR", "checkpoints/sft")
+        if not Path(sft_dir).exists():
+            print(f"[full] SFT skip requested but {sft_dir!r} does not exist.")
+            return 2
+        parse_rate = 0.0
+        try:
+            with open(Path(sft_dir) / "sft_metadata.json") as f:
+                parse_rate = float(json.load(f).get("parse_rate", 0.0))
+        except Exception:
+            pass
+        sft_result = {"sft_dir": sft_dir, "parse_rate": parse_rate, "skipped": True}
         if is_main_process():
-            _stage_log("sft", {"stage": "sft", "status": "ok", **sft_result})
-        wait_for_everyone()
-        if is_main_process():
-            _free_vram("post-sft")
-    except Exception as exc:
-        if is_main_process():
-            _stage_log(
-                "sft",
-                {
-                    "stage": "sft",
-                    "status": "failed",
-                    "error": str(exc),
-                    "trace": traceback.format_exc(),
-                },
-            )
-        print(f"[full] SFT failed: {exc}")
-        wait_for_everyone()
-        return 2
+            print(f"[full] Skipping SFT; using existing checkpoint at {sft_dir}")
+            _stage_log("sft", {"stage": "sft", "status": "skipped", **sft_result})
+    else:
+        try:
+            sft_result = _full_sft()
+            if is_main_process():
+                _stage_log("sft", {"stage": "sft", "status": "ok", **sft_result})
+            wait_for_everyone()
+            if is_main_process():
+                _free_vram("post-sft")
+        except Exception as exc:
+            if is_main_process():
+                _stage_log(
+                    "sft",
+                    {
+                        "stage": "sft",
+                        "status": "failed",
+                        "error": str(exc),
+                        "trace": traceback.format_exc(),
+                    },
+                )
+            print(f"[full] SFT failed: {exc}")
+            wait_for_everyone()
+            return 2
+    wait_for_everyone()
 
     try:
         grpo_result = _full_grpo(sft_result["sft_dir"])
