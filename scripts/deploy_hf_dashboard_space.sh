@@ -69,7 +69,11 @@ mkdir -p hf_dashboard_space
 cp "${REPO_ROOT}/hf_dashboard_space/Dockerfile" hf_dashboard_space/Dockerfile
 cp "${REPO_ROOT}/hf_dashboard_space/nginx.conf" hf_dashboard_space/nginx.conf
 cp "${REPO_ROOT}/hf_dashboard_space/README.md" hf_dashboard_space/README.md
-cp -R "${REPO_ROOT}/dashboard/site" dashboard
+
+# Preserve the same folder layout as the GitHub repo so the Dockerfile's
+# COPY dashboard/site/ ... stays valid.
+mkdir -p dashboard
+cp -R "${REPO_ROOT}/dashboard/site" dashboard/site
 
 # Space root requirements:
 # - Dockerfile at repo root
