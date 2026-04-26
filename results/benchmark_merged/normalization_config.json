@@ -1,0 +1,8 @@
+{
+  "reward_col": "reward",
+  "r_min": -291.540574056268,
+  "r_max": -112.6985323430628,
+  "formula": "(r_max - reward) / (r_max - r_min + 1e-09)",
+  "interpretation": "1.0 = best (least negative) reward in merged set, 0.0 = worst",
+  "eps": 1e-09
+}

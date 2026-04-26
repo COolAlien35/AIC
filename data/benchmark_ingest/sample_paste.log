@@ -1,0 +1,9 @@
+
+[bench] Benchmarking: baseline_frozen
+  Cache Stampede ep0: reward=-258.62, success=False
+  Cache Stampede ep1: reward=-261.18, success=False
+[bench] Benchmarking: baseline_adaptive
+  Cache Stampede ep0: reward=-237.33, success=False
+[bench] Benchmarking: trained_grpo
+  Cache Stampede ep0: reward=-153.35, success=False
+   Trained avg reward:  -153.35

@@ -1,0 +1,35 @@
+{
+  "run1_csv": "/Users/kanavkumar/Desktop/AIC-1/data/benchmark_ingest/run1_episodes_from_fixture.csv",
+  "run2_csv": "/Users/kanavkumar/Desktop/AIC-1/data/benchmark_ingest/run2_episodes_from_fixture.csv",
+  "deduplication": {
+    "baseline_duplicate_policy": "drop_run2_on_match",
+    "deduped": true,
+    "dropped_baseline_rows": 60
+  },
+  "n_rows_merged": 120,
+  "per_run_trained": [
+    {
+      "training_run_id": 1,
+      "trained_mean": -137.703282,
+      "trained_std": 20.70760704038526,
+      "n": 30
+    },
+    {
+      "training_run_id": 2,
+      "trained_mean": -172.9668693676627,
+      "trained_std": 20.70695822350359,
+      "n": 30
+    }
+  ],
+  "newone_statistical_test_reference": {
+    "t_statistic": -7.97771464931092,
+    "p_value": 6.182867810595206e-08,
+    "significant": true,
+    "cohens_d": 3.4017089560838274,
+    "effect_size_label": "large",
+    "baseline_mean": -253.52457983354566,
+    "trained_mean": -172.96686936766267,
+    "improvement": 80.55771046588299,
+    "improvement_pct": 31.775108558884625
+  }
+}

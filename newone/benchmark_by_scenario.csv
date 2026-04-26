@@ -1,0 +1,19 @@
+policy,scenario,avg_reward,success_rate
+baseline_adaptive,Cache Stampede,-238.94282106212148,0.0
+baseline_adaptive,Canary Failure,-248.5424260120719,0.0
+baseline_adaptive,Credential Compromise,-289.2834030252211,0.0
+baseline_adaptive,Queue Cascade,-252.42417478835705,0.0
+baseline_adaptive,Regional Outage,-240.27446093298943,0.0
+baseline_adaptive,Schema Migration Disaster,-279.87573439071434,0.0
+baseline_frozen,Cache Stampede,-259.89879505990024,0.0
+baseline_frozen,Canary Failure,-225.0594817071827,0.0
+baseline_frozen,Credential Compromise,-238.32108126174575,0.0
+baseline_frozen,Queue Cascade,-249.99256858763394,0.0
+baseline_frozen,Regional Outage,-256.5853891154335,0.0
+baseline_frozen,Schema Migration Disaster,-291.2901632693778,0.0
+trained_grpo,Cache Stampede,-203.01715745450156,0.0
+trained_grpo,Canary Failure,-168.36323886200967,0.0
+trained_grpo,Credential Compromise,-157.0576995048594,0.0
+trained_grpo,Queue Cascade,-197.69422096264032,0.0
+trained_grpo,Regional Outage,-163.2730805642957,0.0
+trained_grpo,Schema Migration Disaster,-148.39581885766938,0.0

@@ -1,0 +1,11 @@
+{
+  "t_statistic": -17.38007400685012,
+  "p_value": 3.386115171110418e-30,
+  "cohens_d": 4.052812867526637,
+  "significant": true,
+  "effect_size_label": "large",
+  "baseline_mean": -253.5245798335457,
+  "trained_mean": -155.33507568383138,
+  "improvement": 98.18950414971431,
+  "improvement_pct": 38.72977689729114
+}

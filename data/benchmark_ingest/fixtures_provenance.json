@@ -1,0 +1,9 @@
+{
+  "source": "build_benchmark_fixtures.py",
+  "reference_by_scenario_csv": "newone/benchmark_by_scenario.csv",
+  "run2_trained_offset": 0.0,
+  "run1_trained_offset": 35.26358736766264,
+  "run2_merged_trained_mean_expected": -172.96686936766264,
+  "run1_target_trained_mean": -137.703282,
+  "note": "Per-episode values are small-jittered around scenario means. Replace with `benchmark_episodes.csv` from a real `run_final_benchmark` or with output of `ingest_benchmark_log.py` when you have a console log."
+}

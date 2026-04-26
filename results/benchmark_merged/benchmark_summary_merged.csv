@@ -1,0 +1,4 @@
+policy,avg_reward,std_reward,success_rate,num_episodes
+baseline_frozen,-253.52457983354563,20.887073503947704,0.0,30
+baseline_adaptive,-258.22383670191255,19.718358899221567,0.0,30
+trained_grpo,-155.33507568383135,27.16013998884657,0.0,60

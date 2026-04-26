@@ -1,0 +1,43 @@
+{
+  "largest_trained_advantage_by_scenario": [
+    {
+      "scenario": "Schema Migration Disaster",
+      "delta": 160.52613809553972,
+      "avg_reward_b": -291.2901632693778,
+      "avg_reward_t": -130.76402517383806
+    },
+    {
+      "scenario": "Regional Outage",
+      "delta": 110.94410223496911,
+      "avg_reward_b": -256.5853891154335,
+      "avg_reward_t": -145.64128688046438
+    },
+    {
+      "scenario": "Credential Compromise",
+      "delta": 98.89517544071768,
+      "avg_reward_b": -238.32108126174575,
+      "avg_reward_t": -139.42590582102807
+    },
+    {
+      "scenario": "Cache Stampede",
+      "delta": 74.51343128923,
+      "avg_reward_b": -259.89879505990024,
+      "avg_reward_t": -185.38536377067024
+    },
+    {
+      "scenario": "Canary Failure",
+      "delta": 74.32803652900435,
+      "avg_reward_b": -225.0594817071827,
+      "avg_reward_t": -150.73144517817835
+    },
+    {
+      "scenario": "Queue Cascade",
+      "delta": 69.93014130882491,
+      "avg_reward_b": -249.9925685876339,
+      "avg_reward_t": -180.062427278809
+    }
+  ],
+  "n_episodes_pooled": 120,
+  "ttest_pooled_p_value": 3.386115171110418e-30,
+  "cohens_d_pooled": 4.052812867526637
+}

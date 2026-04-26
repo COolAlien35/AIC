@@ -346,6 +346,7 @@ def run_benchmark(
     requested_policies: str = "all",
     checkpoint_path: str = "exports",
     strict: bool = True,
+    write_episodes: bool = True,
 ):
     Path(output_dir).mkdir(parents=True, exist_ok=True)
     all_policies = ("baseline_frozen", "baseline_adaptive", "trained_grpo")
@@ -372,7 +373,13 @@ def run_benchmark(
                 )
 
     df = pd.DataFrame(records)
+    if not df.empty:
+        df = df.copy()
+        df["episode_index"] = df.groupby(["policy", "scenario"], sort=False).cumcount()
     invalid_df = pd.DataFrame(invalid_records)
+
+    if write_episodes and not df.empty:
+        df.to_csv(f"{output_dir}/benchmark_episodes.csv", index=False)
 
     summary = df.groupby("policy").agg(
         avg_reward=("reward", "mean"),
@@ -480,6 +487,11 @@ def main():
                         help="Hard-fail when checkpoint preflight fails (default).")
     parser.add_argument("--no-strict", action="store_false", dest="strict",
                         help="Allow heuristic fallback for trained_grpo policy.")
+    parser.add_argument(
+        "--no-episodes",
+        action="store_true",
+        help="Do not write per-episode benchmark_episodes.csv (default: write).",
+    )
     args = parser.parse_args()
 
     print("\n=== AIC Extended Benchmark Suite ===\n")
@@ -493,6 +505,7 @@ def main():
         requested_policies=args.policies,
         checkpoint_path=args.checkpoint_path,
         strict=args.strict,
+        write_episodes=not args.no_episodes,
     )
 
     print(f"\n[ok] Results saved to: {args.output}/")

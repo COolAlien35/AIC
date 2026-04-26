@@ -1,0 +1,121 @@
+policy,scenario,episode_index,reward,success,mttr,adversary_suppression,unsafe_rate,trained_policy_source,trained_policy_checkpoint,training_run_id
+baseline_frozen,Cache Stampede,0,-259.7476627577974,False,,,,,,1
+baseline_frozen,Cache Stampede,1,-260.1510731135958,False,,,,,,1
+baseline_frozen,Cache Stampede,2,-259.61394252298174,False,,,,,,1
+baseline_frozen,Cache Stampede,3,-259.55690846680636,False,,,,,,1
+baseline_frozen,Cache Stampede,4,-260.42438843831985,False,,,,,,1
+baseline_frozen,Canary Failure,0,-225.3085099523744,False,,,,,,1
+baseline_frozen,Canary Failure,1,-224.87950397936552,False,,,,,,1
+baseline_frozen,Canary Failure,2,-225.0127288780188,False,,,,,,1
+baseline_frozen,Canary Failure,3,-224.92289644756696,False,,,,,,1
+baseline_frozen,Canary Failure,4,-225.17376927858777,False,,,,,,1
+baseline_frozen,Regional Outage,0,-256.520647992399,False,,,,,,1
+baseline_frozen,Regional Outage,1,-256.55112980422916,False,,,,,,1
+baseline_frozen,Regional Outage,2,-256.7646581755895,False,,,,,,1
+baseline_frozen,Regional Outage,3,-256.44629502276746,False,,,,,,1
+baseline_frozen,Regional Outage,4,-256.64421458218226,False,,,,,,1
+baseline_frozen,Schema Migration Disaster,0,-291.5106970148842,False,,,,,,1
+baseline_frozen,Schema Migration Disaster,1,-291.1422840407945,False,,,,,,1
+baseline_frozen,Schema Migration Disaster,2,-291.540574056268,False,,,,,,1
+baseline_frozen,Schema Migration Disaster,3,-290.98937418562707,False,,,,,,1
+baseline_frozen,Schema Migration Disaster,4,-291.26788704931516,False,,,,,,1
+baseline_frozen,Credential Compromise,0,-238.3629734983989,False,,,,,,1
+baseline_frozen,Credential Compromise,1,-238.5117936526565,False,,,,,,1
+baseline_frozen,Credential Compromise,2,-237.9407523877331,False,,,,,,1
+baseline_frozen,Credential Compromise,3,-238.35387363395597,False,,,,,,1
+baseline_frozen,Credential Compromise,4,-238.43601313598424,False,,,,,,1
+baseline_frozen,Queue Cascade,0,-250.18155905162237,False,,,,,,1
+baseline_frozen,Queue Cascade,1,-249.91622623080988,False,,,,,,1
+baseline_frozen,Queue Cascade,2,-249.96628576716668,False,,,,,,1
+baseline_frozen,Queue Cascade,3,-249.9520992029971,False,,,,,,1
+baseline_frozen,Queue Cascade,4,-249.94667268557353,False,,,,,,1
+baseline_adaptive,Cache Stampede,0,-238.36183857484485,False,,,,,,1
+baseline_adaptive,Cache Stampede,1,-239.12625736002136,False,,,,,,1
+baseline_adaptive,Cache Stampede,2,-239.15800567382743,False,,,,,,1
+baseline_adaptive,Cache Stampede,3,-239.24846467358037,False,,,,,,1
+baseline_adaptive,Cache Stampede,4,-238.81953902833337,False,,,,,,1
+baseline_adaptive,Canary Failure,0,-248.20379312006983,False,,,,,,1
+baseline_adaptive,Canary Failure,1,-248.57666904518257,False,,,,,,1
+baseline_adaptive,Canary Failure,2,-248.79453175097487,False,,,,,,1
+baseline_adaptive,Canary Failure,3,-248.7898291725935,False,,,,,,1
+baseline_adaptive,Canary Failure,4,-248.3473069715387,False,,,,,,1
+baseline_adaptive,Regional Outage,0,-240.10966943349405,False,,,,,,1
+baseline_adaptive,Regional Outage,1,-240.1696994043635,False,,,,,,1
+baseline_adaptive,Regional Outage,2,-240.5322985970417,False,,,,,,1
+baseline_adaptive,Regional Outage,3,-240.26299728793504,False,,,,,,1
+baseline_adaptive,Regional Outage,4,-240.29763994211285,False,,,,,,1
+baseline_adaptive,Schema Migration Disaster,0,-279.9337401450564,False,,,,,,1
+baseline_adaptive,Schema Migration Disaster,1,-279.73791809069064,False,,,,,,1
+baseline_adaptive,Schema Migration Disaster,2,-279.9322680594427,False,,,,,,1
+baseline_adaptive,Schema Migration Disaster,3,-279.7956726551535,False,,,,,,1
+baseline_adaptive,Schema Migration Disaster,4,-279.97907300322845,False,,,,,,1
+baseline_adaptive,Credential Compromise,0,-289.11705968165546,False,,,,,,1
+baseline_adaptive,Credential Compromise,1,-289.0144090335109,False,,,,,,1
+baseline_adaptive,Credential Compromise,2,-289.6409422472192,False,,,,,,1
+baseline_adaptive,Credential Compromise,3,-289.29969686616965,False,,,,,,1
+baseline_adaptive,Credential Compromise,4,-289.3449072975503,False,,,,,,1
+baseline_adaptive,Queue Cascade,0,-252.65684024986984,False,,,,,,1
+baseline_adaptive,Queue Cascade,1,-252.5477195707648,False,,,,,,1
+baseline_adaptive,Queue Cascade,2,-252.0166945020265,False,,,,,,1
+baseline_adaptive,Queue Cascade,3,-252.7249262301048,False,,,,,,1
+baseline_adaptive,Queue Cascade,4,-252.17469338901935,False,,,,,,1
+trained_grpo,Cache Stampede,0,-167.0924264415165,False,,,,,,1
+trained_grpo,Cache Stampede,1,-168.4672179283673,False,,,,,,1
+trained_grpo,Cache Stampede,2,-168.0040221781943,False,,,,,,1
+trained_grpo,Cache Stampede,3,-167.32712949300125,False,,,,,,1
+trained_grpo,Cache Stampede,4,-167.87705439311526,False,,,,,,1
+trained_grpo,Canary Failure,0,-132.9867559268476,False,,,,,,1
+trained_grpo,Canary Failure,1,-133.01098470776765,False,,,,,,1
+trained_grpo,Canary Failure,2,-132.96365589843575,False,,,,,,1
+trained_grpo,Canary Failure,3,-133.2251792278937,False,,,,,,1
+trained_grpo,Canary Failure,4,-133.31168171079048,False,,,,,,1
+trained_grpo,Regional Outage,0,-127.2358385540274,False,,,,,,1
+trained_grpo,Regional Outage,1,-128.1437566761216,False,,,,,,1
+trained_grpo,Regional Outage,2,-128.21510047891138,False,,,,,,1
+trained_grpo,Regional Outage,3,-128.49032554911486,False,,,,,,1
+trained_grpo,Regional Outage,4,-127.96244472499002,False,,,,,,1
+trained_grpo,Schema Migration Disaster,0,-112.6985323430628,False,,,,,,1
+trained_grpo,Schema Migration Disaster,1,-113.204315364118,False,,,,,,1
+trained_grpo,Schema Migration Disaster,2,-113.05472022272816,False,,,,,,1
+trained_grpo,Schema Migration Disaster,3,-113.3381627263532,False,,,,,,1
+trained_grpo,Schema Migration Disaster,4,-113.36542679377156,False,,,,,,1
+trained_grpo,Credential Compromise,0,-121.56097114893628,False,,,,,,1
+trained_grpo,Credential Compromise,1,-122.14223540711453,False,,,,,,1
+trained_grpo,Credential Compromise,2,-121.71641737147776,False,,,,,,1
+trained_grpo,Credential Compromise,3,-121.88590939733562,False,,,,,,1
+trained_grpo,Credential Compromise,4,-121.66502736111951,False,,,,,,1
+trained_grpo,Queue Cascade,0,-162.66608865479486,False,,,,,,1
+trained_grpo,Queue Cascade,1,-162.19704382598152,False,,,,,,1
+trained_grpo,Queue Cascade,2,-162.12948672838397,False,,,,,,1
+trained_grpo,Queue Cascade,3,-162.3757281485015,False,,,,,,1
+trained_grpo,Queue Cascade,4,-162.78482061722653,False,,,,,,1
+trained_grpo,Cache Stampede,0,-202.86219647711772,False,,,,,,2
+trained_grpo,Cache Stampede,1,-203.1927290801763,False,,,,,,2
+trained_grpo,Cache Stampede,2,-203.3596160338309,False,,,,,,2
+trained_grpo,Cache Stampede,3,-202.68391306104772,False,,,,,,2
+trained_grpo,Cache Stampede,4,-202.98733262033517,False,,,,,,2
+trained_grpo,Canary Failure,0,-168.69248343639848,False,,,,,,2
+trained_grpo,Canary Failure,1,-168.4358982178127,False,,,,,,2
+trained_grpo,Canary Failure,2,-167.91602190829988,False,,,,,,2
+trained_grpo,Canary Failure,3,-168.0336968784165,False,,,,,,2
+trained_grpo,Canary Failure,4,-168.73809386912075,False,,,,,,2
+trained_grpo,Regional Outage,0,-163.73393615001328,False,,,,,,2
+trained_grpo,Regional Outage,1,-163.32809029136706,False,,,,,,2
+trained_grpo,Regional Outage,2,-163.12288657576897,False,,,,,,2
+trained_grpo,Regional Outage,3,-163.2950386568343,False,,,,,,2
+trained_grpo,Regional Outage,4,-162.8854511474949,False,,,,,,2
+trained_grpo,Schema Migration Disaster,0,-147.8845632459076,False,,,,,,2
+trained_grpo,Schema Migration Disaster,1,-148.54682896234206,False,,,,,,2
+trained_grpo,Schema Migration Disaster,2,-148.56091509722208,False,,,,,,2
+trained_grpo,Schema Migration Disaster,3,-148.44053347075376,False,,,,,,2
+trained_grpo,Schema Migration Disaster,4,-148.54625351212144,False,,,,,,2
+trained_grpo,Credential Compromise,0,-157.10979624864947,False,,,,,,2
+trained_grpo,Credential Compromise,1,-157.40550513621284,False,,,,,,2
+trained_grpo,Credential Compromise,2,-156.67332562103238,False,,,,,,2
+trained_grpo,Credential Compromise,3,-157.1057064443319,False,,,,,,2
+trained_grpo,Credential Compromise,4,-156.99416407407034,False,,,,,,2
+trained_grpo,Queue Cascade,0,-197.54103756744516,False,,,,,,2
+trained_grpo,Queue Cascade,1,-198.2499181417652,False,,,,,,2
+trained_grpo,Queue Cascade,2,-197.615056174148,False,,,,,,2
+trained_grpo,Queue Cascade,3,-197.45921399337465,False,,,,,,2
+trained_grpo,Queue Cascade,4,-197.6058789364686,False,,,,,,2

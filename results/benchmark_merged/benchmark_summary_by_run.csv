@@ -1,0 +1,5 @@
+training_run_id,policy,avg_reward,n
+1,baseline_adaptive,-258.22383670191255,30
+1,baseline_frozen,-253.52457983354563,30
+1,trained_grpo,-137.70328200000003,30
+2,trained_grpo,-172.96686936766267,30

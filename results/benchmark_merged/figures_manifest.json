@@ -1,0 +1,77 @@
+{
+  "merged_dir": "results/benchmark_merged",
+  "figures": [
+    {
+      "file": "plots/fig01_headline_policy_bar_ci.png",
+      "caption": "Mean reward by policy with approx. 95% CI (merged episodes).",
+      "required_columns": "policy, reward",
+      "primary": true
+    },
+    {
+      "file": "plots/fig02_box_strip.png",
+      "caption": "Box + strip: show n and outlier pattern per policy.",
+      "required_columns": "policy, reward",
+      "primary": true
+    },
+    {
+      "file": "plots/fig03_violin_trained_runs.png",
+      "caption": "Trained policy only: spread across two training/benchmark runs.",
+      "required_columns": "policy, training_run_id, reward",
+      "primary": true
+    },
+    {
+      "file": "plots/fig04_heatmap_scenario_policy.png",
+      "caption": "Scenario \u00d7 policy mean reward (merged).",
+      "required_columns": "scenario, policy, reward",
+      "primary": true
+    },
+    {
+      "file": "plots/fig05_dumbbell_baseline_to_trained.png",
+      "caption": "Per-scenario baseline vs trained mean (merged aggregates).",
+      "required_columns": "benchmark_by_scenario_merged: policy, scenario, avg_reward",
+      "primary": true
+    },
+    {
+      "file": "plots/fig06_delta_by_scenario.png",
+      "caption": "Per-scenario mean uplift: trained \u2212 frozen baseline.",
+      "required_columns": "benchmark_by_scenario_merged: policy, scenario, avg_reward",
+      "primary": true
+    },
+    {
+      "file": "plots/fig10_line_mean_by_scenario.png",
+      "caption": "Lines across scenarios: benchmark differentiates conditions.",
+      "required_columns": "benchmark_by_scenario_merged",
+      "primary": true
+    },
+    {
+      "file": "plots/fig07_ecdf_baseline_vs_trained.png",
+      "caption": "ECDF: stochastic ordering of rewards.",
+      "required_columns": "policy, reward",
+      "primary": true
+    },
+    {
+      "file": "plots/fig08_kde_baseline_vs_trained.png",
+      "caption": "KDE overlay: baseline vs trained (needs scipy in env).",
+      "required_columns": "policy, reward",
+      "primary": true
+    },
+    {
+      "file": "plots/fig11_faceted_by_training_run.png",
+      "caption": "Boxplots by run \u00d7 policy (replication).",
+      "required_columns": "policy, training_run_id, reward",
+      "primary": true
+    },
+    {
+      "file": "plots/fig12_paired_trained_runs.png",
+      "caption": "Paired y=x plot for trained on matching (scenario, episode).",
+      "required_columns": "training_run_id, scenario, episode_index, reward",
+      "primary": false
+    },
+    {
+      "file": "plots/appendix_bootstrap_mean_diff.png",
+      "caption": "Appendix: bootstrap distribution of mean trained \u2212 mean baseline.",
+      "required_columns": "policy, reward",
+      "primary": false
+    }
+  ]
+}
