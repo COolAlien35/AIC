@@ -26,9 +26,8 @@ checkpoints/sft/checkpoint-*/
 *.bin
 !training_args.bin
 
-# Logs (keep structure, ignore bulk)
-logs/audit/*.jsonl
-logs/episode_*.jsonl
+# Logs (local runs; not source)
+logs/
 
 # Temp
 /tmp/
@@ -44,5 +43,4 @@ checkpoints/grpo/
 .hf_home/
 checkpoints/
 exports/
-logs/
 artifacts/
