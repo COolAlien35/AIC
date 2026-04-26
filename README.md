@@ -59,6 +59,14 @@
 > *"Agents that interact with real-world tools and APIs rather than mocked responses. Agents must execute commands against live systems, maintain internal state across multi-step workflows (triage → investigate → fix → verify), and reason about the causal effects of their actions on a live environment."*
 > — Meta OpenEnv Hackathon, **Statement 3.1**
 
+It started at a wedding.
+
+My brother — a software engineer at a startup — was supposed to be present for his sister’s ring ceremony. Everyone was laughing, photos were being taken, and then he quietly stepped aside, eyes locked on his phone. Calls. Slack pings. A laptop open in the corner. The family thought it was just “work stress.” I was younger then — I didn’t understand why a dashboard could pull someone out of a once-in-a-lifetime moment.
+
+Years later, after engineering school, I finally understood what was happening: a **database schema migration** had gone wrong. Production telemetry was lying (fields renamed, values missing, units shifting). One wrong “quick fix” could cascade across services, burn the SLA, and put a young startup’s reputation at risk. And no matter how smart the people are, **human incident response is slow, exhausting, and brittle under pressure**.
+
+That’s the moment AIC is built for: turning a real on-call nightmare into a **verifiable, multi-step RL environment** so we can train an orchestrator that reacts like a senior incident commander — fast, cautious, and auditable. This is not something “standard AI” reliably solves with a single prompt: you need **state**, **causal dynamics**, **safety gating**, and **rewards you can’t game**.
+
 It is **3:07 AM**. A pager fires. Latency on the checkout service has tripled, the connection pool is at 98 %, error rate just crossed 18 %, and someone — or something — keeps recommending you "restart the database to clear the lock." If you follow that recommendation, you cause an outage. If you ignore it but pick the wrong fix, the SLA timer expires in 20 steps and you're blamed anyway.
 
 This is a *professional task*. There is no Atari high score, no Wordle answer key. There is a **stochastic distributed system**, a **causal service-topology DAG**, a **deterministic safety verifier**, a population of **specialist agents** (DB, infra, app, network, security), and one of them is **lying**. The orchestrator's job is to recover SLA before time runs out — without ever taking a destructive action — and *learn* who to trust as evidence accumulates.
