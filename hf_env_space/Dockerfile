@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # (no torch / transformers / peft - this Space only serves the env, not training).
 COPY requirements-runtime.txt requirements-runtime.txt
 RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir --upgrade setuptools wheel \
     && pip install --no-cache-dir -r requirements-runtime.txt
 
 # Runtime entrypoint that pulls the latest GitHub source and starts uvicorn.

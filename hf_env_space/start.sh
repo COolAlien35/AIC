@@ -18,8 +18,11 @@ fi
 
 cd "${CHECKOUT_DIR}"
 
+# Ensure PEP517/legacy editable backend is available in minimal images.
+python -m pip install --no-cache-dir --upgrade pip setuptools wheel >/dev/null
+
 # Install the package (editable) so `aic.server.env_api:app` is importable.
-pip install --no-cache-dir -e . >/dev/null
+python -m pip install --no-cache-dir -e . >/dev/null
 
 echo "[aic-space] starting uvicorn on :7860"
 exec uvicorn aic.server.env_api:app --host 0.0.0.0 --port 7860
