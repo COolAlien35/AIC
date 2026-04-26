@@ -10,6 +10,7 @@ sentencepiece==0.2.0
 safetensors==0.4.5
 tokenizers>=0.20,<0.21
 huggingface_hub>=0.26,<1.0
+openai>=2.7.2
 
 # --- Numerics / data ---
 numpy==1.26.4
@@ -23,6 +24,7 @@ gymnasium==0.29.1
 fastapi==0.115.4
 uvicorn==0.32.0
 openenv==0.1.13
+openenv-core>=0.2.0
 
 # --- UX / CLI ---
 rich==13.9.2

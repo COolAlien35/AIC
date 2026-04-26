@@ -118,6 +118,58 @@ This produces:
 - `results/verifier_pass_rate.png`
 - `results/before_after_demo.md`
 - `results/benchmark_summary.csv`
+
+## OpenEnv Submission
+
+This repository exposes AIC as a real-world OpenEnv incident-response task:
+
+- **Observation model:** `aic.schemas.observations.OrchestratorObservation`
+- **Action model:** `aic.schemas.actions.OrchestratorDecision`
+- **Reward model:** `aic.schemas.rewards.AICReward`
+- **Environment:** `aic.env.aic_environment.AICEnvironment`
+- **API:** `aic.server.env_api:app`
+- **Metadata:** `openenv.yaml`
+- **Baseline inference:** `inference.py`
+
+API endpoints:
+
+- `GET /health`
+- `POST /reset`
+- `POST /step`
+- `GET /state/{env_id}`
+- `GET /render/{env_id}`
+
+Submission tasks:
+
+| Task | Difficulty | Scenario |
+|------|------------|----------|
+| `cache_stampede_easy` | easy | Cache Stampede |
+| `queue_cascade_medium` | medium | Queue Cascade |
+| `schema_migration_hard` | hard | Schema Migration Disaster |
+
+Run baseline inference:
+
+```bash
+export API_BASE_URL="${API_BASE_URL:-https://api.openai.com/v1}"
+export MODEL_NAME="${MODEL_NAME:-gpt-4o-mini}"
+export OPENAI_API_KEY="${OPENAI_API_KEY:-$HF_TOKEN}"
+python inference.py
+```
+
+Generate normalized benchmark scores after `scripts/run_final_benchmark.py`:
+
+```bash
+python scripts/normalize_benchmark_scores.py --input-dir results_final
+```
+
+Build and run the OpenEnv service:
+
+```bash
+docker build -t aic-openenv .
+docker run --rm -p 7860:7860 aic-openenv
+curl -sS http://localhost:7860/health
+curl -sS -X POST http://localhost:7860/reset -H 'Content-Type: application/json' -d '{}'
+```
 - `results/benchmark_run_config.json`
 - `results/statistical_test.json`
 

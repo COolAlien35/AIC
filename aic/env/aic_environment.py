@@ -738,6 +738,30 @@ class AICEnvironment(OpenEnvBase):
             return None
         return None
 
+    def state(self) -> dict[str, Any]:
+        """Return the current OpenEnv state snapshot."""
+        return {
+            "episode_id": self.episode_id,
+            "base_seed": self.base_seed,
+            "scenario_id": self.scenario_id,
+            "fault_mode": self.fault_mode,
+            "step": self.step_count,
+            "done": self.done,
+            "health": self.world_state.get_health_score(),
+            "is_within_sla": self.world_state.is_within_sla(),
+            "episode_budget_remaining": float(round(self.episode_budget_remaining, 4)),
+            "current_metrics": self.world_state.snapshot(),
+            "current_trust_scores": self.trust_scores.copy(),
+            "candidate_recommendations": [
+                c.model_dump() for c in self._candidate_recommendations
+            ],
+            "current_recommendation_ids": [
+                c.recommendation_id for c in self._candidate_recommendations
+            ],
+            "latest_info": self._latest_info,
+            "trace_history": list(self.trace_history),
+        }
+
     def _render_ansi(self) -> str:
         lines = [
             f"=== AIC Environment | Episode {self.episode_id} | Step {self.step_count}/{SLA_STEPS} ===",

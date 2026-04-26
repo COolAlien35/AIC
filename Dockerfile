@@ -15,7 +15,6 @@ ENV DEBIAN_FRONTEND=noninteractive \
     TOKENIZERS_PARALLELISM=false \
     OMP_NUM_THREADS=4
 
-# System packages: Python 3.11, git, build tools for bitsandbytes/wheels
 RUN apt-get update && apt-get install -y --no-install-recommends \
         python3.11 python3.11-venv python3.11-dev \
         python3-pip git curl ca-certificates build-essential \
@@ -27,19 +26,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # HF Spaces requires UID 1000 named "user"
 RUN useradd -m -u 1000 user
 USER user
-WORKDIR /workspace
-
-# Install JupyterLab and core CLI tools as the user
-RUN python -m pip install --user --no-cache-dir --upgrade pip \
-    && python -m pip install --user --no-cache-dir \
-        jupyterlab==4.2.5 ipywidgets==8.1.5 hf_transfer
+WORKDIR /workspace/aic-repo
 
 ENV PATH="/home/user/.local/bin:${PATH}"
 
-# HF builds from repo root: paths are relative to repository root.
-COPY --chown=user:user space/start.sh /workspace/start.sh
-RUN chmod +x /workspace/start.sh
+COPY --chown=user:user requirements.txt /workspace/aic-repo/requirements.txt
+RUN python -m pip install --user --no-cache-dir --upgrade pip setuptools wheel \
+    && python -m pip install --user --no-cache-dir -r requirements.txt
 
 EXPOSE 7860
 
-CMD ["/workspace/start.sh"]
+COPY --chown=user:user . /workspace/aic-repo
+
+CMD ["uvicorn", "aic.server.env_api:app", "--host", "0.0.0.0", "--port", "7860"]

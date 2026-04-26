@@ -9,17 +9,19 @@ environment:
   episode_max_length: 20
   reset_method: "reset"
   step_method: "step"
+  state_method: "state"
   render_method: "render"
 
 api:
   framework: "fastapi"
   app: "aic.server.env_api:app"
   host: "0.0.0.0"
-  port: 8000
+  port: 7860
   health_endpoint: "/health"
   endpoints:
     reset: "/reset"
     step: "/step"
+    state: "/state/{env_id}"
     render: "/render/{env_id}"
     delete: "/env/{env_id}"
 
@@ -29,11 +31,36 @@ interfaces:
   schemas:
     actions: "aic/schemas/actions.py"
     observations: "aic/schemas/observations.py"
+    rewards: "aic/schemas/rewards.py"
     traces: "aic/schemas/traces.py"
+
+tasks:
+  - id: "cache_stampede_easy"
+    name: "Cache Stampede Stabilization"
+    difficulty: "easy"
+    scenario_id: 0
+    grader: "aic.evals.openenv_tasks.grade_task"
+  - id: "queue_cascade_medium"
+    name: "Queue Cascade Recovery"
+    difficulty: "medium"
+    scenario_id: 5
+    grader: "aic.evals.openenv_tasks.grade_task"
+  - id: "schema_migration_hard"
+    name: "Schema Migration Disaster"
+    difficulty: "hard"
+    scenario_id: 3
+    grader: "aic.evals.openenv_tasks.grade_task"
 
 runtime:
   python: ">=3.11"
   install:
     - "pip install -r requirements.txt"
   run:
-    - "uvicorn aic.server.env_api:app --host 0.0.0.0 --port 8000"
+    - "uvicorn aic.server.env_api:app --host 0.0.0.0 --port 7860"
+
+baseline:
+  inference_script: "inference.py"
+  required_env:
+    - "API_BASE_URL"
+    - "MODEL_NAME"
+    - "HF_TOKEN"
