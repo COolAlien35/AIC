@@ -15,6 +15,8 @@ tags:
   - incident-response
   - openenv
   - trust-calibration
+  - grpo
+  - trl
 ---
 
 # 🚨 Adaptive Incident Choreographer (AIC) — Live Demo
@@ -29,27 +31,42 @@ tags:
 
 Step through a simulated cascading production incident. Observe how specialist
 AI agents propose remediations, an adversarial agent injects misleading advice,
-and the orchestrator must decide who to trust — all under an SLA deadline.
+and the orchestrator must decide who to trust — all under a 20-step SLA deadline.
 
 ## Features
 
-- 🌐 **12-metric world state** with real-time health tracking
-- 🤖 **4 specialist agents** (DB, Infra, App, Adversarial)
-- 🎭 **Adversarial recommendations** — correct only 50% of the time
-- 📊 **4-component reward system** (health, SLA, trust, explanation)
-- ⚡ **4 fault modes** — cascading failure, memory leak, DB saturation, network storm
-- 🔐 **OpenEnv-compliant** — inherits from `openenv.env.Env`
+- 🌐 **12-metric world state** with real-time health tracking (DB, infra, app KPIs)
+- 🤖 **6 specialist agents** (DB, Infra, App, Network, Security, Adversarial)
+- 🎭 **Adversarial recommendations** — cycle of lie / partial truth / truth, seeded per episode
+- 📊 **8-component reward function** (R1 health · R2 SLA · R3 calibrated trust · R4 explanation · R5 format · R6 verifier · R7 reasoning · R8 progress) **+ R9 over-confidence penalty**
+- ⚡ **6 brutal scenarios** — cache stampede, canary blackout, regional outage, adversarial misroute, credential compromise, schema migration disaster
+- 🔐 **OpenEnv-compliant** — `aic.env.aic_environment.AICEnvironment` subclasses `openenv.env.Env` directly
+- 🎯 **3 deterministic 0.0–1.0 task graders** (`db_pool_recovery` · `canary_blackout` · `adversarial_misroute`)
 
-## How to Use
+## How to use the demo
 
-1. Set episode ID, seed, and fault mode
-2. Click **Create & Reset**
-3. Type an action or click **Observe**
-4. Watch metrics evolve step by step
+1. Set episode ID, seed, and fault mode.
+2. Click **Create & Reset**.
+3. Type an action or click **Observe**.
+4. Watch the 12 KPIs evolve, trust scores recalibrate, and the verifier accept/veto each step.
+
+## Real GRPO training (linked from source repo)
+
+| Metric | Value |
+|---|---|
+| Algorithm | GRPO (TRL `GRPOTrainer` + Unsloth) |
+| Base model | `Qwen2.5-3B-Instruct` (LoRA r=16, α=32) |
+| Hardware | NVIDIA T4 16 GB on Colab |
+| Total steps | **80** |
+| Reward delta | **−15.10 → −10.24** (+4.86) |
+| Wall-clock | **6.19 hours** |
+
+Source: [`results/grpo_training_summary.json`](https://github.com/COolAlien35/AIC/blob/main/results/grpo_training_summary.json).
 
 ## Links
 
 - **OpenEnv environment server (judges pull this):** https://huggingface.co/spaces/KINGKK007/aic-openenv-env
-- [GitHub Repository](https://github.com/COolAlien35/AIC)
-- [Colab Training Notebook](https://colab.research.google.com/github/COolAlien35/AIC/blob/main/train_colab.ipynb)
-- [Blog Post](https://huggingface.co/blog/COolAlien35/adaptive-incident-choreographer)
+- **GitHub repository (source of truth):** https://github.com/COolAlien35/AIC
+- **Engineering design doc:** https://github.com/COolAlien35/AIC/blob/main/DESIGN.md
+- **Colab training notebook:** https://colab.research.google.com/github/COolAlien35/AIC/blob/main/train_colab.ipynb
+- **Video walkthrough script (record-ready):** https://github.com/COolAlien35/AIC/blob/main/VIDEO_SCRIPT.md

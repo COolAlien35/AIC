@@ -19,6 +19,11 @@ recorded in **one take** with QuickTime + a single mic.
   curl https://kingkk007-aic-openenv-env.hf.space/health
   ./.venv/bin/python scripts/score_tasks.py --episodes 1
   ```
+* Make sure these results files exist locally so the cuts don't break:
+  - `results/grpo_reward_curve.png`
+  - `results/grpo_training_summary.json`
+  - `results/benchmark_by_task_grader.csv`
+  - `logs/grpo_progress.jsonl`
 * Hide your dock, mute notifications, close every other window.
 * Mic check: speak the word "incident" - peak should sit at -12 dB.
 
@@ -78,17 +83,17 @@ Show the 3 task graders printing 0-1 scores in real time.
 ### Beat 4 — Real training (1:12 → 1:36)
 **Voiceover (~55 words):**
 > "Training is real. Eighty GRPO steps on a Colab T4 GPU using TRL plus
-> Unsloth, six point two hours of wall clock. Reward improved from minus
-> fifteen to minus ten - that's a five-point delta on a brutal reward
-> surface, no synthetic curves, no projected numbers. The raw log is
-> committed in the repo."
+> Unsloth, six point one nine hours of wall clock. Reward improved from
+> minus fifteen point one zero to minus ten point two four - a four point
+> eight six delta on a brutal reward surface. No synthetic curves, no
+> projected numbers. The raw JSONL log is committed in the repo."
 
 **Screen:** `results/grpo_reward_curve.png` zoomed full screen, then
 zoom-out to `logs/grpo_progress.jsonl` open in Cursor showing the JSONL
 rows with real `step`, `reward`, `loss`, `kl`, `elapsed_minutes`.
 
 **Then:** flash `results/grpo_training_summary.json` for 1 second:
-`{"total_steps": 80, "reward_delta": +4.86, "training_time_minutes": 371.3}`.
+`{"total_steps": 80, "initial_reward": -15.10, "final_reward": -10.24, "reward_delta": +4.86, "training_time_minutes": 371.3}`.
 
 ### Beat 5 — The result + the ask (1:36 → 2:00)
 **Voiceover (~55 words):**
@@ -104,8 +109,8 @@ AIC — Adaptive Incident Choreographer
 
 OpenEnv:    huggingface.co/spaces/KINGKK007/aic-openenv-env
 GitHub:     github.com/COolAlien35/AIC
-Reward:     real GRPO,  -15.10  ->  -10.24  (80 steps)
-Tasks:      3 graders,  0.0  -  1.0,  rubric-mandated
+Reward:     real GRPO   -15.10  ->  -10.24   (Δ +4.86, 80 steps, 6.19 h)
+Tasks:      3 graders   0.0 — 1.0   easy / medium / hard
 ```
 
 Hold for 4 seconds. Fade out.
@@ -155,9 +160,10 @@ https://huggingface.co/spaces/KINGKK007/aic-incident-command-center
 Source code:
 https://github.com/COolAlien35/AIC
 
-Real GRPO training: 80 steps on Colab T4, reward improved -15.10 -> -10.24.
+Real GRPO training: 80 steps on a Colab T4, 6.19 h wall-clock,
+reward improved -15.10 -> -10.24 (Δ +4.86). Final loss 0.0026.
 Three deterministic 0.0-1.0 task graders (easy / medium / hard).
-Reward function: 8 verifiable components + verifier veto.
+Reward function: 8 verifiable components + R9 over-confidence penalty + verifier veto.
 ```
 
 4. Visibility: **Unlisted**.

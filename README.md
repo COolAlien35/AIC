@@ -18,14 +18,13 @@
   <img src="https://img.shields.io/badge/▶%20Watch%20the%202--min%20demo-Coming%20Soon-FF0000?style=for-the-badge&logo=youtube&logoColor=white&labelColor=000000" alt="2-minute YouTube walkthrough" height="56"/>
 </a>
 &nbsp;&nbsp;&nbsp;
-<a href="https://huggingface.co/spaces/KINGKK007/aic-openenv-env">
-  <img src="https://img.shields.io/badge/🤗%20Pull%20the%20OpenEnv%20Space-Coming%20Soon-FFD21E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=000000" alt="Hugging Fa`ce OpenEnv Space" height="56"/>
+<a href="https://huggingface.co/spaces/KINGKK007/aic-training">
+  <img src="https://img.shields.io/badge/🤗%20Hugging%20Face%20Space-Live-22C55E?style=for-the-badge&logo=huggingface&logoColor=black&labelColor=000000" alt="Hugging Face Space (judges pull this)" height="56"/>
 </a>
 
 <br/>
 
-> ⚠️ **Buttons above will go live as soon as the video is recorded and the Space is pushed.**
-> Until then they point at the canonical URLs that will host them.
+> ⚠️ **Video button will go live once recorded.** The Space link is already live and is the judge-facing environment.
 
 <br/>
 
@@ -550,7 +549,7 @@ cat results/benchmark_summary_normalized.csv
 ./.venv/bin/python inference.py --episodes 1
 ```
 
-For the live HF Space (once it's pushed): `curl https://kingkk007-aic-openenv-env.hf.space/health` — exact same FastAPI surface, just running in HF's container infra.
+For the live HF Space: `curl https://kingkk007-aic-training.hf.space/health` — exact same FastAPI surface, just running in HF's container infra.
 
 ---
 

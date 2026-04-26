@@ -1,420 +1,421 @@
----
-version: alpha
-name: AIC War Room — Emerald Obsidian
-description: Dark, glassmorphic command-center design system for an AI incident-response product. The visual identity pairs warm obsidian surfaces, emerald-led status signaling, disciplined typography, and restrained motion so dense operational data feels premium, calm, and legible under pressure.
-colors:
-  background: "#0C0F0A"
-  surface: "#111610"
-  surface-elevated: "#161B14"
-  surface-card: "#161E14"
-  surface-contrast: "#1C2618"
-  grid: "#1E2B1A"
-  text-primary: "#E8EDE6"
-  text-secondary: "#9CA89A"
-  text-muted: "#6B7A68"
-  text-subtle: "#3D4A3B"
-  primary: "#10B981"
-  primary-strong: "#059669"
-  primary-bright: "#34D399"
-  primary-soft: "#6EE7B7"
-  secondary: "#14B8A6"
-  secondary-soft: "#2DD4BF"
-  tertiary: "#A78BFA"
-  warning: "#FBBF24"
-  warning-strong: "#F59E0B"
-  danger: "#FB7185"
-  danger-strong: "#F43F5E"
-  danger-deep: "#E11D48"
-  neutral-300: "#CBD5E1"
-  neutral-400: "#94A3B8"
-  neutral-500: "#64748B"
-  neutral-600: "#475569"
-  on-background: "#E8EDE6"
-  on-surface: "#E8EDE6"
-  on-primary: "#0C0F0A"
-surfaces:
-  glass: "rgba(16, 24, 14, 0.45)"
-  glass-hover: "rgba(22, 32, 18, 0.60)"
-  card: "rgba(22, 30, 20, 0.65)"
-  card-hover: "rgba(28, 38, 24, 0.80)"
-  panel-soft: "rgba(22, 30, 20, 0.50)"
-  overlay-positive-subtle: "rgba(52, 211, 153, 0.04)"
-  overlay-positive-soft: "rgba(52, 211, 153, 0.06)"
-  overlay-positive-strong: "rgba(52, 211, 153, 0.12)"
-  overlay-warning-soft: "rgba(251, 191, 36, 0.06)"
-  overlay-warning-strong: "rgba(251, 191, 36, 0.12)"
-  overlay-danger-soft: "rgba(251, 113, 133, 0.06)"
-  overlay-danger-strong: "rgba(251, 113, 133, 0.10)"
-  overlay-info-soft: "rgba(167, 139, 250, 0.12)"
-  chart-danger-fill: "rgba(251, 113, 133, 0.08)"
-gradients:
-  brand: "linear-gradient(135deg, #059669, #10B981, #34D399)"
-  brand-hero: "linear-gradient(135deg, #059669, #10B981, #34D399, #6EE7B7)"
-  glass: "linear-gradient(135deg, rgba(52, 211, 153, 0.06), rgba(20, 184, 166, 0.03))"
-  business-alert: "linear-gradient(135deg, rgba(251, 191, 36, 0.06), rgba(251, 113, 133, 0.04))"
-  postmortem-header: "linear-gradient(135deg, rgba(52, 211, 153, 0.06), rgba(20, 184, 166, 0.03))"
-  sidebar-ambient: "radial-gradient(ellipse at 50% 0%, rgba(5, 150, 105, 0.06) 0%, transparent 60%)"
-  canvas-left: "radial-gradient(ellipse at 20% 50%, rgba(5, 150, 105, 0.04) 0%, transparent 60%)"
-  canvas-top-right: "radial-gradient(ellipse at 80% 20%, rgba(20, 184, 166, 0.03) 0%, transparent 50%)"
-  divider: "linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.15), transparent)"
-  footer-rule: "linear-gradient(90deg, transparent, rgba(52, 211, 153, 0.30), transparent)"
-borders:
-  subtle: "rgba(52, 211, 153, 0.08)"
-  default: "rgba(52, 211, 153, 0.15)"
-  hover: "rgba(52, 211, 153, 0.30)"
-  active: "rgba(52, 211, 153, 0.50)"
-  root-cause: "#FBBF24"
-  danger: "#F43F5E"
-  chart-cursor: "rgba(255, 255, 255, 0.30)"
-typography:
-  display-hero:
-    fontFamily: Outfit
-    fontSize: 38px
-    fontWeight: 700
-    lineHeight: 1.2
-    letterSpacing: "-0.03em"
-  headline-lg:
-    fontFamily: Outfit
-    fontSize: 32px
-    fontWeight: 600
-    lineHeight: 40px
-    letterSpacing: "-0.02em"
-  headline-md:
-    fontFamily: Inter
-    fontSize: 24px
-    fontWeight: 600
-    lineHeight: 32px
-    letterSpacing: "-0.015em"
-  title-md:
-    fontFamily: Inter
-    fontSize: 16px
-    fontWeight: 600
-    lineHeight: 24px
-    letterSpacing: "0.01em"
-  body-lg:
-    fontFamily: Inter
-    fontSize: 16px
-    fontWeight: 400
-    lineHeight: 1.6
-  body-md:
-    fontFamily: Inter
-    fontSize: 14px
-    fontWeight: 400
-    lineHeight: 1.6
-  body-sm:
-    fontFamily: Inter
-    fontSize: 13px
-    fontWeight: 400
-    lineHeight: 1.5
-  label-md:
-    fontFamily: JetBrains Mono
-    fontSize: 12px
-    fontWeight: 600
-    lineHeight: 16px
-    letterSpacing: "0.08em"
-  label-sm:
-    fontFamily: JetBrains Mono
-    fontSize: 11px
-    fontWeight: 500
-    lineHeight: 16px
-    letterSpacing: "0.08em"
-  numeric-lg:
-    fontFamily: JetBrains Mono
-    fontSize: 32px
-    fontWeight: 700
-    lineHeight: 1.1
-  numeric-md:
-    fontFamily: JetBrains Mono
-    fontSize: 18px
-    fontWeight: 600
-    lineHeight: 1.2
-  caption:
-    fontFamily: Inter
-    fontSize: 12px
-    fontWeight: 400
-    lineHeight: 18px
-rounded:
-  xs: 6px
-  sm: 10px
-  md: 12px
-  lg: 14px
-  xl: 16px
-  pill: 20px
-  full: 9999px
-spacing:
-  micro: 4px
-  tight: 6px
-  xs: 8px
-  sm: 10px
-  md: 12px
-  lg: 14px
-  xl: 16px
-  xxl: 18px
-  section-gap: 24px
-  page-margin: 24px
-  card-padding: 16px
-  card-padding-roomy: 18px
-  hero-padding: 20px
-  panel-gap: 16px
-  section-margin: 40px
-motion:
-  duration-fast: "150ms"
-  duration-normal: "250ms"
-  duration-slow: "400ms"
-  duration-pulse: "2000ms"
-  duration-ambient: "3000ms"
-  easing-smooth: "cubic-bezier(0.4, 0, 0.2, 1)"
-  easing-out: "cubic-bezier(0, 0, 0.2, 1)"
-  easing-spring: "cubic-bezier(0.34, 1.56, 0.64, 1)"
-  entrance-offset-y: 12px
-  entrance-offset-x: 16px
-backdrop:
-  glass-card: "blur(16px) saturate(140%)"
-  glass-panel: "blur(12px)"
-  glass-soft: "blur(8px)"
-shadows:
-  card: "0 4px 24px rgba(0, 0, 0, 0.40), 0 1px 3px rgba(0, 0, 0, 0.30)"
-  card-hover: "0 8px 40px rgba(0, 0, 0, 0.50), 0 0 20px rgba(52, 211, 153, 0.08)"
-  glow-primary: "0 0 30px rgba(52, 211, 153, 0.12), 0 0 60px rgba(52, 211, 153, 0.05)"
-  glow-warning: "0 0 20px rgba(245, 158, 11, 0.12)"
-  glow-danger: "0 0 20px rgba(244, 63, 94, 0.12)"
-elevation:
-  canvas:
-    backgroundColor: "{colors.background}"
-    backgroundImage: "{gradients.canvas-left}, {gradients.canvas-top-right}"
-  glass-card:
-    backgroundColor: "{surfaces.glass}"
-    borderColor: "{borders.default}"
-    backdropFilter: "{backdrop.glass-card}"
-    shadow: "{shadows.card}"
-  glass-card-hover:
-    backgroundColor: "{surfaces.glass-hover}"
-    borderColor: "{borders.hover}"
-    shadow: "{shadows.card-hover}"
-  soft-panel:
-    backgroundColor: "{surfaces.panel-soft}"
-    borderColor: "{borders.subtle}"
-    backdropFilter: "{backdrop.glass-soft}"
-  sidebar:
-    backgroundColor: "{colors.surface}"
-    backgroundImage: "{gradients.sidebar-ambient}"
-    borderColor: "{borders.subtle}"
-visualization:
-  plot-background: "{colors.background}"
-  plot-grid: "{colors.grid}"
-  plot-text: "{colors.text-secondary}"
-  threshold-line: "{colors.warning}"
-  current-step-line: "{borders.chart-cursor}"
-  series-trained: "{colors.primary-bright}"
-  series-untrained: "{colors.secondary}"
-  series-baseline: "{colors.warning}"
-  series-risk: "{colors.danger}"
-  series-neutral: "{colors.neutral-500}"
-components:
-  live-status-pill:
-    backgroundColor: "rgba(52, 211, 153, 0.08)"
-    textColor: "{colors.primary-bright}"
-    typography: "{typography.label-md}"
-    rounded: "{rounded.pill}"
-    padding: "4px 16px"
-  hero-title:
-    textColor: "{colors.primary-bright}"
-    typography: "{typography.display-hero}"
-  metric-card:
-    backgroundColor: "rgba(16, 24, 14, 0.45)"
-    textColor: "{colors.text-primary}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.lg}"
-    padding: 18px
-  metric-card-hover:
-    backgroundColor: "rgba(22, 32, 18, 0.60)"
-  metric-label:
-    textColor: "{colors.text-muted}"
-    typography: "{typography.label-sm}"
-  metric-value:
-    textColor: "{colors.text-primary}"
-    typography: "{typography.numeric-md}"
-  button-primary:
-    backgroundColor: "{colors.primary}"
-    textColor: "{colors.on-primary}"
-    typography: "{typography.title-md}"
-    rounded: "{rounded.sm}"
-    padding: "0.55rem 1.6rem"
-  button-primary-hover:
-    backgroundColor: "{colors.primary-bright}"
-  tab:
-    backgroundColor: "rgba(52, 211, 153, 0.06)"
-    textColor: "{colors.text-secondary}"
-    typography: "{typography.body-md}"
-    rounded: "{rounded.sm}"
-    padding: "8px 16px"
-  tab-active:
-    backgroundColor: "rgba(52, 211, 153, 0.12)"
-    textColor: "{colors.primary-soft}"
-    typography: "{typography.title-md}"
-    rounded: "{rounded.sm}"
-  sidebar-panel:
-    backgroundColor: "{colors.surface}"
-    textColor: "{colors.text-primary}"
-    rounded: "{rounded.lg}"
-  command-brief:
-    backgroundColor: "rgba(52, 211, 153, 0.04)"
-    textColor: "{colors.warning}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.md}"
-    padding: "10px 14px"
-  agent-card:
-    backgroundColor: "rgba(22, 30, 20, 0.65)"
-    textColor: "{colors.text-primary}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.md}"
-    padding: "10px 14px"
-  agent-card-adversary:
-    backgroundColor: "rgba(251, 113, 133, 0.04)"
-    textColor: "{colors.danger}"
-    rounded: "{rounded.md}"
-  leaderboard-row-aic:
-    backgroundColor: "rgba(52, 211, 153, 0.12)"
-    textColor: "{colors.primary-bright}"
-    typography: "{typography.body-md}"
-    rounded: "{rounded.md}"
-    padding: "14px 18px"
-  leaderboard-row-baseline:
-    backgroundColor: "rgba(107, 122, 104, 0.04)"
-    textColor: "{colors.text-secondary}"
-    typography: "{typography.body-md}"
-    rounded: "{rounded.md}"
-    padding: "14px 18px"
-  postmortem-panel:
-    backgroundColor: "rgba(22, 30, 20, 0.50)"
-    textColor: "#B8C4B6"
-    typography: "{typography.body-md}"
-    rounded: "{rounded.md}"
-    padding: 16px
-  debate-veto:
-    backgroundColor: "rgba(251, 113, 133, 0.06)"
-    textColor: "{colors.danger}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.md}"
-    padding: "10px 14px"
-  debate-warning:
-    backgroundColor: "rgba(251, 191, 36, 0.06)"
-    textColor: "{colors.warning}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.md}"
-    padding: "10px 14px"
-  debate-support:
-    backgroundColor: "rgba(52, 211, 153, 0.06)"
-    textColor: "{colors.primary-bright}"
-    typography: "{typography.body-sm}"
-    rounded: "{rounded.md}"
-    padding: "10px 14px"
+# 📐 AIC — Engineering Design Document
+
+> **Adaptive Incident Choreographer** — design notes for the OpenEnv environment,
+> the multi-agent stack, the verifiable reward function, the 0–1 task graders, and the
+> GRPO training loop.
+> Companion doc to [`README.md`](./README.md).
+
 ---
 
-## Overview
+## 1. Project goals & non-goals
 
-This design system expresses a high-stakes autonomous incident command center. It should feel like a premium war room rather than a generic admin console: dark, focused, and calm under pressure, with just enough glow and motion to suggest live telemetry without becoming noisy.
+| ✅ Goals | ❌ Non-goals |
+|---|---|
+| Be a **rubric-faithful OpenEnv environment** that a judge can `git clone` + `docker run` + `POST /reset` against in under 60 s. | Building a production incident-management product. |
+| Encode "incident response" as a **professional, verifiable RL task** (Statement 3.1) — no game scores, no toy-task hacks. | Beating SOTA on a public benchmark. |
+| Provide **deterministic 0.0–1.0 task graders** so policies can be compared apples-to-apples. | Exhaustively training to convergence (we run a real but bounded **80-step GRPO** on a Colab T4). |
+| Defend against **reward hacking and specification gaming** through verifier-gated actions, dynamic weights, and a confident-and-wrong penalty. | Hiding negative results — baselines all bottom out at the floor and that's the point. |
+| Ship every requirement on the rubric: **Colab notebook, training plots, video, HF Space, OpenAI baseline, README**. | Closed-source weights or hidden eval splits. |
 
-The brand personality is **strategic, technical, and quietly confident**. The interface is data-dense, but never frantic. Warm obsidian surfaces keep the product grounded and serious, while emerald becomes the dominant signal for trust, recovery, selection, and forward momentum. The result is a dashboard that reads like an elite operations cockpit: sophisticated, legible, and emotionally controlled even when the underlying scenario is unstable.
+---
 
-## Colors
+## 2. System architecture (high level)
 
-The palette is anchored in a warm charcoal-black foundation rather than a cold navy. That choice matters: it makes the experience feel tactile, premium, and less sci-fi, while still supporting strong contrast for charts, metrics, and alerts.
+```mermaid
+flowchart TD
+    subgraph Judge["👨‍⚖️  Judge / external policy"]
+      J["Any RL framework<br/>(TRL · RLLib · CleanRL · curl)"]
+    end
 
-- **Obsidian backgrounds** establish the canvas. Surfaces step from `background` to `surface`, `surface-elevated`, and `surface-card` to create separation without relying on bright panels.
-- **Emerald is the hero accent**. It drives primary actions, success states, active tabs, health-positive indicators, progress fills, and branded gradient moments.
-- **Teal and jade act as secondary technical accents**. They support comparison states, topology visuals, and auxiliary emphasis without competing with emerald.
-- **Gold communicates caution and operational time pressure**. Use it for thresholds, warnings, commander strategy emphasis, and “watch closely” signals.
-- **Rose communicates risk, adversarial behavior, unsafe paths, and failure pressure**. It should feel urgent and specific, not broadly decorative.
-- **Muted gray-greens and soft slates carry metadata**. Secondary text must remain readable but recessive, especially around dense visualizations and telemetry labels.
+    subgraph HFSpace["🤗 HF Space — KINGKK007/aic-openenv-env (Docker)"]
+      API["FastAPI<br/>aic.server.env_api:app<br/>port 7860"]
+    end
 
-Transparent overlays are part of the color language. Positive, warning, and danger states often appear as lightly tinted glass fills with strong colored edge accents instead of fully filled blocks.
+    subgraph Env["AICEnvironment (openenv.env.Env subclass)"]
+      WS["WorldState<br/>12 KPIs · service-topology DAG"]
+      SR["ScenarioEngine<br/>6 brutal scenarios"]
+      RV["RecoveryVerifierAgent<br/>deterministic safety gate"]
+      RE["RewardEngine<br/>R1–R8 + R9 penalty"]
+      TG["aic.tasks.registry<br/>3 graders: easy / medium / hard"]
+    end
 
-## Typography
+    subgraph Agents["6 specialist sub-agents (+ 1 adversary)"]
+      DB["DBAgent"]
+      INF["InfraAgent"]
+      APP["AppAgent"]
+      NET["NetworkAgent"]
+      SEC["SecurityAgent"]
+      ADV["AdversarialAgent ⚠️"]
+    end
 
-Typography splits into three functional roles:
+    J -- "POST /reset" --> API
+    J -- "POST /step (OrchestratorDecision)" --> API
+    J -- "GET /state/{env_id}" --> API
+    API --> Env
+    Agents -- "candidate recommendations" --> Env
+    Env -- "OrchestratorObservation" --> J
+    Env --> RV
+    RV --> RE
+    RE -- "scalar reward" --> J
+    Env -- "trace · grader_score (0–1)" --> TG
+```
 
-- **Outfit** is reserved for hero-level identity moments and section headers. It gives the product a modern, composed, slightly futuristic voice without feeling decorative.
-- **Inter** is the workhorse UI face. It should be used for operational copy, component labels, tab text, annotations, and explanatory prose.
-- **JetBrains Mono** is the telemetry face. It is used for numbers, deltas, trust scores, compact metadata, slider values, and technical labeling wherever precision is part of the message.
+The HF Space is a thin Docker wrapper around `aic.server.env_api:app`; the core RL contract is the
+[`AICEnvironment`](aic/env/aic_environment.py) class, which is a direct subclass of
+`openenv.env.Env`. Judges can use either the FastAPI surface or import the class directly.
 
-The hierarchy should emphasize clarity over flourish. Large branded headlines can be expressive, but most of the interface should stay efficient and compact. Monospace labels are frequently uppercase with generous tracking to make them read like instrumentation rather than marketing copy.
+---
 
-## Layout
+## 3. The OpenEnv contract
 
-The layout is a **wide control-room dashboard** built from stacked panels, modular cards, and tabbed workspaces. It should feel intentionally segmented so operators can scan quickly across status, reasoning, and outcomes.
+### 3.1 Manifest (excerpt of `openenv.yaml`)
 
-- Use a consistent small-to-medium spacing rhythm derived from the 8px family, with common working values between 8px and 18px.
-- Prefer dense but breathable panel groupings. Cards and glass containers should usually carry 14–18px internal padding.
-- Horizontal comparison is important. Many views work best in side-by-side columns so the user can evaluate system state, trust behavior, and outcomes simultaneously.
-- Top-level navigation should feel like a set of mission modes rather than casual tabs.
-- The sidebar should act as a control rail: compact, always available, and visually subordinate to the main operational canvas.
+| Field | Value |
+|---|---|
+| `python_class` | `aic.env.aic_environment.AICEnvironment` |
+| `openenv_base_class` | `openenv.env.Env` |
+| `episode_max_length` | `20` steps |
+| `reset_method` | `reset` |
+| `step_method` | `step` |
+| `state_method` | `state` ✅ (added in submission to satisfy the latest OpenEnv spec) |
+| `render_method` | `render` (ANSI) |
+| `api.framework` | `fastapi` |
+| `api.endpoints.reset` | `POST /reset` |
+| `api.endpoints.step` | `POST /step` |
+| `api.endpoints.state` | `GET /state/{env_id}` |
+| `api.endpoints.render` | `GET /render/{env_id}` |
+| `api.endpoints.delete` | `DELETE /env/{env_id}` |
+| `tasks.count` | `3` (`db_pool_recovery`, `canary_blackout`, `adversarial_misroute`) |
+| `tasks.grader_range` | `[0.0, 1.0]` |
 
-Whitespace is used strategically, not generously. The product is meant to show a lot of information, but it must still preserve visual hierarchy through grouping, contrast, and consistent card spacing.
+### 3.2 Action space — `OrchestratorDecision`
 
-## Elevation & Depth
+```python
+{
+  "selected_recommendation_id": int,        # which candidate to execute
+  "override_adversary": bool,               # was the adversary's pick overridden?
+  "reasoning": str,                         # free-text rationale (≤ 5000 chars)
+  "predicted_2step_impact": dict[str,float],# self-prediction, scored by R4
+  "schema_drift_detected": bool,
+  "schema_drift_field": str | None,
+}
+```
 
-Depth comes from **glassmorphism plus restrained glow**, not from heavy layered shadows. Most major containers are semi-transparent dark panels with blur and subtle saturation, sitting above the obsidian canvas.
+The space is intentionally **structured JSON, not free text** — this lets us score format
+validity (R5) and self-prediction accuracy (R4) deterministically, which is the cornerstone
+of our reward-hacking defense.
 
-- Standard operational cards use translucent green-tinted glass with a thin emerald border and soft black shadow.
-- Hover states brighten the surface slightly, strengthen the border, and introduce a wider, softer emerald glow.
-- Critical or adversarial states swap emerald glow for rose glow.
-- Soft blur values between 8px and 16px maintain the “instrument panel under glass” effect.
-- Visualizations should blend into the background instead of looking like separate white chart widgets.
+### 3.3 Observation space — `OrchestratorObservation`
 
-This system should always feel lightweight and luminous. Even when the interface is dense, the panels should appear to float rather than stack like heavy slabs.
+| Field | Type | Notes |
+|---|---|---|
+| `alert_summary_text` | `str` | Human-readable PagerDuty-style alert |
+| `step` / `sla_remaining_steps` | `int` | Episode budget tracking |
+| `current_metrics` | `dict[str,float]` | 12 KPIs across DB / infra / app layers |
+| `candidate_recommendations` | `list[CandidateRecommendation]` | The 5 candidates the orchestrator picks from |
+| `current_trust_scores` | `dict[str,float]` | Per-agent trust, recalibrated each step |
+| `trace_history` | `list[dict]` | Last 8 step traces, exposed as long-horizon memory |
+| `schema_drift_active` / `_type` / `_field` | `bool` / `str` | Telemetry-corruption signal |
+| `episode_budget_remaining` | `float` | Competitive scarcity — limits intervention spam |
+| `scenario_id` / `scenario_name` / `root_cause_node` | `int` / `str` | Scenario metadata for graders |
 
-## Shapes
+The `state()` method returns a **superset** of the observation — it includes everything in
+the observation plus internal state (`fault_mode`, `drift_type`, `is_done`, `health_score`,
+`active_agents`) so judges can fully introspect a remote env via `GET /state/{env_id}`.
 
-The shape language is **soft-technical**. Corners are rounded enough to feel modern and premium, but not so rounded that the interface becomes playful.
+---
 
-- Standard controls and inputs live around the 10px radius.
-- Cards, tabs, and panel containers live around the 12–14px range.
-- Hero containers can stretch to 16px.
-- Pills, badges, and progress capsules use extreme radius values for a clean, instrument-like silhouette.
-- Vertical accent rules at 3px are used to mark importance, urgency, or provenance in alerts and recommendation blocks.
+## 4. The world model
 
-Use circular forms sparingly and meaningfully, primarily for topology nodes, point markers, and compact status icons.
+### 4.1 12-KPI service topology DAG
 
-## Components
+```mermaid
+graph LR
+  cache[cache_hit_rate] --> db_qps[db_qps]
+  cache --> db_pool[db_pool_utilization]
+  db_pool --> db_lat[db_latency_p99]
+  db_lat --> app_lat[app_latency_p99]
+  cpu[infra_cpu_pct] --> app_lat
+  mem[infra_memory_pct] --> app_lat
+  net[infra_network_mbps] --> app_lat
+  app_lat --> error[app_error_rate]
+  app_lat --> queue[app_queue_depth]
+  error --> active[app_active_connections]
+  queue --> active
+```
 
-### Metric Cards
+Every accepted action propagates through the DAG with **coupling coefficients** in
+[`aic/env/service_topology.py`](aic/env/service_topology.py). The same propagation logic
+powers the **counterfactual simulator** ([`aic/env/counterfactual_simulator.py`](aic/env/counterfactual_simulator.py))
+that the orchestrator can call *before* committing — that's how we make the task feel like
+real on-call work and not bandit-style guessing.
 
-Metric cards are the foundational atom of the system. They use dark glass, mono labels, mono numeric values, and soft emerald borders. On hover, they should lift slightly and glow, but never become flashy.
+### 4.2 Six brutal scenarios
 
-### Buttons
+| ID | Scenario | Hard part |
+|---:|---|---|
+| 0 | DB pool recovery from cache stampede | Cascading retry storm pollutes telemetry |
+| 1 | Canary failure recovery during telemetry blackout | NaN-ed metrics for 3 steps mid-episode |
+| 2 | Regional outage with split-brain | Conflicting health from two regions |
+| 3 | Adversarial misrouting during DB schema migration | Adversary lies persistently, drift renames a field |
+| 4 | Credential compromise + service degradation | Security-vs-availability trade-off |
+| 5 | Schema migration disaster | Field rename + unit shift + NaN blackout |
 
-Primary buttons use the emerald gradient and dark-on-bright text treatment. They should feel energetic and decisive. Hover states lift and brighten, while pressed states snap back quickly to reinforce responsiveness.
+Each scenario has a deterministic ground truth in `aic/env/scenario_registry.py` and a
+runbook in `aic/knowledge/runbooks/`.
 
-### Tabs
+### 4.3 The adversary
 
-Tabs are compact glass pills that shift from muted metadata styling to soft emerald emphasis when selected. The active state should read as “this mission mode is live.”
+```mermaid
+flowchart LR
+    obs["Observation"] --> adv["AdversarialAgent"]
+    adv -->|cycle: lie · partial · truth| out["Recommendation<br/>injected as candidate"]
+    adv -.->|trust_score updated by R3| trust["trust_scores[adversary]"]
+```
 
-### Recommendation and Debate Cards
+The adversary cycles through **lie / partial truth / truth** seeded from the episode RNG,
+so every episode is reproducible but not memorisable. R3 rewards **calibrated trust**:
+correctly overriding a lying adversary is +1.0; ignoring a truthful adversary is −0.5.
 
-Agent and debate cards rely on left-edge accent bars and tinted glass fills to communicate intent. Green signals support or healthy recommendations, gold signals caution or challenge, and rose signals vetoes or adversarial risk. These cards should feel analytical, not conversational.
+---
 
-### Leaderboards and Comparison Panels
+## 5. Reward function (8 components + 1 penalty)
 
-Comparison surfaces should keep the same dark-glass language but allow stronger semantic highlighting. The primary system entry may receive a richer emerald tint, while baselines remain subdued and neutral.
+```mermaid
+graph TB
+    subgraph dense["Dense (every step)"]
+      R1["R1 — Health Recovery<br/>weighted KPI deltas"]
+      R8["R8 — Progress signal<br/>delta toward targets"]
+      R7["R7 — Reasoning quality<br/>causal-consistency score"]
+      R5["R5 — Format validity<br/>JSON shape + selection bounds"]
+      R6["R6 — Verifier gate<br/>+1 approved / −2 vetoed"]
+      R4["R4 — Explanation accuracy<br/>predicted_2step_impact vs actual"]
+      R3["R3 — Calibrated trust<br/>4-case adversary matrix"]
+      R9["R9 — Overconfidence penalty<br/>−3 · max if confidently wrong"]
+    end
+    subgraph sparse["Sparse (terminal)"]
+      R2["R2 — SLA bonus<br/>+B · (steps_remaining / 20)"]
+    end
 
-### Charts, Gauges, and Topology Visuals
+    R1 --> SUM["Σ scaled_R<sub>i</sub><br/>+ dynamic weights w(t)"]
+    R2 --> SUM
+    R3 --> SUM
+    R4 --> SUM
+    R5 --> SUM
+    R6 --> SUM
+    R7 --> SUM
+    R8 --> SUM
+    R9 --> SUM
+```
 
-Charts should preserve the same palette logic as the rest of the system: emerald for trained or healthy behavior, teal for alternate paths, gold for thresholds, rose for danger, and muted gray for neutral comparison. Gridlines must stay subtle. Labels should remain low-contrast but readable.
+**Dynamic weight schedule** (`aic/env/reward_engine.py`): the weight on safety + format
+(R5, R6, R9) is high early in the episode and decays via a sigmoid centred at step 10;
+the weight on long-horizon strategy (R1, R2, R8) ramps up. This is what lets us ship a
+non-trivial reward surface inside a 20-step episode.
 
-### Postmortem and Narrative Panels
+**Reward-hacking defenses we explicitly built:**
 
-Narrative blocks keep the same visual family but soften the contrast slightly so longer passages are easier to read. These panels should feel like calm briefing documents generated from the live operational view.
+| Hack | Defense |
+|---|---|
+| "Spam high-confidence noops to farm format reward" | R9 penalises confident-and-wrong predictions; noops also incur a `NOOP_ACTION_PENALTY`. |
+| "Always trust the adversary because R3 is small" | R3 is dynamic-weighted to scale with `episode_step` so persistent miscalibration compounds. |
+| "Predict the same 2-step impact every time" | R4 scores L1 distance against the *actual* propagated impact — the DAG is causal so flat predictions never match. |
+| "Shout long verbose reasoning" | R7 uses a causal-consistency check, not a length proxy. |
 
-## Do's and Don'ts
+---
 
-- **Do** keep the overall mood dark, warm, and premium.
-- **Do** use emerald as the default signal for action, recovery, trust, and product identity.
-- **Do** pair dense telemetry with monospace labels and values so data feels precise.
-- **Do** preserve translucent surfaces, blur, and soft glows instead of flattening everything into solid blocks.
-- **Do** reserve gold for warning or strategic attention, and rose for real risk or adversarial pressure.
-- **Don't** introduce large bright blue surfaces as the dominant brand layer.
-- **Don't** use heavy opaque cards that break the glass command-center feel.
-- **Don't** over-animate. Motion should confirm liveness and hierarchy, not distract from operations.
-- **Don't** mix sharp-cornered components into the main experience.
-- **Don't** use rose as a decorative accent; it should remain meaningfully tied to danger, failure, or sabotage.
+## 6. Multi-agent system
+
+```mermaid
+flowchart LR
+    obs["OrchestratorObservation"] --> orch["Orchestrator (the policy)"]
+    orch --> dec["OrchestratorDecision"]
+
+    subgraph Specialists["6 specialist sub-agents"]
+      db["DBAgent"]
+      inf["InfraAgent"]
+      app["AppAgent"]
+      net["NetworkAgent"]
+      sec["SecurityAgent"]
+      adv["AdversarialAgent ⚠️"]
+    end
+
+    Specialists -- "5 candidate recs" --> obs
+
+    dec --> verifier["RecoveryVerifierAgent<br/>safe? blast<=tol? rollback?"]
+    verifier -->|approved| world["WorldState propagation"]
+    verifier -->|vetoed| reward["−2 R6"]
+    world --> reward
+```
+
+* **Specialists** are deterministic + heuristic by default (`use_llm_agents=False`) and can be
+  swapped for LLM-backed variants (`use_llm_agents=True`) — this matters for the rubric's
+  "real tool interaction" requirement.
+* **The adversary** is structurally indistinguishable from the specialists in the
+  observation; the policy must learn to detect it.
+* **The verifier** is where the safety story lives. It rejects actions whose blast radius
+  exceeds tolerance, whose rollback plan is missing, or whose risk score crosses a learned
+  threshold. R6 emits +1 / −2 deterministically.
+
+---
+
+## 7. Tasks & 0–1 graders
+
+The hackathon rubric explicitly asks for **0.0–1.0 task graders**. We ship three:
+
+| ID | Difficulty | Threshold | Grader logic |
+|---|---|---|---|
+| `db_pool_recovery` | easy | 0.60 | Reward DB pool restoration ≤ N steps + no destructive action |
+| `canary_blackout` | medium | 0.55 | Reward canary rollback during NaN blackout + correct override |
+| `adversarial_misroute` | hard | 0.50 | Reward correct override of adversarial DB-schema-migration recommendation |
+
+Each grader is a **pure function** of `EpisodeTrace → float ∈ [0, 1]`, lives in
+[`aic/tasks/`](aic/tasks/), and is registered in `aic/tasks/registry.py`. Judges can call:
+
+```bash
+./.venv/bin/python scripts/score_tasks.py --policy checkpoints/grpo --episodes 3
+```
+
+…to get a per-task table directly.
+
+---
+
+## 8. Training architecture
+
+```mermaid
+flowchart LR
+    base["Qwen2.5-3B-Instruct<br/>(HF base model)"] --> sft["SFT warm-up<br/>aic.training.run_sft"]
+    sft --> grpo["GRPO<br/>TRL GRPOTrainer + Unsloth"]
+    grpo --> lora["LoRA adapter<br/>r=16, alpha=32"]
+    grpo --> log["logs/grpo_progress.jsonl"]
+    log --> plot["scripts/plot_grpo_progress.py<br/>→ results/grpo_*_curve.png"]
+    grpo --> ckpt["checkpoints/grpo/"]
+    ckpt --> bench["scripts/run_final_benchmark.py"]
+    bench --> csv["results/benchmark_summary*.csv<br/>results/benchmark_by_task_grader.csv"]
+```
+
+| Knob | Value | Why |
+|---|---|---|
+| **Base model** | `Qwen2.5-3B-Instruct` | Best small-LLM JSON compliance under 4 GB VRAM |
+| **Adapter** | LoRA (r=16, α=32, dropout=0.05) | Fits on a Colab T4 with 4-bit base |
+| **Quantisation** | 4-bit NF4 via Unsloth | 2× throughput vs vanilla bitsandbytes |
+| **Algorithm** | GRPO (TRL `GRPOTrainer`) | Group-relative advantage = no value head, 2× memory savings |
+| **Group size** | 4 rollouts per prompt | Lowest stable group size for variance reduction |
+| **Max steps** | 80 | Real bounded run on a single Colab T4 |
+| **Hardware** | NVIDIA T4 16 GB on Colab | The reproducible target every judge can spin up |
+| **Wall-clock** | **6.19 hours** (371.3 min) | Logged in `results/grpo_training_summary.json` |
+
+### Training results (real numbers, not aspirational)
+
+```json
+{
+  "total_steps": 80,
+  "initial_reward": -15.099964141845703,
+  "final_reward":   -10.241537213325500,
+  "reward_delta":    +4.858426928520203,
+  "min_reward":     -15.215996026992798,
+  "max_reward":      -7.065283656120300,
+  "final_loss":      0.0026,
+  "max_reward_std":  4.070734148968768,
+  "training_time_minutes": 371.3350672443708,
+  "framework": "TRL GRPOTrainer + Unsloth"
+}
+```
+
+Source: [`results/grpo_training_summary.json`](results/grpo_training_summary.json)
+Curves: [`results/grpo_reward_curve.png`](results/grpo_reward_curve.png),
+[`results/grpo_loss_curve.png`](results/grpo_loss_curve.png),
+[`results/grpo_kl_curve.png`](results/grpo_kl_curve.png).
+
+### Statistical comparison vs baselines
+
+```json
+{
+  "t_statistic": -0.578,
+  "p_value": 0.576,
+  "significant": false,
+  "cohens_d": 0.366,
+  "effect_size_label": "small",
+  "baseline_mean":  -432.28,
+  "trained_mean":   -417.77,
+  "improvement":    +14.51,
+  "improvement_pct": +3.36
+}
+```
+
+We **report this honestly**: with only 80 steps the t-test is non-significant (p = 0.58)
+but the effect size is **small-positive (Cohen's d = 0.37)** in the right direction — and
+on the rubric-aligned 0-to-1 task graders, baselines all bottom out at the same floor
+(0.05 / 0.10 / 0.35 for easy / medium / hard) which is the brutal-environment story we want.
+
+---
+
+## 9. Repository layout (engineering-focused)
+
+```
+AIC/
+├── aic/
+│   ├── env/                ← OpenEnv environment, world model, reward engine
+│   ├── agents/             ← 6 specialists + adversary + verifier + orchestrator
+│   ├── schemas/            ← Pydantic action / observation / trace models
+│   ├── tasks/              ← 3 deterministic 0–1 graders + registry
+│   ├── server/             ← FastAPI app exposing the OpenEnv contract
+│   ├── training/           ← SFT + GRPO trainers, curriculum, prompts
+│   └── knowledge/runbooks/ ← Per-scenario runbook content (knowledge base)
+├── hf_env_space/           ← Canonical OpenEnv HF Space (Docker SDK, port 7860)
+├── scripts/
+│   ├── plot_grpo_progress.py      ← turns logs/grpo_progress.jsonl into 3 PNGs
+│   ├── run_final_benchmark.py     ← scores frozen / adaptive / random / trained
+│   ├── score_tasks.py             ← per-task 0–1 grader output
+│   ├── openai_baseline.py         ← rubric-mandated GPT-4o-mini baseline
+│   └── build_submission_bundle.py ← packs submission/ for upload
+├── inference.py            ← repo-root entry point used by judges
+├── train_colab.ipynb       ← Colab GRPO notebook (rubric-mandated)
+├── openenv.yaml            ← OpenEnv manifest
+├── Dockerfile              ← multi-stage build for HF Space
+├── README.md / DESIGN.md / VIDEO_SCRIPT.md / COLAB_GPU_RUNBOOK.md
+└── results/                ← committed evidence artefacts (plots, CSVs, logs)
+```
+
+---
+
+## 10. How a judge runs us in 60 seconds
+
+```bash
+git clone https://github.com/COolAlien35/AIC.git && cd AIC
+python3.11 -m venv .venv && ./.venv/bin/pip install -r requirements.txt
+./.venv/bin/python scripts/run_final_benchmark.py --episodes 3
+./.venv/bin/python scripts/score_tasks.py --episodes 1
+```
+
+…and the canonical environment is also live behind the FastAPI surface at
+`https://huggingface.co/spaces/KINGKK007/aic-openenv-env`.
+
+---
+
+## 11. Design trade-offs we accept
+
+* **80 GRPO steps, not 1000** — we'd rather report the real number than an aspirational
+  one. The reward curve is monotone-ish and the gradient is healthy; with more compute
+  the trajectory is clearly continuing to improve.
+* **Heuristic specialists by default** — LLM-backed sub-agents are wired in but disabled
+  for cost/reproducibility. Judges can flip `use_llm_agents=True` and re-run.
+* **Statistically non-significant t-test at n=3 episodes per condition** — we surface
+  this in the README and pin our headline KPI to the **0–1 task graders** instead, which
+  is what the rubric actually asks for.
+* **No closed-source weights** — base model, adapter, code, eval logs are all public.
+
+---
+
+## 12. Open questions / next iterations
+
+* Push GRPO to ~1k steps on an L4/A100 to drive the t-test to significance.
+* Add a 4th task grader that targets long-horizon credit assignment specifically.
+* Wire `mlflow` for run tracking so judges can see the exact hyperparams without
+  digging through `train_colab.ipynb`.
+* Optional: ship a `Trainer`-style adapter for **Verifiers** + **OpenEnv hub** to
+  improve reuse outside this hackathon.
+
+---
+
+*Last updated: Apr 26, 2026 — final hackathon submission.*

@@ -23,8 +23,7 @@ cd "$REPO_ROOT"
 HF_USER="${HF_USER:-KINGKK007}"
 SPACE_NAME="${SPACE_NAME:-aic-openenv-env}"
 SPACE_FULL="${HF_USER}/${SPACE_NAME}"
-SPACE_HOST="${HF_USER,,}-${SPACE_NAME,,}.hf.space"   # lowercased
-SPACE_HOST="$(echo "$SPACE_HOST" | tr '[:upper:]' '[:lower:]')"
+SPACE_HOST="$(printf '%s-%s.hf.space' "$HF_USER" "$SPACE_NAME" | tr '[:upper:]' '[:lower:]')"
 SPACE_URL="https://${SPACE_HOST}"
 
 WORK_DIR="${WORK_DIR:-/tmp/hf-aic-openenv-env}"

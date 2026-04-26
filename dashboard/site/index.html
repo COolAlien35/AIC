@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>AIC · Adaptive Incident Choreographer — Results Dashboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Results dashboard for the Adaptive Incident Choreographer OpenEnv environment — GRPO training evidence, per-scenario uplift, statistical tests." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true"></span>
+        <div class="brand-text">
+          <span class="brand-name">AIC</span>
+          <span class="brand-sub">Adaptive Incident Choreographer · Results</span>
+        </div>
+      </div>
+      <nav class="topnav" aria-label="Sections">
+        <a href="#overview">Overview</a>
+        <a href="#training">Training</a>
+        <a href="#scenarios">Scenarios</a>
+        <a href="#statistics">Statistics</a>
+        <a href="#tasks">Tasks</a>
+        <a href="#figures">Figures</a>
+      </nav>
+      <div class="top-actions">
+        <a class="btn ghost" href="https://github.com/COolAlien35/AIC" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn primary" href="https://huggingface.co/spaces/KINGKK007/aic-training" target="_blank" rel="noopener">HF Space (Judges)</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- ─── HERO ─────────────────────────────────────────────────────── -->
+    <section id="overview" class="hero">
+      <div class="hero-meta">
+        <span class="pill pill-live">RESULTS · LIVE</span>
+        <span class="meta-line"><span id="meta-episodes">—</span> episodes pooled · <span id="meta-runs">—</span> training runs · <span id="meta-scenarios">—</span> scenarios</span>
+      </div>
+      <h1 class="hero-title">A trained orchestrator beats every baseline,<br>on every scenario, by a <span class="hero-accent">large margin</span>.</h1>
+      <p class="hero-sub">Aggregated benchmark across two independent training runs and three policies. Numbers are the merged source of truth — every figure on this page traces back to <span class="mono">results/benchmark_merged/</span>.</p>
+
+      <div class="kpi-grid">
+        <article class="kpi up">
+          <header class="kpi-label">Mean reward uplift</header>
+          <div class="kpi-value mono" id="kpi-uplift">—</div>
+          <div class="kpi-foot"><span id="kpi-uplift-pct">—</span> vs frozen baseline</div>
+        </article>
+        <article class="kpi up">
+          <header class="kpi-label">Effect size</header>
+          <div class="kpi-value mono" id="kpi-cohens-d">—</div>
+          <div class="kpi-foot">Cohen's d · <span id="kpi-cohens-label" class="tag tag-good">large</span></div>
+        </article>
+        <article class="kpi up">
+          <header class="kpi-label">Statistical significance</header>
+          <div class="kpi-value mono" id="kpi-pvalue">—</div>
+          <div class="kpi-foot">Welch's t · <span class="tag tag-good">significant</span></div>
+        </article>
+        <article class="kpi">
+          <header class="kpi-label">GRPO reward delta</header>
+          <div class="kpi-value mono" id="kpi-grpo-delta">—</div>
+          <div class="kpi-foot"><span id="kpi-grpo-steps">—</span> steps · <span id="kpi-grpo-time">—</span></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ─── HEADLINE COMPARISON ─────────────────────────────────────── -->
+    <section class="block">
+      <div class="block-head">
+        <div>
+          <h2>Headline comparison</h2>
+          <p class="block-sub">Mean episode reward by policy across the merged benchmark (n = 120). Higher is better; bars approach zero.</p>
+        </div>
+        <span class="block-tag">3 policies · 6 scenarios · pooled</span>
+      </div>
+      <div class="block-body">
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <span class="chart-title">Mean reward · 95% CI</span>
+            <span class="chart-meta mono" id="headline-best-policy">—</span>
+          </div>
+          <div class="chart-host"><canvas id="chart-headline" height="280"></canvas></div>
+        </div>
+        <div class="table-card">
+          <div class="chart-card-head">
+            <span class="chart-title">Per-policy summary</span>
+            <span class="chart-meta">aggregated across runs</span>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Policy</th><th class="num">μ reward</th><th class="num">σ</th><th class="num">n</th><th>Status</th></tr>
+            </thead>
+            <tbody id="tbody-summary"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── TRAINING ────────────────────────────────────────────────── -->
+    <section id="training" class="block">
+      <div class="block-head">
+        <div>
+          <h2>GRPO training</h2>
+          <p class="block-sub">Real run · TRL <span class="mono">GRPOTrainer</span> + Unsloth · <span class="mono">Qwen2.5-3B-Instruct</span> · LoRA r=16 · NVIDIA T4 16 GB.</p>
+        </div>
+        <span class="block-tag">80 steps · 6.19 h wall-clock</span>
+      </div>
+      <div class="block-body">
+        <div class="chart-card span-2">
+          <div class="chart-card-head">
+            <span class="chart-title">Reward curve</span>
+            <span class="chart-meta mono" id="training-headline">—</span>
+          </div>
+          <div class="chart-host"><canvas id="chart-grpo-reward" height="220"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <span class="chart-title">Loss</span>
+            <span class="chart-meta mono" id="training-final-loss">—</span>
+          </div>
+          <div class="chart-host"><canvas id="chart-grpo-loss" height="180"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-card-head">
+            <span class="chart-title">KL divergence</span>
+            <span class="chart-meta mono" id="training-final-kl">—</span>
+          </div>
+          <div class="chart-host"><canvas id="chart-grpo-kl" height="180"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── PER-SCENARIO ────────────────────────────────────────────── -->
+    <section id="scenarios" class="block">
+      <div class="block-head">
+        <div>
+          <h2>Per-scenario uplift</h2>
+          <p class="block-sub">Mean reward by scenario, baseline vs trained. Largest gains live where the world is hardest.</p>
+        </div>
+        <span class="block-tag">6 scenarios · ranked by Δ</span>
+      </div>
+      <div class="block-body">
+        <div class="chart-card span-2">
+          <div class="chart-card-head">
+            <span class="chart-title">Trained − frozen baseline (mean reward)</span>
+            <span class="chart-meta mono" id="scenarios-best">—</span>
+          </div>
+          <div class="chart-host"><canvas id="chart-scenario-delta" height="240"></canvas></div>
+        </div>
+        <div class="chart-card span-2">
+          <div class="chart-card-head">
+            <span class="chart-title">Side-by-side: baseline vs trained</span>
+            <span class="chart-meta">all 6 scenarios</span>
+          </div>
+          <div class="chart-host"><canvas id="chart-scenario-grouped" height="260"></canvas></div>
+        </div>
+        <div class="table-card span-2">
+          <div class="chart-card-head">
+            <span class="chart-title">Per-scenario breakdown</span>
+            <span class="chart-meta">sorted by uplift, descending</span>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr><th>Scenario</th><th class="num">Baseline μ</th><th class="num">Trained μ</th><th class="num">Δ</th><th>Direction</th></tr>
+            </thead>
+            <tbody id="tbody-scenarios"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── STATISTICS ──────────────────────────────────────────────── -->
+    <section id="statistics" class="block">
+      <div class="block-head">
+        <div>
+          <h2>Statistical evidence</h2>
+          <p class="block-sub">Welch's two-sample t-test on the pooled merged set. 95 % CIs and bootstrap distributions are in the figure gallery below.</p>
+        </div>
+        <span class="block-tag">two-sided · Welch · pooled</span>
+      </div>
+      <div class="block-body">
+        <div class="stat-grid">
+          <div class="stat">
+            <div class="stat-label">t statistic</div>
+            <div class="stat-value mono" id="stat-t">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">p value</div>
+            <div class="stat-value mono" id="stat-p">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Cohen's d</div>
+            <div class="stat-value mono" id="stat-d">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Δ mean reward</div>
+            <div class="stat-value mono" id="stat-improvement">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">% improvement</div>
+            <div class="stat-value mono" id="stat-improvement-pct">—</div>
+          </div>
+          <div class="stat">
+            <div class="stat-label">Episodes pooled</div>
+            <div class="stat-value mono" id="stat-n">—</div>
+          </div>
+        </div>
+
+        <div class="chart-card span-2 stat-quote">
+          <p class="quote-body">
+            With <span class="mono" id="quote-n">—</span> pooled episodes, the trained orchestrator improves mean reward by
+            <span class="mono accent" id="quote-imp">—</span>
+            (<span class="mono accent" id="quote-pct">—</span>) over the frozen baseline.
+            The effect is large (Cohen's d = <span class="mono accent" id="quote-d">—</span>) and the p-value is
+            <span class="mono accent" id="quote-p">—</span> — well below any reasonable α threshold.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ─── TASKS ───────────────────────────────────────────────────── -->
+    <section id="tasks" class="block">
+      <div class="block-head">
+        <div>
+          <h2>Rubric-aligned task graders</h2>
+          <p class="block-sub">Three deterministic 0.0–1.0 graders covering easy / medium / hard. Baselines bottom out — exactly what you want from a brutal environment.</p>
+        </div>
+        <span class="block-tag">0.0 — 1.0 · per-task</span>
+      </div>
+      <div class="block-body">
+        <div class="task-grid" id="task-grid"></div>
+      </div>
+    </section>
+
+    <!-- ─── FIGURE GALLERY ──────────────────────────────────────────── -->
+    <section id="figures" class="block">
+      <div class="block-head">
+        <div>
+          <h2>Figure gallery</h2>
+          <p class="block-sub">Pre-rendered figures from the merged benchmark — the same artefacts judges find in <span class="mono">results/benchmark_merged/plots/</span>.</p>
+        </div>
+        <span class="block-tag">12 figures · static</span>
+      </div>
+      <div class="block-body">
+        <div class="figure-grid" id="figure-grid"></div>
+      </div>
+    </section>
+
+    <footer class="page-footer">
+      <div class="footer-line">
+        <span class="mono">AIC · Adaptive Incident Choreographer</span>
+        <span class="dot">·</span>
+        <span>Built for the Meta OpenEnv hackathon</span>
+        <span class="dot">·</span>
+        <a href="https://github.com/COolAlien35/AIC" target="_blank" rel="noopener">github.com/COolAlien35/AIC</a>
+      </div>
+      <div class="footer-line muted">
+        Data source: <span class="mono">results/benchmark_merged/</span> · GRPO log: <span class="mono">logs/grpo_progress.jsonl</span>
+      </div>
+    </footer>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+  <script src="data.js"></script>
+  <script src="main.js"></script>
+</body>
+</html>

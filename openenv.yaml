@@ -32,7 +32,7 @@ tasks:
   grader_range: [0.0, 1.0]
   ids:
     - "db_pool_recovery"
-    - "cache_stampede"
+    - "canary_blackout"
     - "adversarial_misroute"
 
 interfaces:

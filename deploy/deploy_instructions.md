@@ -1,132 +1,194 @@
-# Deployment Instructions — AIC on HuggingFace Spaces
+# 🚢 Deployment Instructions — AIC
 
-## Option 1: Gradio SDK (Recommended)
+AIC ships **two Hugging Face Spaces** plus a self-host Docker option. This doc tells you
+which one to use and how to push.
 
-HuggingFace Spaces natively supports Gradio apps. The `app.py` at the repo root
-is already configured as a Gradio application.
+| Space | What it is | Who needs it |
+|---|---|---|
+| [`KINGKK007/aic-openenv-env`](https://huggingface.co/spaces/KINGKK007/aic-openenv-env) | **Canonical OpenEnv environment server** (Docker, FastAPI on port 7860) | Hackathon judges — they pull this URL to evaluate the env |
+| [`KINGKK007/aic-incident-command-center`](https://huggingface.co/spaces/KINGKK007/aic-incident-command-center) | Interactive Gradio walkthrough demo | Anyone who wants to click through an episode in the browser |
 
-### Steps
+The repo also contains everything you need to run the env locally via Docker or
+`uvicorn`.
 
-1. **Create a new Space** on [huggingface.co/new-space](https://huggingface.co/new-space):
-   - SDK: **Gradio**
-   - SDK Version: **4.44.0**
-   - Hardware: **CPU Basic** (free tier works)
+---
 
-2. **Push the repo**:
-   ```bash
-   # Add HF Space as a remote
-   git remote add hf https://huggingface.co/spaces/YOUR_USERNAME/AIC
+## 1) Push the canonical OpenEnv Space (judges pull this)
 
-   # Copy the HF Space README as the root README for the space
-   cp hf_space_readme.md README.md
-
-   # Push
-   git push hf main
-   ```
-
-3. **Verify** at `https://huggingface.co/spaces/YOUR_USERNAME/AIC`
-
-### Environment Variables (Optional)
-
-If using LLM-backed agents, set in Space settings:
-- `ANTHROPIC_API_KEY` — for Claude-backed sub-agents
-
-## Option 2: Docker API Service (Model -> Docker -> FastAPI)
-
-Use the repo-root `Dockerfile` to run the FastAPI environment service:
+The build context is [`hf_env_space/`](../hf_env_space/) — a thin Docker wrapper that
+clones the source repo and starts `aic.server.env_api:app` on port 7860.
 
 ```bash
-# Build API image
-docker build -t aic-env-api .
+# 1. Create the Space (one-time, on huggingface.co/new-space)
+#    SDK: Docker · Hardware: CPU Basic · Visibility: Public · port: 7860
 
-# Run API container
+# 2. Push the wrapper from this repo
+git remote add hf-env https://huggingface.co/spaces/KINGKK007/aic-openenv-env
+git subtree push --prefix=hf_env_space hf-env main
+```
+
+Wait for the build to go green, then smoke-test:
+
+```bash
+HOST="https://kingkk007-aic-openenv-env.hf.space"
+curl -s "$HOST/health"
+ENV_ID=$(curl -sX POST "$HOST/reset" -H 'Content-Type: application/json' \
+  -d '{"episode_id":0,"base_seed":42,"fault_mode":"cascading_failure"}' | jq -r .env_id)
+curl -s "$HOST/state/$ENV_ID" | jq '.state | {step,scenario_name,health_score}'
+```
+
+Append the live response to `results/hf_space_smoke.log` so judges can see it without
+hitting the URL themselves.
+
+---
+
+## 2) Push the Gradio demo Space (optional, for click-through reviewers)
+
+```bash
+# Create the Space (one-time, on huggingface.co/new-space)
+#    SDK: Gradio · SDK Version: 4.44.0 · Hardware: CPU Basic
+
+git remote add hf-demo https://huggingface.co/spaces/KINGKK007/aic-incident-command-center
+
+# The Gradio entry point at the repo root is app.py. The Space-level
+# README is hf_space_readme.md — copy it into place before pushing.
+cp hf_space_readme.md README.md
+git push hf-demo main
+git checkout README.md   # restore the canonical project README
+```
+
+### Optional Space-level secrets
+
+For the full LLM-backed agent path (`use_llm_agents=True`), set in the Space's **Settings → Variables and secrets**:
+
+| Name | Purpose |
+|---|---|
+| `OPENAI_API_KEY` | Powers `scripts/openai_baseline.py` if a reviewer runs the OpenAI baseline live in Spaces. |
+| `ANTHROPIC_API_KEY` | Powers Claude-backed sub-agents when `use_llm_agents=True`. |
+
+Both are **optional** — the demo runs end-to-end with heuristic specialists by default.
+
+---
+
+## 3) Self-host the FastAPI environment with Docker
+
+The repo-root [`Dockerfile`](../Dockerfile) builds the OpenEnv FastAPI server (the same
+image the canonical Space runs).
+
+```bash
+docker build -t aic-env-api .
 docker run --rm -p 8000:8000 aic-env-api
 ```
 
-Verify:
+Smoke test:
 
 ```bash
-curl http://localhost:8000/health
+curl -s http://localhost:8000/health
+# → {"status":"ok","active_envs":0}
+
+ENV_ID=$(curl -sX POST http://localhost:8000/reset \
+  -H 'Content-Type: application/json' \
+  -d '{"episode_id":0,"base_seed":42,"fault_mode":"cascading_failure"}' | jq -r .env_id)
+
+curl -s http://localhost:8000/state/$ENV_ID | jq '.state | keys'
 ```
 
-Expected response:
+For HF Docker Spaces, `Dockerfile` must live at the repo root (it already does).
 
-```json
-{"status":"ok","active_envs":0}
-```
+---
 
-For Docker Spaces, keep `Dockerfile` at the repository root.
-
-## Option 3: Local FastAPI Server (without Docker)
-
-For programmatic access, use the FastAPI environment server:
+## 4) Run the FastAPI server without Docker (fastest local dev)
 
 ```bash
-# Run locally
-python scripts/run_env_server.py
+python3.11 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python scripts/run_env_server.py     # starts uvicorn on http://localhost:8000
 
-# API endpoints
-POST /reset   — Create and reset a new environment
-POST /step    — Step the environment with an action
-GET  /render/{env_id}  — Render current state
-GET  /health  — Health check
+# or, equivalently:
+uvicorn aic.server.env_api:app --host 0.0.0.0 --port 8000
 ```
 
-## Option 4: Gradio Demo Container
+| Method | Endpoint | Notes |
+|---|---|---|
+| `POST` | `/reset` | Body: `{episode_id, base_seed, fault_mode, scenario_id?}` → returns `{env_id, observation}` |
+| `POST` | `/step` | Body: `{env_id, action}` where `action` is an `OrchestratorDecision` |
+| `GET`  | `/state/{env_id}` | Full structured state (rubric requirement) |
+| `GET`  | `/render/{env_id}` | ANSI render |
+| `DELETE` | `/env/{env_id}` | Free resources |
+| `GET`  | `/health` | Liveness |
 
-The Gradio demo container definition is in `deploy/Dockerfile` and is demo-only.
+---
+
+## 5) Run the Gradio demo container locally
+
+The demo's container definition is in [`deploy/Dockerfile`](Dockerfile) and serves
+`app.py` on port 7860.
 
 ```bash
 docker build -f deploy/Dockerfile -t aic-gradio-demo .
 docker run --rm -p 7860:7860 aic-gradio-demo
+# open http://localhost:7860
 ```
 
-## OpenEnv Registration and Manifest
+---
 
-AICEnvironment is OpenEnv-compliant. To register with an OpenEnv registry:
+## 6) OpenEnv compliance check
+
+`AICEnvironment` subclasses `openenv.env.Env` and exposes the full contract:
 
 ```python
 from openenv.env import Env
 from aic.env.aic_environment import AICEnvironment
 
-# Verify compliance
 assert issubclass(AICEnvironment, Env)
 
-# The environment exposes:
-# - state_space: dict describing observation schema
-# - action_space: dict describing action schema  
-# - episode_max_length: int (20 steps)
+env = AICEnvironment(episode_id=0, base_seed=42, fault_mode="cascading_failure")
+obs = env.reset(seed=42)
+state = env.state()        # required by the latest OpenEnv spec
+ansi = env.render()        # ANSI render
 ```
 
-Manifest for submission: `openenv.yaml`
+Manifest: [`openenv.yaml`](../openenv.yaml). Validate with:
 
-## Trained Model Deployment
+```bash
+./.venv/bin/python -m openenv validate openenv.yaml > results/openenv_validate.log
+```
 
-To serve the trained model alongside the environment:
+(The repo also ships `results/openenv_validate.log` from the most recent run.)
 
-1. Export the LoRA adapter:
-   ```bash
-   python eval/test_export.py --source checkpoints/grpo --merge
-   ```
+---
 
-2. Push model to HF Hub:
-   ```bash
-   python eval/test_export.py --source checkpoints/grpo --push --hub-repo YOUR_USERNAME/aic-orchestrator
-   ```
+## 7) Push the trained model to the Hub
 
-3. Update `app.py` to load the trained model for inference.
+```bash
+# 1. Export and merge the GRPO LoRA adapter
+./.venv/bin/python eval/test_export.py --source checkpoints/grpo --merge
 
-## Monitoring
+# 2. Push to your namespace
+./.venv/bin/python eval/test_export.py \
+    --source checkpoints/grpo \
+    --push --hub-repo <your-username>/aic-orchestrator
+```
 
-The Streamlit dashboard provides real-time monitoring:
+Then update `app.py` (or your inference path) to load the trained model.
+
+---
+
+## 8) Monitoring dashboard (optional)
 
 ```bash
 streamlit run dashboard/app.py
 ```
 
-Features:
-- Live metric tracking (12 KPIs)
-- Trust score evolution
-- Reward decomposition (R1–R8)
-- Agent recommendation history
-- Episode replay
+The dashboard surfaces:
+
+- live tracking of all 12 KPIs
+- trust-score evolution per agent
+- reward decomposition (R1–R8 + R9)
+- agent recommendation history per step
+- episode replay
+
+---
+
+*Companion docs:* [`README.md`](../README.md) · [`DESIGN.md`](../DESIGN.md) ·
+[`COLAB_GPU_RUNBOOK.md`](../COLAB_GPU_RUNBOOK.md) · [`openenv.yaml`](../openenv.yaml)
